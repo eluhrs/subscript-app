@@ -6,11 +6,11 @@ This tool is designed to be accessible for Digital Humanities researchers while 
 
 ## Features
 
--   **Hybrid Pipeline:** Uses Kraken's robust segmentation to find lines of text, then sends each line to a Generative AI model for high-accuracy transcription.
+-   **Hybrid Pipeline:** Uses Kraken to segment lines of text from an image, then sends each line to a Generative AI model for high-accuracy transcription.
 -   **Searchable PDF Output:** Generates PDFs where the image is visible, but the text is selectable and searchable (invisible text layer).
--   **Batch Processing:** Handle single images, directories, or glob patterns (e.g., `*.jpg`).
--   **Combined Output:** Option to combine multiple pages into a single PDF and text file.
--   **Context-Aware:** Sends previous lines as context to the model to improve accuracy on ambiguous handwriting.
+-   **Parallel Processing:** Process multiple lines concurrently for faster transcription (disables context).
+-   **Image Preprocessing:** Built-in options for contrast enhancement, color inversion, and polygon masking to improve OCR accuracy.
+-   **Robust Error Handling:** Automatic resolution fallback and detailed error logging.
 
 ## Installation
 
@@ -34,10 +34,15 @@ This tool is designed to be accessible for Digital Humanities researchers while 
     pip install -r requirements.txt
     ```
 4.  **Configure Environment**:
-    Create a `.env` file in the project root to store your API key.
+    Create a `.env` file in the project root to store your API key. An sample .env.example file is provided, but be sure to add your own API keys.
     ```bash
     # Create .env file
     echo "GEMINI_API_KEY=your_api_key_here" > .env
+    ```
+5.  **Configuration**:
+    Copy the example configuration file:
+    ```bash
+    cp config.example.yml config.yml
     ```
 
 ## Usage
@@ -50,25 +55,25 @@ The main script is `subscript.py`. It can be run directly from the terminal.
 ./subscript.py [MODEL] [INPUT] [OPTIONS]
 ```
 
--   **MODEL**: The nickname of the model to use (defined in `models.yml`), e.g., `gemini-pro-preview`.
+-   **MODEL**: The nickname of the model to use (defined in `config.yml`), e.g., `gemini-pro-3`.
 -   **INPUT**: Path to an image, a directory of images, or a wildcard pattern.
 
 ### Examples
 
 **1. Transcribe a single image:**
 ```bash
-./subscript.py gemini-pro-preview my_page.jpg
+./subscript.py gemini-pro-3 my_page.jpg
 ```
 *Output: `output/my_page.pdf`, `output/my_page.txt`, `output/my_page.xml`*
 
-**2. Transcribe an entire directory:**
+**2. Transcribe an entire directory in parallel:**
 ```bash
-./subscript.py gemini-pro-preview ./scans/
+./subscript.py gemini-pro-3 ./scans/ --concurrency 5
 ```
 
 **3. Combine multiple images into one book:**
 ```bash
-./subscript.py gemini-pro-preview "scans/*.jpg" --combine my_manuscript
+./subscript.py gemini-pro-3 "scans/*.jpg" --combine my_manuscript
 ```
 *Output: `output/my_manuscript.pdf` (all pages), `output/my_manuscript.txt`*
 
@@ -76,26 +81,49 @@ The main script is `subscript.py`. It can be run directly from the terminal.
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
-| `--output-dir` | Directory to save output files. | `./output` |
-| `--combine` | Combine all inputs into a single PDF/TXT with this filename. | None |
-| `--context` | Number of previous lines to send to the model as context. Higher values improve accuracy but use more tokens. | `5` |
-| `--prompt` | Override the system prompt defined in `models.yml`. | (See models.yml) |
-| `--temp` | Override the temperature (creativity). 0.0 is best for accuracy. | `0.0` |
+| `--output-dir` | Directory for output files. | `./output` |
+| `--combine` | Combine all inputs into the specified output filename. | None |
+| `--context` | Set number of transcript lines used as context. | `5` |
+| `--config` | Path to configuration file. | `config.yml` |
+| `--prompt` | Set custom prompt (overrides value in config). | None |
+| `--temp` | Set temperature (overrides value in config). | None |
+| `--concurrency` | Number of parallel lines to process. Note: Parallel processing disables context. | `1` |
 
-## Configuration (models.yml)
+## Configuration (config.yml)
 
-The `models.yml` file defines the available models and their default settings. You can add your own custom prompts here.
+The `config.yml` file defines global settings, preprocessing options, and model configurations.
 
 ```yaml
+# --- Global Settings ---
+concurrency: 5
+timeout: 600
+
+# --- Segmentation (Kraken) ---
+kraken:
+  model: "default"
+  padding: 10 # Padding (pixels) around the line crop
+
+# --- Image Preprocessing ---
+preprocessing:
+  line_mask: true # Mask non-text areas
+  enhance_contrast: true
+  invert: true # Invert colors (Reverse Video)
+  save_line_crops: true # Save debug crops
+  resolution: "medium"
+
+# --- Transcription Models ---
 models:
   gemini-pro-3:
-    provider: gemini
-    model: gemini-3-pro-preview
-    temperature: 0.0
-    timeout: 30m
-    max_resolution: MEDIA_RESOLUTION_HIGH
-    max_resolution_fallback: true
-    prompt: "You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written..."
+    model: "gemini-3-pro-preview"
+    prompt: "..."
+
+  gemini-2.5-flash:
+    model: "gemini-2.5-flash"
+    prompt: "..."
+
+  gpt-4o:
+    model: "gpt-4o"
+    prompt: "..."
 ```
 
 ## License
@@ -115,3 +143,8 @@ You should have received a copy of the GNU General Public License along with thi
 -   **[Kraken](https://kraken.re/)** for segmentation.
 -   **[ReportLab](https://www.reportlab.com/)** for PDF generation.
 -   **[Google Gemini](https://deepmind.google/technologies/gemini/)** (specifically `gemini-3-pro-preview`) for transcription.
+
+*Inspiration*
+
+-   Inspired by **[htr]https://github.com/lehigh-university-libraries/htr)**.
+-   Developed with **[Google Antigravity](https://deepmind.google/technologies/gemini/)**.

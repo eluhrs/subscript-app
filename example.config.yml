@@ -1,0 +1,68 @@
+# Subscript Configuration
+
+# --- Global Settings ---
+output_dir: "output"
+context_lines: 5 # Number of previous lines to use as context for the current line
+concurrency: 5 # Number of parallel lines to process (1 = Sequential with context)
+timeout: 600 # API timeout in seconds (Increased for debugging)
+
+# --- Segmentation (Kraken) ---
+kraken:
+  model: "default" # Uses the default blla.mlmodel
+  padding: 10 # Padding (pixels) around the line crop (expands box and dilates mask)
+
+# --- Image Preprocessing (Transcription) ---
+preprocessing:
+  line_mask: true # Mask non-text areas outside text line polygon
+  enhance_contrast: true # Increase contrast
+  contrast_factor: 1.5 # Factor for contrast enhancement (1.0 = original)
+  invert: true # Invert colors (Reverse Video)
+  save_line_crops: true # Save processed line crops to output/debug_line_crops
+  
+  # Client-Side Resizing (Gemini Global)
+  resolution: "medium" # high (3072px), medium (1536px), low (768px)
+  fallback_resolution: true # Retry with lower resolution on MAX_TOKENS error
+  min_crop_size: 1000 # Ignore crops smaller than this (area in pixels). Helps filter out noise/specks.
+
+# --- Transcription Models ---
+models:
+  gemini-pro-3:
+    #model: "gemini-3-pro-preview"
+    model: "gemini-3-pro-preview"
+    prompt: |
+      Transcribe this handwritten text exactly as written. 
+      Maintain original spelling and punctuation. 
+      Do not include summary, descriptive, explanitory, or any other text that was not transcribed from the image. 
+      Do not correct errors.
+    
+    # Pricing (Per 1 Million Tokens)
+    input_token_price: 2.0
+    output_token_price: 12.0
+
+    # Parameters passed directly to the model generation config
+    generation_config:
+      temperature: 0.0
+      max_output_tokens: 65536
+      top_p: 0.95
+      top_k: 64
+
+  gemini-flash:
+    model: "gemini-1.5-flash-latest"
+    prompt: "Transcribe this handwritten text line exactly as written."
+    generation_config:
+      temperature: 0.0
+      max_output_tokens: 65536
+
+  gemini-2.5-flash:
+    model: "gemini-2.5-flash"
+    prompt: "Transcribe this handwritten text line exactly as written."
+    generation_config:
+      temperature: 0.0
+      max_output_tokens: 65536
+      
+  gpt-4o:
+    model: "gpt-4o"
+    prompt: "Transcribe this handwritten text line exactly as written."
+    generation_config:
+      temperature: 0.0
+      max_tokens: 4096 # OpenAI uses max_tokens

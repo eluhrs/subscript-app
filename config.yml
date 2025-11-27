@@ -1,0 +1,123 @@
+# Subscript Configuration
+
+# --- Global Settings ---
+output_dir: "output"
+context_lines: 5 # Number of previous lines to use as context for the current line
+concurrency: 1 # Number of parallel lines to process (1 = Sequential with context)
+timeout: 300 # API timeout in seconds (Increased for debugging)
+
+# --- Segmentation (Kraken) ---
+kraken:
+  model: "default" # Uses the default blla.mlmodel
+  padding: 2 # POST-segmentation padding: expands line crop boxes AFTER Kraken finds lines (for capturing ascenders/descenders)
+
+# --- Image Preprocessing (Transcription) ---
+preprocessing:
+  # PRE-segmentation padding: adds white border to ENTIRE IMAGE before Kraken segments it (helps with small/cropped images)
+  segmentation_padding: 200 # Pixels of white border added before segmentation
+  
+  line_mask: true # Mask non-text areas outside text line polygon
+  enhance_contrast: true # Increase contrast
+  contrast_factor: 1.5 # Factor for contrast enhancement (1.0 = original)
+  invert: true # Invert colors (Reverse Video)
+  save_line_crops: true # Save processed line crops to output/debug_line_crops
+  min_crop_size: 1000 # Ignore crops smaller than this (area in pixels). Helps filter out noise/specks.  
+
+  # Client-Side Resizing (Gemini Global)
+  transcription_resolution: "high" # high (3072px), medium (1536px), low (768px)
+  fallback_resolution: true # Retry with lower resolution on MAX_TOKENS error
+
+# --- Transcription Models ---
+models:
+  gemini-pro-3:
+    model: "gemini-1.5-pro" # Fixed: gemini-3-pro-preview -> gemini-1.5-pro
+    prompt: |
+      This document was written in 1876.
+      Transcribe this handwritten text exactly as written. 
+      Maintain original spelling and punctuation. 
+      Do not include summary, descriptive, explanitory, or any other text that was not transcribed from the image. 
+      Do not correct errors.
+    
+    # Pricing (Per 1 Million Tokens)
+    input_token_price: 3.50
+    output_token_price: 10.50
+
+    # Parameters passed directly to the model generation config
+    generation_config:
+      temperature: 0.8
+      max_output_tokens: 8192
+      top_p: 0.95
+      top_k: 64
+
+  gemini-2.5-pro:
+    model: "gemini-1.5-pro" # Fixed: gemini-2.5-pro -> gemini-1.5-pro
+    prompt: |
+      You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image 
+      exactly as written. Output only the transcribed text, with no commentary, no preamble, no markdown, and no generated 
+      text after the transcription. Preserve all original spelling, punctuation, capitalization, and line breaks. For each
+      Do not modernize, interpret, or expand abbreviations. Output begins immediately with the first character of the 
+      transcription and ends immediately after the last character of transcription.  If the text is illegible, a single 
+      number, or a fragment, transcribe ONLY what you see. Do NOT invent text, do NOT complete sentences, and do NOT add 
+      context. If the image is blank, return [BLANK]. If the image is unreadable, return [UNREADABLE].
+    
+    # Pricing (Per 1 Million Tokens)
+    input_token_price: 3.50
+    output_token_price: 10.50
+
+    # Parameters passed directly to the model generation config
+    generation_config:
+      temperature: 0.8
+      max_output_tokens: 8192
+      top_p: 0.95
+      top_k: 64
+
+  gemini-2.5-flash:
+    model: "gemini-1.5-flash" # Fixed: gemini-2.5-flash -> gemini-1.5-flash
+    prompt: |
+      You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image 
+      exactly as written. Output only the transcribed text, with no commentary, no preamble, no markdown, and no generated 
+      text after the transcription. Preserve all original spelling, punctuation, capitalization, and line breaks. For each
+      Do not modernize, interpret, or expand abbreviations. Output begins immediately with the first character of the 
+      transcription and ends immediately after the last character of transcription.  If the text is illegible, a single 
+      number, or a fragment, transcribe ONLY what you see. Do NOT invent text, do NOT complete sentences, and do NOT add 
+      context. If the image is blank, return [BLANK]. If the image is unreadable, return [UNREADABLE].
+
+    # Pricing (Per 1 Million Tokens)
+    input_token_price: 0.075
+    output_token_price: 0.30
+
+    # Parameters passed directly to the model generation config
+    generation_config:
+      temperature: 0.5
+      max_output_tokens: 8192
+      top_p: 0.95
+      top_k: 64
+
+  gemini-2.5-flash-lite:
+    model: "gemini-1.5-flash-8b" # Fixed: gemini-2.5-flash-lite -> gemini-1.5-flash-8b
+    prompt: |
+      You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image 
+      exactly as written. Output only the transcribed text, with no commentary, no preamble, no markdown, and no generated 
+      text after the transcription. Preserve all original spelling, punctuation, capitalization, and line breaks. For each
+      Do not modernize, interpret, or expand abbreviations. Output begins immediately with the first character of the 
+      transcription and ends immediately after the last character of transcription.  If the text is illegible, a single 
+      number, or a fragment, transcribe ONLY what you see. Do NOT invent text, do NOT complete sentences, and do NOT add 
+      context. If the image is blank, return [BLANK]. If the image is unreadable, return [UNREADABLE].
+
+    # Pricing (Per 1 Million Tokens)
+    input_token_price: 0.0375
+    output_token_price: 0.15
+
+    # Parameters passed directly to the model generation config
+    generation_config:
+      temperature: 0.5
+      max_output_tokens: 8192
+      top_p: 0.95
+      top_k: 64
+
+  gpt-4o:
+    model: "gpt-4o"
+    prompt: "Transcribe this handwritten text line exactly as written."
+    generation_config:
+      temperature: 0.0
+      max_tokens: 4096 # OpenAI uses max_tokens
