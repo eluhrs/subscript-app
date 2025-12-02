@@ -46,7 +46,7 @@ def preprocess_image(image: Image.Image, config: Dict[str, Any]) -> Image.Image:
     prep_config = config.get('transcription', {}).get('preprocessing', {})
     
     # 1. Resize (Constrain Dimensions)
-    size_setting = prep_config.get('image_size', 'large')
+    size_setting = prep_config.get('resize_image', 'large')
     max_dim = None
     if size_setting == 'large':
         max_dim = 3000
