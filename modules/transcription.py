@@ -9,6 +9,101 @@ from modules.interfaces import TranscriptionEngine
 
 logger = logging.getLogger(__name__)
 
+def otsu_threshold(histogram):
+    """Computes Otsu's threshold from a histogram."""
+    total = sum(histogram)
+    sum_b = 0
+    w_b = 0
+    w_f = 0
+    sum1 = sum(i * n for i, n in enumerate(histogram))
+    max_var = 0.0
+    threshold = 0
+
+    for i in range(256):
+        w_b += histogram[i]
+        if w_b == 0:
+            continue
+        w_f = total - w_b
+        if w_f == 0:
+            break
+        
+        sum_b += i * histogram[i]
+        m_b = sum_b / w_b
+        m_f = (sum1 - sum_b) / w_f
+        
+        var_between = w_b * w_f * (m_b - m_f) ** 2
+        
+        if var_between > max_var:
+            max_var = var_between
+            threshold = i
+            
+    return threshold
+
+def preprocess_image(image: Image.Image, config: Dict[str, Any]) -> Image.Image:
+    """Applies preprocessing steps to the image based on config."""
+    from PIL import ImageOps, ImageEnhance
+    
+    prep_config = config.get('transcription', {}).get('preprocessing', {})
+    
+    # 1. Resize (Constrain Dimensions)
+    size_setting = prep_config.get('image_size', 'large')
+    max_dim = None
+    if size_setting == 'large':
+        max_dim = 3000
+    elif size_setting == 'medium':
+        max_dim = 2000
+    elif size_setting == 'small':
+        max_dim = 1000
+        
+    if max_dim:
+        w, h = image.size
+        if w > max_dim or h > max_dim:
+            # Calculate new size maintaining aspect ratio
+            ratio = min(max_dim / w, max_dim / h)
+            new_size = (int(w * ratio), int(h * ratio))
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+            logger.info(f"Resized image to {new_size}")
+
+    # 2. Grayscale (Required for binarization, or if requested)
+    # We'll convert to grayscale if binarize is on, or if contrast is applied (usually better on L)
+    # But let's stick to user request: "if that is required for binarization, then just make that a multistep conversion"
+    # We will convert to 'L' if binarize is True.
+    # If just contrast/invert, we can keep RGB or convert. 
+    # Usually HTR models work fine with RGB, but 'L' is safer for processing.
+    # Let's convert to 'L' if binarize is True.
+    if prep_config.get('binarize', False):
+         if image.mode != 'L':
+             image = image.convert('L')
+
+    # 3. Contrast
+    contrast_factor = prep_config.get('contrast', 1.0)
+    if contrast_factor != 1.0:
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(contrast_factor)
+        logger.info(f"Applied contrast enhancement: {contrast_factor}")
+
+    # 4. Binarize (Otsu)
+    if prep_config.get('binarize', False):
+        # Ensure grayscale
+        if image.mode != 'L':
+            image = image.convert('L')
+        
+        hist = image.histogram()
+        thresh = otsu_threshold(hist)
+        image = image.point(lambda p: 255 if p > thresh else 0)
+        logger.info(f"Applied Otsu binarization (threshold: {thresh})")
+
+    # 5. Invert
+    if prep_config.get('invert', False):
+        # ImageOps.invert works on RGB and L
+        if image.mode == 'RGBA':
+            # Handle transparency if needed, or drop alpha
+            image = image.convert('RGB')
+        image = ImageOps.invert(image)
+        logger.info("Applied color inversion")
+        
+    return image
+
 class GeminiTranscription(TranscriptionEngine):
     def __init__(self):
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -23,6 +118,9 @@ class GeminiTranscription(TranscriptionEngine):
         
         logger.info(f"Initializing Gemini model: {model_name}")
         model = genai.GenerativeModel(model_name)
+        
+        # 0. Preprocess Image
+        image = preprocess_image(image, config)
         
         # 1. Annotate Image (Visual Tagging)
         annotated_image = image.copy()
@@ -53,17 +151,19 @@ class GeminiTranscription(TranscriptionEngine):
             region['visual_id'] = i + 1
 
         # Save annotated image
-        image_path = config.get('image_path')
-        if image_path:
-            base_name = os.path.splitext(os.path.basename(image_path))[0]
-            debug_filename = f"{base_name}-segmented.jpg"
-        else:
-            debug_filename = "debug_annotated.jpg"
-            
-        debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
-        os.makedirs(os.path.dirname(debug_path), exist_ok=True)
-        annotated_image.save(debug_path)
-        logger.info(f"Saved annotated image to {debug_path}")
+        prep_config = config.get('transcription', {}).get('preprocessing', {})
+        if prep_config.get('debug_image', True):
+            image_path = config.get('image_path')
+            if image_path:
+                base_name = os.path.splitext(os.path.basename(image_path))[0]
+                debug_filename = f"{base_name}-debug.jpg"
+            else:
+                debug_filename = "debug_annotated.jpg"
+                
+            debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
+            os.makedirs(os.path.dirname(debug_path), exist_ok=True)
+            annotated_image.save(debug_path)
+            logger.info(f"Saved debug image to {debug_path}")
 
         # 2. Construct Prompt
         system_prompt = (
@@ -156,6 +256,9 @@ class OpenAITranscription(TranscriptionEngine):
         
         logger.info(f"Initializing OpenAI model: {model_name}")
         
+        # 0. Preprocess Image
+        image = preprocess_image(image, config)
+        
         # 1. Annotate Image (Same as Gemini)
         annotated_image = image.copy()
         draw = ImageDraw.Draw(annotated_image)
@@ -175,15 +278,18 @@ class OpenAITranscription(TranscriptionEngine):
             region['visual_id'] = i + 1
             
         # Save debug image
-        image_path = config.get('image_path')
-        if image_path:
-            base_name = os.path.splitext(os.path.basename(image_path))[0]
-            debug_filename = f"{base_name}-segmented-openai.jpg"
-        else:
-            debug_filename = "debug_annotated_openai.jpg"
-        debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
-        os.makedirs(os.path.dirname(debug_path), exist_ok=True)
-        annotated_image.save(debug_path)
+        prep_config = config.get('transcription', {}).get('preprocessing', {})
+        if prep_config.get('debug_image', True):
+            image_path = config.get('image_path')
+            if image_path:
+                base_name = os.path.splitext(os.path.basename(image_path))[0]
+                debug_filename = f"{base_name}-debug.jpg"
+            else:
+                debug_filename = "debug_annotated_openai.jpg"
+            debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
+            os.makedirs(os.path.dirname(debug_path), exist_ok=True)
+            annotated_image.save(debug_path)
+            logger.info(f"Saved debug image to {debug_path}")
         
         # Encode image to base64
         import base64
@@ -273,6 +379,9 @@ class AnthropicTranscription(TranscriptionEngine):
         
         logger.info(f"Initializing Anthropic model: {model_name}")
         
+        # 0. Preprocess Image
+        image = preprocess_image(image, config)
+        
         # 1. Annotate Image (Same as Gemini)
         annotated_image = image.copy()
         draw = ImageDraw.Draw(annotated_image)
@@ -292,15 +401,18 @@ class AnthropicTranscription(TranscriptionEngine):
             region['visual_id'] = i + 1
             
         # Save debug image
-        image_path = config.get('image_path')
-        if image_path:
-            base_name = os.path.splitext(os.path.basename(image_path))[0]
-            debug_filename = f"{base_name}-segmented-anthropic.jpg"
-        else:
-            debug_filename = "debug_annotated_anthropic.jpg"
-        debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
-        os.makedirs(os.path.dirname(debug_path), exist_ok=True)
-        annotated_image.save(debug_path)
+        prep_config = config.get('transcription', {}).get('preprocessing', {})
+        if prep_config.get('debug_image', True):
+            image_path = config.get('image_path')
+            if image_path:
+                base_name = os.path.splitext(os.path.basename(image_path))[0]
+                debug_filename = f"{base_name}-debug.jpg"
+            else:
+                debug_filename = "debug_annotated_anthropic.jpg"
+            debug_path = os.path.join(config.get('output_dir', 'output'), debug_filename)
+            os.makedirs(os.path.dirname(debug_path), exist_ok=True)
+            annotated_image.save(debug_path)
+            logger.info(f"Saved debug image to {debug_path}")
         
         # Encode image to base64
         import base64
