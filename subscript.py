@@ -219,6 +219,7 @@ def main():
 
     # Pipeline Loop
     generated_pdfs = []
+    generated_txts = [] # List of dicts: {'txt_path': path, 'image_name': name}
     import time
     import datetime
     
@@ -303,7 +304,9 @@ def main():
             if os.path.exists(xml_path):
                 print(f"Saved PageXML to {xml_path}")
             
-            print(f"Saved TXT to {os.path.join(config.get('output_dir', 'output'), f'{base_name}.txt')}")
+            txt_path = os.path.join(config.get('output_dir', 'output'), f'{base_name}.txt')
+            print(f"Saved TXT to {txt_path}")
+            generated_txts.append({'txt_path': txt_path, 'image_name': os.path.basename(image_path)})
             
             if os.path.exists(pdf_path):
                 print(f"Saved PDF to {pdf_path}")
@@ -352,6 +355,14 @@ def main():
         logger.info(f"Combining {len(generated_pdfs)} PDFs into {args.combine}...")
         output_path = os.path.join(config.get('output_dir', 'output'), args.combine)
         output_engine.combine_pdfs(generated_pdfs, output_path)
+        
+    if args.combine and generated_txts:
+        # Combine TXTs
+        # output_path for txt is same as combine arg but with .txt extension
+        base_combine = os.path.splitext(args.combine)[0]
+        output_txt_path = os.path.join(config.get('output_dir', 'output'), f"{base_combine}.txt")
+        logger.info(f"Combining {len(generated_txts)} TXTs into {base_combine}.txt...")
+        output_engine.combine_txts(generated_txts, output_txt_path)
         # Note: We already printed totals above if multi-page.
         # If combine is used, it's usually multi-page.
         # The user didn't specify where to put combine logs.

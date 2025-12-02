@@ -145,3 +145,28 @@ class UnifiedOutputEngine(OutputEngine):
             logger.info(f"Saved Combined PDF to {output_path}")
         except Exception as e:
             logger.error(f"Failed to combine PDFs: {e}")
+
+    def combine_txts(self, txt_info: List[Dict[str, str]], output_path: str):
+        """
+        Combines multiple TXT files into a single TXT file with dividers.
+        txt_info: List of dicts with 'txt_path' and 'image_name'
+        """
+        try:
+            with open(output_path, 'w', encoding='utf-8') as outfile:
+                for item in txt_info:
+                    txt_path = item['txt_path']
+                    image_name = item['image_name']
+                    
+                    if os.path.exists(txt_path):
+                        with open(txt_path, 'r', encoding='utf-8') as infile:
+                            content = infile.read()
+                            
+                        outfile.write(f"\n---------- transcript of {image_name} follows  ----------\n\n")
+                        outfile.write(content)
+                        # Ensure newline at end if missing? Usually read() gets everything.
+                        if not content.endswith('\n'):
+                            outfile.write('\n')
+            
+            logger.info(f"Saved Combined TXT to {output_path}")
+        except Exception as e:
+            logger.error(f"Failed to combine TXTs: {e}")
