@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PIL import Image
-from modules.interfaces import OutputEngine
+from .interfaces import OutputEngine
 
 logger = logging.getLogger(__name__)
 

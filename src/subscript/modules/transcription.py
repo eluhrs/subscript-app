@@ -5,7 +5,7 @@ import re
 from typing import List, Dict, Any
 from PIL import Image, ImageDraw, ImageFont
 import google.generativeai as genai
-from modules.interfaces import TranscriptionEngine
+from .interfaces import TranscriptionEngine
 
 logger = logging.getLogger(__name__)
 
