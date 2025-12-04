@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LayoutDashboard } from 'lucide-react';
+import { User, LayoutDashboard, LogOut } from 'lucide-react';
 
 const Header = ({ currentView, setView, onLogout }) => {
     const NavButton = ({ viewName, icon: Icon, label }) => (
@@ -28,7 +28,13 @@ const Header = ({ currentView, setView, onLogout }) => {
                 <nav className="flex space-x-2 items-center">
                     <NavButton viewName="dashboard" icon={LayoutDashboard} label="Dashboard" />
                     <NavButton viewName="profile" icon={User} label="Profile" />
-                    <button onClick={onLogout} className="ml-4 text-gray-500 hover:text-red-600 font-medium">Logout</button>
+                    <button
+                        onClick={onLogout}
+                        className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition duration-150 ease-in-out ml-2"
+                    >
+                        <LogOut size={20} />
+                        <span>Logout</span>
+                    </button>
                 </nav>
             </div>
         </header>

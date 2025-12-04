@@ -26,6 +26,7 @@ const LoginScreen = ({ setIsAuthenticated, setView }) => {
                 const data = await response.json();
                 localStorage.setItem('token', data.access_token);
                 setIsAuthenticated(true);
+                setView('dashboard');
             } else {
                 const errData = await response.json();
                 setError(errData.detail || 'Login failed');
