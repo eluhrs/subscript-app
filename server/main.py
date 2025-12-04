@@ -194,7 +194,10 @@ def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    file_path = os.path.join(INPUT_DIR, file.filename)
+    user_input_dir = os.path.join(INPUT_DIR, str(current_user.id))
+    os.makedirs(user_input_dir, exist_ok=True)
+    file_path = os.path.join(user_input_dir, file.filename)
+    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
@@ -235,8 +238,16 @@ def delete_document(
         os.remove(doc.output_txt_path)
     if doc.output_pdf_path and os.path.exists(doc.output_pdf_path):
         os.remove(doc.output_pdf_path)
-    # Note: We might want to keep the input file or delete it too. For now, let's keep it simple.
-    
+        
+    # Delete input file
+    input_path = os.path.join(INPUT_DIR, str(doc.owner_id), doc.filename)
+    if os.path.exists(input_path):
+        os.remove(input_path)
+    # Also check legacy path just in case
+    legacy_input_path = os.path.join(INPUT_DIR, doc.filename)
+    if os.path.exists(legacy_input_path):
+        os.remove(legacy_input_path)
+        
     db.delete(doc)
     db.commit()
     return None
@@ -292,10 +303,15 @@ def get_thumbnail(
         raise HTTPException(status_code=404, detail="Document not found")
         
     # Serve input file as thumbnail if it exists
-    input_path = os.path.join(INPUT_DIR, doc.filename)
-    if not os.path.exists(input_path):
+    # Look in user-specific directory first, then fallback to root input (for legacy files)
+    user_input_path = os.path.join(INPUT_DIR, str(user.id), doc.filename)
+    legacy_input_path = os.path.join(INPUT_DIR, doc.filename)
+    
+    if os.path.exists(user_input_path):
+        return FileResponse(user_input_path)
+    elif os.path.exists(legacy_input_path):
+        return FileResponse(legacy_input_path)
+    else:
         # Fallback to placeholder or 404
         raise HTTPException(status_code=404, detail="Thumbnail not found")
-        
-    return FileResponse(input_path)
 
