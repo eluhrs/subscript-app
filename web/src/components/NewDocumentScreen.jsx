@@ -14,6 +14,19 @@ const NewDocumentScreen = ({ setView }) => {
         }
     };
 
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            setFile(e.dataTransfer.files[0]);
+        }
+    };
+
     const handleBeginTranscribing = async () => {
         if (!file) {
             alert("Please select a file first.");
@@ -39,11 +52,12 @@ const NewDocumentScreen = ({ setView }) => {
                 alert(`Transcription started for ${file.name} using ${selectedModel}.`);
                 setView('dashboard');
             } else {
-                alert("Upload failed.");
+                const errData = await response.json();
+                alert(`Upload failed: ${errData.detail || response.statusText}`);
             }
         } catch (error) {
             console.error("Upload error", error);
-            alert("Upload error.");
+            alert(`Upload error: ${error.message}`);
         } finally {
             setUploading(false);
         }
@@ -55,7 +69,11 @@ const NewDocumentScreen = ({ setView }) => {
 
             <div className="bg-white shadow-xl rounded-xl p-8 space-y-6">
                 {/* Drag and Drop Area */}
-                <div className="border-4 border-dashed border-gray-300 p-12 text-center rounded-xl bg-gray-50 hover:border-indigo-500 transition duration-300 cursor-pointer relative">
+                <div
+                    className="border-4 border-dashed border-gray-300 p-12 text-center rounded-xl bg-gray-50 hover:border-indigo-500 transition duration-300 cursor-pointer relative"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                >
                     <input
                         type="file"
                         onChange={handleFileChange}
