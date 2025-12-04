@@ -220,6 +220,27 @@ def get_document(
         raise HTTPException(status_code=404, detail="Document not found")
     return doc
 
+@app.delete("/api/documents/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_document(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Optional: Delete files from disk
+    if doc.output_txt_path and os.path.exists(doc.output_txt_path):
+        os.remove(doc.output_txt_path)
+    if doc.output_pdf_path and os.path.exists(doc.output_pdf_path):
+        os.remove(doc.output_pdf_path)
+    # Note: We might want to keep the input file or delete it too. For now, let's keep it simple.
+    
+    db.delete(doc)
+    db.commit()
+    return None
+
 from fastapi.responses import FileResponse
 
 @app.get("/api/download/{doc_id}/{file_type}")

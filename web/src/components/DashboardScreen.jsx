@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 // --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc }) => (
+// --- Icon Definitions for Actions ---
+const ActionIcons = ({ doc, onDownload, onDelete }) => (
     <div className="flex space-x-2">
         {/* Edit */}
         <button title="Edit" className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition">
@@ -11,28 +12,40 @@ const ActionIcons = ({ doc }) => (
 
         {/* Download TXT */}
         {doc.output_txt_path && (
-            <a href={`/api/download/${doc.id}/txt`} target="_blank" rel="noreferrer" title="Download TXT" className="p-1 rounded-full hover:bg-green-100 transition flex items-center justify-center">
+            <button
+                onClick={() => onDownload(doc.id, 'txt')}
+                title="Download TXT"
+                className="p-1 rounded-full hover:bg-green-100 transition flex items-center justify-center"
+            >
                 <img
                     src="https://placehold.co/18x18/10b981/fff?text=T"
                     alt="Download TXT"
                     className="w-4 h-4 rounded-sm"
                 />
-            </a>
+            </button>
         )}
 
         {/* Download PDF */}
         {doc.output_pdf_path && (
-            <a href={`/api/download/${doc.id}/pdf`} target="_blank" rel="noreferrer" title="Download PDF" className="p-1 rounded-full hover:bg-red-100 transition flex items-center justify-center">
+            <button
+                onClick={() => onDownload(doc.id, 'pdf')}
+                title="Download PDF"
+                className="p-1 rounded-full hover:bg-red-100 transition flex items-center justify-center"
+            >
                 <img
                     src="https://placehold.co/18x18/ef4444/fff?text=P"
                     alt="Download PDF"
                     className="w-4 h-4 rounded-sm"
                 />
-            </a>
+            </button>
         )}
 
         {/* Delete */}
-        <button title="Delete" className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition">
+        <button
+            onClick={() => onDelete(doc.id)}
+            title="Delete"
+            className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+        >
             <Trash2 size={18} />
         </button>
     </div>
@@ -60,13 +73,63 @@ const DashboardScreen = ({ setView }) => {
                 const data = await response.json();
                 setDocuments(data);
             } else if (response.status === 401) {
-                // Handle unauthorized (e.g. token expired) - for now just log
                 console.error("Unauthorized");
             }
         } catch (error) {
             console.error("Failed to fetch documents", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownload = async (docId, type) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/download/${docId}/${type}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `document.${type}`; // Ideally get filename from header
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                alert("Download failed.");
+            }
+        } catch (error) {
+            console.error("Download error", error);
+            alert("Download error.");
+        }
+    };
+
+    const handleDelete = async (docId) => {
+        if (!confirm("Are you sure you want to delete this document?")) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/documents/${docId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                fetchDocuments(); // Refresh list
+            } else {
+                alert("Delete failed.");
+            }
+        } catch (error) {
+            console.error("Delete error", error);
+            alert("Delete error.");
         }
     };
 
@@ -118,18 +181,24 @@ const DashboardScreen = ({ setView }) => {
                                 <tr key={doc.id} className="hover:bg-indigo-50 transition duration-150">
                                     <td className="px-6 py-4 whitespace-nowrap w-20">
                                         {doc.output_pdf_path ? (
-                                            <a href={`/api/download/${doc.id}/pdf`} target="_blank" rel="noreferrer">
-                                                <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer">PDF</div>
-                                            </a>
+                                            <div
+                                                onClick={() => handleDownload(doc.id, 'pdf')}
+                                                className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer"
+                                            >
+                                                PDF
+                                            </div>
                                         ) : (
                                             <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">...</div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 font-medium text-gray-900">
                                         {doc.output_pdf_path ? (
-                                            <a href={`/api/download/${doc.id}/pdf`} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline">
+                                            <button
+                                                onClick={() => handleDownload(doc.id, 'pdf')}
+                                                className="hover:text-indigo-600 hover:underline text-left"
+                                            >
                                                 {doc.filename}
-                                            </a>
+                                            </button>
                                         ) : (
                                             <span>{doc.filename}</span>
                                         )}
@@ -141,7 +210,7 @@ const DashboardScreen = ({ setView }) => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <ActionIcons doc={doc} />
+                                        <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} />
                                     </td>
                                 </tr>
                             ))}
