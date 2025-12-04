@@ -129,6 +129,8 @@ class DocumentResponse(BaseModel):
     upload_date: datetime
     status: str
     error_message: Optional[str] = None
+    output_txt_path: Optional[str] = None
+    output_pdf_path: Optional[str] = None
     class Config:
         orm_mode = True
 
