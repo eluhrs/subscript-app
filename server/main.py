@@ -23,13 +23,16 @@ except ImportError:
     from subscript.__main__ import main as run_subscript_pipeline
 
 # --- Configuration ---
-UPLOAD_DIR = "/app/uploads"
+BASE_UPLOAD_DIR = "/app/uploads"
+INPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "input")
+OUTPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "output")
 DATABASE_URL = "sqlite:////app/subscript.db"
 SECRET_KEY = "your-secret-key-change-this-in-production" # TODO: Load from env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(INPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # --- Database ---
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -189,7 +192,7 @@ def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    file_path = os.path.join(INPUT_DIR, file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
@@ -214,4 +217,31 @@ def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return doc
+
+from fastapi.responses import FileResponse
+
+@app.get("/api/download/{doc_id}/{file_type}")
+def download_document(
+    doc_id: int,
+    file_type: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    if file_type == "pdf":
+        file_path = doc.output_pdf_path
+        media_type = "application/pdf"
+    elif file_type == "txt":
+        file_path = doc.output_txt_path
+        media_type = "text/plain"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid file type")
+        
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    return FileResponse(file_path, media_type=media_type, filename=os.path.basename(file_path))
 

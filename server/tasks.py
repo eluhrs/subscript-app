@@ -31,7 +31,9 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
 
         original_argv = sys.argv
         
-        output_dir = os.path.dirname(file_path)
+        # output_dir = os.path.dirname(file_path)
+        output_dir = "/app/uploads/output"
+        os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         
         # Mock sys.argv for the pipeline

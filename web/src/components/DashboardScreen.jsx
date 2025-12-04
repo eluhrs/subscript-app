@@ -79,6 +79,15 @@ const DashboardScreen = ({ setView }) => {
         }
     };
 
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'completed': return 'Ready to edit';
+            case 'processing': return 'Transcribing';
+            case 'error': return 'Error';
+            default: return 'Queued';
+        }
+    };
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
@@ -108,13 +117,27 @@ const DashboardScreen = ({ setView }) => {
                             {documents.map((doc) => (
                                 <tr key={doc.id} className="hover:bg-indigo-50 transition duration-150">
                                     <td className="px-6 py-4 whitespace-nowrap w-20">
-                                        <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">PDF</div>
+                                        {doc.output_pdf_path ? (
+                                            <a href={`/api/download/${doc.id}/pdf`} target="_blank" rel="noreferrer">
+                                                <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer">PDF</div>
+                                            </a>
+                                        ) : (
+                                            <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">...</div>
+                                        )}
                                     </td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{doc.filename}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900">
+                                        {doc.output_pdf_path ? (
+                                            <a href={`/api/download/${doc.id}/pdf`} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline">
+                                                {doc.filename}
+                                            </a>
+                                        ) : (
+                                            <span>{doc.filename}</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{new Date(doc.upload_date).toLocaleString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}>
-                                            {doc.status}
+                                            {getStatusText(doc.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
