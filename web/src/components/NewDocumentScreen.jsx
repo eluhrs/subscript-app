@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UploadCloud } from 'lucide-react';
 
 const NewDocumentScreen = ({ setView }) => {
-    const [selectedModel, setSelectedModel] = useState('gemini');
+    const [selectedModel, setSelectedModel] = useState('gemini-pro-3');
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
@@ -69,24 +69,32 @@ const NewDocumentScreen = ({ setView }) => {
                     <p className="text-sm text-gray-500">PDF, JPG, PNG files supported</p>
                 </div>
 
-                {/* Model Selection */}
+                {/* Model Selection and PDF Filename */}
                 <div className="pt-4 border-t border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4">Select Transcription Model:</h3>
-                    <div className="flex flex-wrap gap-4">
-                        {models.map((model) => (
-                            <label key={model} className={`flex items-center space-x-2 p-3 rounded-lg border-2 transition duration-150 cursor-pointer ${selectedModel === model ? 'border-indigo-600 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-400'
-                                }`}>
-                                <input
-                                    type="radio"
-                                    name="transcriptionModel"
-                                    value={model}
-                                    checked={selectedModel === model}
-                                    onChange={() => setSelectedModel(model)}
-                                    className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                />
-                                <span className="font-medium text-gray-800 capitalize">{model}</span>
-                            </label>
-                        ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Transcription Model</label>
+                            <select
+                                value={selectedModel}
+                                onChange={(e) => setSelectedModel(e.target.value)}
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border"
+                            >
+                                <option value="gemini-pro-3">gemini-pro-3</option>
+                                <option value="gemini-pro-2.5">gemini-pro-2.5</option>
+                                <option value="gemini-flash-2.5">gemini-flash-2.5</option>
+                                <option value="gemini-flash-lite-2.5">gemini-flash-lite-2.5</option>
+                                <option value="openai-gpt-4o">openai-gpt-4o</option>
+                                <option value="antropic-claude-4.5">antropic-claude-4.5</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">PDF Filename for Multi-Image Conversions</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. my_document.pdf"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md border px-3 py-2"
+                            />
+                        </div>
                     </div>
                 </div>
 
