@@ -41,8 +41,7 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
             "subscript",
             model,
             file_path,
-            "--output", output_dir,
-            "--nopdf"
+            "--output", output_dir
         ]
         
         try:
