@@ -142,6 +142,41 @@ transcription:
         max_output_tokens: 8192
 ```
 
+## Web Application
+
+Subscript includes a full-stack web application (React + FastAPI) for a graphical user interface.
+
+### Running Locally (Docker)
+Ensure you have Docker and Docker Compose installed.
+
+1.  **Start the Application**:
+    ```bash
+    docker compose up -d
+    ```
+2.  **Access the UI**:
+    Open [http://localhost:8080](http://localhost:8080) in your browser.
+3.  **API Documentation**:
+    Open [http://localhost:8001/docs](http://localhost:8001/docs) to view the auto-generated API docs.
+
+### Production Deployment
+To deploy on a server (e.g., Debian/Ubuntu with Apache):
+
+1.  **Run Docker**:
+    Start the containers as shown above.
+2.  **Configure Apache Reverse Proxy**:
+    Enable proxy modules: `a2enmod proxy proxy_http`.
+    Add a VirtualHost configuration:
+    ```apache
+    <VirtualHost *:80>
+        ServerName subscript.yourdomain.com
+        
+        ProxyPreserveHost On
+        ProxyPass / http://localhost:8080/
+        ProxyPassReverse / http://localhost:8080/
+    </VirtualHost>
+    ```
+3.  **Restart Apache**: `systemctl restart apache2`.
+
 ## License
 **GNU General Public License v3.0**
 
