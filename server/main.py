@@ -268,3 +268,34 @@ def download_document(
         
     return FileResponse(file_path, media_type=media_type, filename=os.path.basename(file_path))
 
+@app.get("/api/thumbnail/{doc_id}")
+def get_thumbnail(
+    doc_id: int,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    # Manually validate token since it's a query param for <img> tag
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+             raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+        
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    # Serve input file as thumbnail if it exists
+    input_path = os.path.join(INPUT_DIR, doc.filename)
+    if not os.path.exists(input_path):
+        # Fallback to placeholder or 404
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+        
+    return FileResponse(input_path)
+

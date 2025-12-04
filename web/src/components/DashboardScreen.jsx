@@ -94,13 +94,22 @@ const DashboardScreen = ({ setView }) => {
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `document.${type}`; // Ideally get filename from header
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+
+                if (type === 'pdf') {
+                    window.open(url, '_blank');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `document.${type}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+
+                // Note: Revoking immediately might break new tab in some browsers, 
+                // but usually fine if opened synchronously. 
+                // For safety, we can set a timeout.
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             } else {
                 alert("Download failed.");
             }
@@ -183,9 +192,14 @@ const DashboardScreen = ({ setView }) => {
                                         {doc.output_pdf_path ? (
                                             <div
                                                 onClick={() => handleDownload(doc.id, 'pdf')}
-                                                className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer"
+                                                className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer overflow-hidden"
                                             >
-                                                PDF
+                                                <img
+                                                    src={`/api/thumbnail/${doc.id}?token=${localStorage.getItem('token')}`}
+                                                    alt="Thumbnail"
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/e5e7eb/a3a3a3?text=PDF"; }}
+                                                />
                                             </div>
                                         ) : (
                                             <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">...</div>

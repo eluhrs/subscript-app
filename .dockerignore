@@ -1,0 +1,10 @@
+uploads/
+venv/
+__pycache__/
+.git/
+.DS_Store
+*.pyc
+*.pyo
+*.pyd
+.env
+subscript.db
