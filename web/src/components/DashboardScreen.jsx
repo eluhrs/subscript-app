@@ -50,10 +50,18 @@ const DashboardScreen = ({ setView }) => {
 
     const fetchDocuments = async () => {
         try {
-            const response = await fetch('/api/documents');
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/documents', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setDocuments(data);
+            } else if (response.status === 401) {
+                // Handle unauthorized (e.g. token expired) - for now just log
+                console.error("Unauthorized");
             }
         } catch (error) {
             console.error("Failed to fetch documents", error);

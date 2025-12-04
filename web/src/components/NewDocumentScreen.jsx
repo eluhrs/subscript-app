@@ -26,8 +26,12 @@ const NewDocumentScreen = ({ setView }) => {
         formData.append('model', selectedModel);
 
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch('/api/upload', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
 
