@@ -140,52 +140,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Background Task ---
-def process_document(doc_id: int, file_path: str, model: str):
-    db = SessionLocal()
-    doc = db.query(Document).filter(Document.id == doc_id).first()
-    if not doc:
-        return
-    
-    doc.status = "processing"
-    db.commit()
-    
-    try:
-        import sys
-        original_argv = sys.argv
-        
-        output_dir = os.path.dirname(file_path)
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        
-        sys.argv = [
-            "subscript",
-            model,
-            file_path,
-            "--output", output_dir,
-            "--nopdf"
-        ]
-        
-        try:
-            run_subscript_pipeline()
-            doc.status = "completed"
-            doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
-            doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
-        except SystemExit as e:
-            if e.code != 0:
-                raise Exception(f"Subscript exited with code {e.code}")
-            doc.status = "completed"
-            doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
-            doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
-            
-    except Exception as e:
-        logging.error(f"Processing failed: {e}")
-        doc.status = "error"
-        doc.error_message = str(e)
-    finally:
-        sys.argv = original_argv
-        db.commit()
-        db.close()
-
 # --- Auth Endpoints ---
 
 @app.post("/api/auth/register", response_model=UserResponse)
@@ -230,7 +184,6 @@ def list_documents(
 
 @app.post("/api/upload", response_model=DocumentResponse)
 def upload_document(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model: str = "gemini",
     db: Session = Depends(get_db),
@@ -245,7 +198,9 @@ def upload_document(
     db.commit()
     db.refresh(doc)
     
-    background_tasks.add_task(process_document, doc.id, file_path, model)
+    # Trigger Celery Task
+    from server.tasks import process_document_task
+    process_document_task.delay(doc.id, file_path, model)
     
     return doc
 

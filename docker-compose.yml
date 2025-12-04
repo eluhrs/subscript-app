@@ -1,18 +1,46 @@
 services:
-  backend:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  worker:
     build:
       context: .
       dockerfile: server/Dockerfile
-    ports:
-      - "8001:8000"
+    command: celery -A server.celery_app worker --loglevel=info
     volumes:
-      - ./server:/app/server
       - ./subscript.db:/app/subscript.db
       - ./uploads:/app/uploads
+      - ./.env:/app/.env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    command: uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./subscript.db:/app/subscript.db
+      - ./uploads:/app/uploads
+      - ./.env:/app/.env
+      - ./server:/app/server
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
 
   frontend:
     build:
