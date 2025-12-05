@@ -11,5 +11,12 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Install bash and nano for debugging
+RUN apk add --no-cache bash nano
+
+# Add alias for ls
+RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
