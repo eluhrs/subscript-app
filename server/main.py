@@ -22,18 +22,16 @@ except ImportError:
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
     from subscript.__main__ import main as run_subscript_pipeline
 
+from server.utils import sanitize_filename, sanitize_email
+
 # --- Configuration ---
-# --- Configuration ---
-BASE_UPLOAD_DIR = "/app/documents"
-INPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "input")
-OUTPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "output")
+USER_DOCS_DIR = "/app/documents"
 DATABASE_URL = "sqlite:////app/subscript.db"
 SECRET_KEY = "your-secret-key-change-this-in-production" # TODO: Load from env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-os.makedirs(INPUT_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(USER_DOCS_DIR, exist_ok=True)
 
 # --- Database ---
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -195,14 +193,18 @@ def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    user_input_dir = os.path.join(INPUT_DIR, current_user.email)
-    os.makedirs(user_input_dir, exist_ok=True)
-    file_path = os.path.join(user_input_dir, file.filename)
+    clean_email = sanitize_email(current_user.email)
+    clean_filename = sanitize_filename(file.filename)
+    
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    os.makedirs(user_dir, exist_ok=True)
+    
+    file_path = os.path.join(user_dir, clean_filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    doc = Document(filename=file.filename, status="queued", owner_id=current_user.id)
+    doc = Document(filename=clean_filename, status="queued", owner_id=current_user.id)
     db.add(doc)
     db.commit()
     db.refresh(doc)
@@ -235,19 +237,38 @@ def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
     
     # Optional: Delete files from disk
+    # Delete input file and potential outputs
+    # Because we now store everything in /app/documents/{email}/{filename}.*
+    # We can reconstruct the path
+    clean_email = sanitize_email(doc.owner.email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    # Try to delete likely associated files
+    base_name = os.path.splitext(doc.filename)[0]
+    
+    possible_files = [
+        doc.filename,          # Original
+        f"{base_name}.txt",    # Output TXT
+        f"{base_name}.pdf",    # Output PDF
+        f"{base_name}.xml",    # Output XML
+        f"{base_name}-debug.jpg" # Debug image
+    ]
+    
+    for f in possible_files:
+        p = os.path.join(user_dir, f)
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+    
+    # Delete legacy paths from DB record if they exist and weren't caught above
     if doc.output_txt_path and os.path.exists(doc.output_txt_path):
-        os.remove(doc.output_txt_path)
+        try: os.remove(doc.output_txt_path)
+        except: pass
     if doc.output_pdf_path and os.path.exists(doc.output_pdf_path):
-        os.remove(doc.output_pdf_path)
-        
-    # Delete input file
-    input_path = os.path.join(INPUT_DIR, doc.owner.email, doc.filename)
-    if os.path.exists(input_path):
-        os.remove(input_path)
-    # Also check legacy path just in case
-    legacy_input_path = os.path.join(INPUT_DIR, str(doc.owner_id), doc.filename)
-    if os.path.exists(legacy_input_path):
-        os.remove(legacy_input_path)
+        try: os.remove(doc.output_pdf_path)
+        except: pass
         
     db.delete(doc)
     db.commit()
@@ -266,12 +287,23 @@ def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
+    base_name = os.path.splitext(doc.filename)[0]
+    
+    # Construct path based on consolidated directory structure
+    clean_email = sanitize_email(current_user.email)
+    
     if file_type == "pdf":
-        file_path = doc.output_pdf_path
+        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.pdf")
         media_type = "application/pdf"
     elif file_type == "txt":
-        file_path = doc.output_txt_path
+        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.txt")
         media_type = "text/plain"
+    elif file_type == "xml":
+        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.xml")
+        media_type = "application/xml"
+    elif file_type == "debug":
+        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-debug.jpg")
+        media_type = "image/jpeg"
     else:
         raise HTTPException(status_code=400, detail="Invalid file type")
         
@@ -304,14 +336,11 @@ def get_thumbnail(
         raise HTTPException(status_code=404, detail="Document not found")
         
     # Serve input file as thumbnail if it exists
-    # Look in user-specific directory first, then fallback to root input (for legacy files)
-    user_input_path = os.path.join(INPUT_DIR, user.email, doc.filename)
-    legacy_input_path = os.path.join(INPUT_DIR, str(user.id), doc.filename)
+    clean_email = sanitize_email(user.email)
+    user_input_path = os.path.join(USER_DOCS_DIR, clean_email, doc.filename)
     
     if os.path.exists(user_input_path):
         return FileResponse(user_input_path)
-    elif os.path.exists(legacy_input_path):
-        return FileResponse(legacy_input_path)
     else:
         # Fallback to placeholder or 404
         raise HTTPException(status_code=404, detail="Thumbnail not found")
