@@ -224,7 +224,11 @@ const DashboardScreen = ({ setView }) => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} />
+                                        {doc.status === 'processing' || doc.status === 'queued' ? (
+                                            <span className="text-gray-400 text-xs italic">Processing...</span>
+                                        ) : (
+                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} />
+                                        )}
                                     </td>
                                 </tr>
                             ))}

@@ -11,7 +11,7 @@ services:
     command: celery -A server.celery_app worker --loglevel=info
     volumes:
       - ./subscript.db:/app/subscript.db
-      - ./uploads:/app/uploads
+      - ./documents:/app/documents
       - ./.env:/app/.env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -31,7 +31,7 @@ services:
       - "8001:8000"
     volumes:
       - ./subscript.db:/app/subscript.db
-      - ./uploads:/app/uploads
+      - ./documents:/app/documents
       - ./.env:/app/.env
       - ./server:/app/server
     environment:

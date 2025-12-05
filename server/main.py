@@ -23,7 +23,8 @@ except ImportError:
     from subscript.__main__ import main as run_subscript_pipeline
 
 # --- Configuration ---
-BASE_UPLOAD_DIR = "/app/uploads"
+# --- Configuration ---
+BASE_UPLOAD_DIR = "/app/documents"
 INPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "input")
 OUTPUT_DIR = os.path.join(BASE_UPLOAD_DIR, "output")
 DATABASE_URL = "sqlite:////app/subscript.db"
@@ -194,7 +195,7 @@ def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    user_input_dir = os.path.join(INPUT_DIR, str(current_user.id))
+    user_input_dir = os.path.join(INPUT_DIR, current_user.email)
     os.makedirs(user_input_dir, exist_ok=True)
     file_path = os.path.join(user_input_dir, file.filename)
     
@@ -240,11 +241,11 @@ def delete_document(
         os.remove(doc.output_pdf_path)
         
     # Delete input file
-    input_path = os.path.join(INPUT_DIR, str(doc.owner_id), doc.filename)
+    input_path = os.path.join(INPUT_DIR, doc.owner.email, doc.filename)
     if os.path.exists(input_path):
         os.remove(input_path)
     # Also check legacy path just in case
-    legacy_input_path = os.path.join(INPUT_DIR, doc.filename)
+    legacy_input_path = os.path.join(INPUT_DIR, str(doc.owner_id), doc.filename)
     if os.path.exists(legacy_input_path):
         os.remove(legacy_input_path)
         
@@ -304,8 +305,8 @@ def get_thumbnail(
         
     # Serve input file as thumbnail if it exists
     # Look in user-specific directory first, then fallback to root input (for legacy files)
-    user_input_path = os.path.join(INPUT_DIR, str(user.id), doc.filename)
-    legacy_input_path = os.path.join(INPUT_DIR, doc.filename)
+    user_input_path = os.path.join(INPUT_DIR, user.email, doc.filename)
+    legacy_input_path = os.path.join(INPUT_DIR, str(user.id), doc.filename)
     
     if os.path.exists(user_input_path):
         return FileResponse(user_input_path)

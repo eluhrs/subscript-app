@@ -33,14 +33,14 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
         
         # output_dir = os.path.dirname(file_path)
         # Derive output directory based on input path to maintain user separation
-        # file_path is like /app/uploads/input/{user_id}/filename.jpg
-        # We want output to be /app/uploads/output/{user_id}/
+        # file_path is like /app/documents/input/{user_email}/filename.jpg
+        # We want output to be /app/documents/output/{user_email}/
         try:
-            relative_path = os.path.relpath(os.path.dirname(file_path), "/app/uploads/input")
-            output_dir = os.path.join("/app/uploads/output", relative_path)
+            relative_path = os.path.relpath(os.path.dirname(file_path), "/app/documents/input")
+            output_dir = os.path.join("/app/documents/output", relative_path)
         except ValueError:
             # Fallback if path is not relative to input (e.g. legacy or absolute path issue)
-            output_dir = "/app/uploads/output"
+            output_dir = "/app/documents/output"
             
         os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
