@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
-// --- Icon Definitions for Actions ---
 // --- Icon Definitions for Actions ---
 const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
     <div className="flex space-x-2">
@@ -46,7 +46,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
 
         {/* Delete */}
         <button
-            onClick={() => onDelete(doc.id)}
+            onClick={() => onDelete(doc)}
             title="Delete"
             className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
         >
@@ -58,6 +58,10 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
 const DashboardScreen = ({ setView }) => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [docToDelete, setDocToDelete] = useState(null);
 
     useEffect(() => {
         fetchDocuments();
@@ -147,12 +151,19 @@ const DashboardScreen = ({ setView }) => {
         }
     };
 
-    const handleDelete = async (docId) => {
-        if (!confirm("Are you sure you want to delete this document?")) return;
+    // Open Modal
+    const handleDeleteClick = (doc) => {
+        setDocToDelete(doc);
+        setDeleteModalOpen(true);
+    };
+
+    // Actual Delete Logic
+    const confirmDelete = async () => {
+        if (!docToDelete) return;
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/documents/${docId}`, {
+            const response = await fetch(`/api/documents/${docToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -167,6 +178,9 @@ const DashboardScreen = ({ setView }) => {
         } catch (error) {
             console.error("Delete error", error);
             alert("Delete error.");
+        } finally {
+            setDeleteModalOpen(false);
+            setDocToDelete(null);
         }
     };
 
@@ -255,7 +269,7 @@ const DashboardScreen = ({ setView }) => {
                                         {doc.status === 'processing' || doc.status === 'queued' ? (
                                             <span className="text-gray-400 text-xs italic">Processing...</span>
                                         ) : (
-                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} onEdit={handleEdit} />
+                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDeleteClick} onEdit={handleEdit} />
                                         )}
                                     </td>
                                 </tr>
@@ -269,6 +283,18 @@ const DashboardScreen = ({ setView }) => {
                     </table>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Document"
+                message={`Are you sure you want to delete "${docToDelete?.filename}"?\n\nThis action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
         </div>
     );
 };

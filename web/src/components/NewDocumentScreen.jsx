@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { UploadCloud } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
 const NewDocumentScreen = ({ setView }) => {
     const [selectedModel, setSelectedModel] = useState('gemini-pro-3');
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
+
+    // Modal State
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onClose: () => { }
+    });
 
     const models = ['gemini', 'openai', 'anthropic'];
 
@@ -27,9 +37,26 @@ const NewDocumentScreen = ({ setView }) => {
         }
     };
 
+    const closeModal = () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const showModal = (title, message, type = 'info', onCloseCallback = null) => {
+        setModalConfig({
+            isOpen: true,
+            title,
+            message,
+            type,
+            onClose: () => {
+                closeModal();
+                if (onCloseCallback) onCloseCallback();
+            }
+        });
+    };
+
     const handleBeginTranscribing = async () => {
         if (!file) {
-            alert("Please select a file first.");
+            showModal("Missing File", "Please select a file to upload.", "warning");
             return;
         }
 
@@ -49,15 +76,19 @@ const NewDocumentScreen = ({ setView }) => {
             });
 
             if (response.ok) {
-                alert(`Transcription started for ${file.name} using ${selectedModel}.`);
-                setView('dashboard');
+                showModal(
+                    "Upload Successful",
+                    `Transcription started for "${file.name}" using ${selectedModel}.\n\nIt has been added to the queue.`,
+                    "success",
+                    () => setView('dashboard') // Redirect on close
+                );
             } else {
                 const errData = await response.json();
-                alert(`Upload failed: ${errData.detail || response.statusText}`);
+                showModal("Upload Failed", errData.detail || response.statusText, "danger");
             }
         } catch (error) {
             console.error("Upload error", error);
-            alert(`Upload error: ${error.message}`);
+            showModal("Upload Error", error.message, "danger");
         } finally {
             setUploading(false);
         }
@@ -125,6 +156,18 @@ const NewDocumentScreen = ({ setView }) => {
                     {uploading ? "Uploading..." : "Begin Transcribing"}
                 </button>
             </div>
+
+            {/* Reusable Modal */}
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={modalConfig.onClose}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                type={modalConfig.type}
+                singleButton={true} // Just a "Close" or "OK" button
+                confirmText="OK"
+            // If specific Confirm action needed, can pass it. For info modals, single close is fine.
+            />
         </div>
     );
 };
