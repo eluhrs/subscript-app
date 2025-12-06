@@ -3,10 +3,14 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 // --- Icon Definitions for Actions ---
 // --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc, onDownload, onDelete }) => (
+const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
     <div className="flex space-x-2">
         {/* Edit */}
-        <button title="Edit" className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition">
+        <button
+            onClick={() => onEdit(doc)}
+            title="Edit Layout"
+            className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition"
+        >
             <Pencil size={18} />
         </button>
 
@@ -82,6 +86,33 @@ const DashboardScreen = ({ setView }) => {
         }
     };
 
+    const handleEdit = (doc) => {
+        // Construct the file path relative to the editor's 'data' directory
+        // The editor maps 'data' to the documents root.
+        // Doc paths are like documents/email/file.xml
+        // We want 'email/file.xml' passed to ?f=...
+
+        let relPath = "";
+        let sourcePath = doc.output_xml_path || doc.output_pdf_path || doc.output_txt_path || doc.filename;
+
+        if (sourcePath) {
+            relPath = sourcePath
+                .replace(/^\/app\/documents\//, '')
+                .replace(/^documents\//, '');
+
+            // Ensure it points to XML
+            relPath = relPath.replace(/\.[^/.]+$/, "") + ".xml";
+        } else {
+            // Fallback
+            relPath = `unknown/${doc.filename.replace(/\.[^/.]+$/, "")}.xml`;
+        }
+
+        // Use the PHP backend: /editor/web-app/index.php?f=path
+        // Using encodeURI as requested to preserve slashes (less aggressive encoding)
+        const editorUrl = `/editor/web-app/index.php?f=${encodeURI(relPath)}`;
+        window.open(editorUrl, '_blank');
+    };
+
     const handleDownload = async (docId, type) => {
         try {
             const token = localStorage.getItem('token');
@@ -106,9 +137,6 @@ const DashboardScreen = ({ setView }) => {
                     document.body.removeChild(a);
                 }
 
-                // Note: Revoking immediately might break new tab in some browsers, 
-                // but usually fine if opened synchronously. 
-                // For safety, we can set a timeout.
                 setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             } else {
                 alert("Download failed.");
@@ -227,7 +255,7 @@ const DashboardScreen = ({ setView }) => {
                                         {doc.status === 'processing' || doc.status === 'queued' ? (
                                             <span className="text-gray-400 text-xs italic">Processing...</span>
                                         ) : (
-                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} />
+                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDelete} onEdit={handleEdit} />
                                         )}
                                     </td>
                                 </tr>

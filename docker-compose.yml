@@ -13,6 +13,7 @@ services:
       - ./subscript.db:/app/subscript.db
       - ./documents:/app/documents
       - ./.env:/app/.env
+      - ./config.yml:/app/config.yml
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -34,6 +35,7 @@ services:
       - ./documents:/app/documents
       - ./.env:/app/.env
       - ./server:/app/server
+      - ./config.yml:/app/config.yml
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -50,3 +52,15 @@ services:
       - "8080:80"
     depends_on:
       - backend
+
+  page-editor:
+    build: ./page-editor
+    ports:
+      - "8002:80"
+    volumes:
+      - ./documents:/var/www/nw-page-editor/data
+      - ./page-editor/custom.css:/var/www/nw-page-editor/css/custom.css
+      - ./page-editor/custom.js:/var/www/nw-page-editor/js/custom.js
+    environment:
+      - CSS=css/custom.css
+      - JS=js/custom.js

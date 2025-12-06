@@ -1,0 +1,121 @@
+/* Side-by-side Layout (Image Left, Text Right) */
+
+/* Absolute Layout (The Hammer) */
+#container {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: block;
+    /* Remove flex */
+    background-color: #dbe4ff;
+    /* Blue Background */
+}
+
+/* Status Bar full width at top */
+#statusBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    z-index: 100;
+}
+
+/* Image/Canvas Container (LEFT PANE) */
+#xpg {
+    position: absolute;
+    top: 30px;
+    left: 10% !important;
+    /* Start at 10% (Center-Left) */
+    width: 40% !important;
+    /* 40% width */
+    bottom: 0;
+    /* Attach to bottom */
+    height: auto !important;
+    /* Let top/bottom define height */
+    overflow: hidden;
+    border-right: 2px solid #ccc;
+    box-sizing: border-box;
+    flex: none;
+    order: 0;
+    margin: 0;
+    background-color: white;
+    /* Ensure content has white bg */
+}
+
+/* Force inner canvas/svg to fill the container */
+#xpg>* {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Text Edit Pane (RIGHT PANE) */
+#textedit {
+    position: absolute;
+    top: 30px;
+    left: 50% !important;
+    /* Start at Center */
+    width: 40% !important;
+    /* 40% width */
+    bottom: 0;
+    height: auto !important;
+    overflow-y: auto;
+    background-color: white;
+    box-sizing: border-box;
+    padding: 10px;
+    color: #333;
+    z-index: 50;
+    flex: none;
+    order: 0;
+    margin: 0;
+}
+
+/* Force visibility when the container says it should be visible. */
+#container:not(.hide-text-edit) #textedit {
+    display: block !important;
+}
+
+/* Force HIDE when the container says it should be hidden. */
+.hide-text-edit #textedit {
+    display: none !important;
+}
+
+/* EXPLODE REMOVED: Stabilize layout first. 
+   Image stays 50% even if text is hidden. */
+#container.hide-text-edit #xpg {
+    width: 50% !important;
+    border-right: 2px solid #ccc;
+}
+
+/* Hide the unwanted right sidebar panes completely */
+#sidebar,
+#textinfo {
+    display: none !important;
+}
+
+/* Hide the "Lower pane" toggle in the menu? 
+   NO, we need this because the user might have accidentally hidden it. 
+   We just need to ensure the label is clear if we could, but CSS can't rename it easily.
+   Let's just unhide it.
+*/
+#hide-text-edit {
+    display: block !important;
+}
+
+/* Ensure drawer (menu) is on top and behaves as an overlay */
+#drawer {
+    z-index: 2000;
+    position: absolute;
+    top: 30px;
+    right: 0;
+    max-height: calc(100vh - 30px);
+    overflow-y: auto;
+    background: white;
+    border-left: 1px solid #ccc;
+}
+
+/* Allow the close button (if any) to be seen */
+#drawerButton {
+    z-index: 2001;
+}
