@@ -70,22 +70,21 @@ class UnifiedOutputEngine(OutputEngine):
             text_region = ET.SubElement(page, f"{{{ns}}}TextRegion", {"id": f"r{i}"})
             ET.SubElement(text_region, f"{{{ns}}}Coords", {"points": points})
             
-            # NEW: TextLine (Required for Editor)
-            # We create 1 TextLine per Region since our model detects "Line Regions"
+            # Create a TextLine inside the TextRegion (1:1 mapping for line-based regions)
+            # This is required for nw-page-editor to support line selection correctly
             text_line = ET.SubElement(text_region, f"{{{ns}}}TextLine", {"id": f"l{i}"})
             ET.SubElement(text_line, f"{{{ns}}}Coords", {"points": points})
             
-            # NEW: Baseline (Bottom edge of the box)
-            # points="x1,y2 x2,y2"
+            # Add Baseline (bottom edge of the box)
             baseline_points = f"{x1},{y2} {x2},{y2}"
             ET.SubElement(text_line, f"{{{ns}}}Baseline", {"points": baseline_points})
             
-            # Text Content goes on the Line level
             text_equiv = ET.SubElement(text_line, f"{{{ns}}}TextEquiv")
             ET.SubElement(text_equiv, f"{{{ns}}}Unicode").text = text
             
         # Save
         xml_str = minidom.parseString(ET.tostring(pcgts)).toprettyxml(indent="    ")
+        
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(xml_str)
         # logger.info(f"Saved PageXML to {output_path}")
@@ -95,7 +94,7 @@ class UnifiedOutputEngine(OutputEngine):
             for region in regions:
                 text = region.get('text', '')
                 if text:
-                    f.write(text + "\n")
+                    f.write(text + "\\n")
         # logger.info(f"Saved TXT to {output_path}")
 
     def _generate_pdf(self, image_path: str, regions: List[Dict[str, Any]], output_path: str, config: Dict[str, Any]):
@@ -172,11 +171,11 @@ class UnifiedOutputEngine(OutputEngine):
                         with open(txt_path, 'r', encoding='utf-8') as infile:
                             content = infile.read()
                             
-                        outfile.write(f"\n---------- transcript of {image_name} follows  ----------\n\n")
+                        outfile.write(f"\\n---------- transcript of {image_name} follows  ----------\\n\\n")
                         outfile.write(content)
                         # Ensure newline at end if missing? Usually read() gets everything.
-                        if not content.endswith('\n'):
-                            outfile.write('\n')
+                        if not content.endswith('\\n'):
+                            outfile.write('\\n')
             
             logger.info(f"Saved Combined TXT to {output_path}")
         except Exception as e:
