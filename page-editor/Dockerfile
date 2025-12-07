@@ -29,8 +29,10 @@ RUN echo "<Directory /var/www/nw-page-editor>\n\
 # Set DocumentRoot
 RUN sed -i 's|/var/www/html|/var/www/nw-page-editor|g' /etc/apache2/sites-available/000-default.conf
 
-# Inject custom CSS and JS into index.php with CACHE BUSTER
-RUN sed -i 's|</head>|<link rel="stylesheet" href="../css/custom.css?v=1004"><script src="../js/custom.js"></script></head>|' /var/www/nw-page-editor/web-app/index.php
+# Inject CSS with cache buster (Relative Path for Nginx Proxy)
+RUN sed -i 's|</head>|\n<link rel="stylesheet" type="text/css" href="../css/custom.css?v=1028"></head>|' /var/www/nw-page-editor/web-app/index.php
+# Inject JS (Relative Path for Nginx Proxy)
+RUN sed -i 's|</body>|\n<script src="../js/custom.js?v=1028"></script></body>|' /var/www/nw-page-editor/web-app/index.php
 
 WORKDIR /var/www
 

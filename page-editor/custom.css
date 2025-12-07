@@ -26,62 +26,183 @@
 #xpg {
     position: absolute;
     top: 30px;
-    left: 10% !important;
-    /* Start at 10% (Center-Left) */
-    width: 40% !important;
-    /* 40% width */
+    left: 0 !important;
+    /* Flush Left */
+    width: 50% !important;
+    /* Take exactly half */
     bottom: 0;
-    /* Attach to bottom */
     height: auto !important;
-    /* Let top/bottom define height */
     overflow: hidden;
     border-right: 2px solid #ccc;
     box-sizing: border-box;
-    flex: none;
+    flex: none !important;
+    /* Prevent shrinking */
     order: 0;
     margin: 0;
     background-color: white;
-    /* Ensure content has white bg */
 }
 
-/* Force inner canvas/svg to fill the container */
-#xpg>* {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* Text Edit Pane (RIGHT PANE) */
-#textedit {
+/* New Full Text Side-Car Pane */
+#full-text-pane {
     position: absolute;
     top: 30px;
-    left: 50% !important;
-    /* Start at Center */
-    width: 40% !important;
-    /* 40% width */
-    bottom: 0;
-    height: auto !important;
+    left: 50%;
+    /* Start at midpoint */
+    width: 50% !important;
+    /* Take other half */
+    height: calc(100vh - 30px);
+    background-color: #f8f9fa;
+    border-left: 1px solid #ccc;
     overflow-y: auto;
-    background-color: white;
-    box-sizing: border-box;
     padding: 10px;
-    color: #333;
-    z-index: 50;
-    flex: none;
-    order: 0;
-    margin: 0;
-}
-
-/* Force visibility when the container says it should be visible. */
-#container:not(.hide-text-edit) #textedit {
+    /* Internal padding only */
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 1500;
     display: block !important;
 }
 
-/* Force HIDE when the container says it should be hidden. */
-.hide-text-edit #textedit {
-    display: none !important;
+/* Individual Line Editors */
+.line-editor {
+    display: block;
+    width: 100%;
+    min-height: 1.2em;
+    padding: 4px 8px;
+    margin-bottom: 0;
+    background-color: white;
+    /* Use transparent borders to reserve space and prevent shifts */
+    border: 1px solid transparent;
+    border-radius: 0;
+    color: #333;
+    font-size: 15px;
+    line-height: 1.5;
+    transition: background 0.1s ease;
+    /* Animate background only to prevent jumps */
+    cursor: text;
 }
 
-/* EXPLODE REMOVED: Stabilize layout first. 
+.line-editor:hover {
+    background-color: #fafafa;
+}
+
+.line-editor:focus {
+    outline: none !important;
+    background-color: #fff;
+    /* Ensure absolutely NO blue border/shadow on focus */
+    border-color: transparent !important;
+    box-shadow: none !important;
+    z-index: 10;
+    position: relative;
+}
+
+/* Active Line (Synced with Image Selection) */
+.line-editor.active-line {
+    /* 70% Width Red Highlight via Gradient */
+    background: linear-gradient(to right, #ffcdd2 70%, white 70%);
+
+    /* Left Border Red */
+    border-left: 3px solid #ff0000 !important;
+
+    /* MAINTAIN transparent borders to prevent height shift! */
+    border-top: 1px solid transparent !important;
+    border-bottom: 1px solid transparent !important;
+    border-right: 1px solid transparent !important;
+}
+
+/* SVG Selection Styling Override */
+svg .selected,
+svg .highlight,
+.TextLine.selected .Unicode,
+g.selected path,
+g.selected polyline,
+g.selected polygon {
+    stroke: #ff0000 !important;
+    /* Brighter Red */
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    fill: rgba(255, 0, 0, 0.1) !important;
+}
+
+/* Make default blue lines more subtle without affecting hover */
+/* Targeting the base geometric elements */
+.TextLine polygon,
+.TextLine polyline,
+.TextLine path {
+    stroke-opacity: 0.2 !important;
+    /* Even subtler */
+    /* If they are blue by default, this makes them faint blue */
+}
+
+/* Ensure Hover/Selected is distinct */
+.TextLine:hover polygon,
+.TextLine:hover polyline,
+.TextLine:hover path {
+    stroke-opacity: 0.8 !important;
+    /* Restore opacity on hover */
+    stroke-width: 2px !important;
+}
+
+/* Override any other visibility rules for #textedit */
+#container:not(.hide-text-edit) #textedit {
+    display: block !important;
+    z-index: 1600;
+    background: white;
+    border-top: 2px solid #ccc;
+    height: 45px !important;
+    bottom: 0;
+    top: auto;
+    left: 50% !important;
+    width: 50% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    white-space: nowrap;
+    overflow-x: auto;
+    padding: 5px;
+    line-height: 25px;
+}
+
+/* Force image pane to stay put regardless of verification pane */
+/* Force image pane to stay put regardless of verification pane */
+#xpg {
+    /* Ensure no flex or grid shifts it */
+    flex: none !important;
+    width: 50% !important;
+    /* Fix width to 50% */
+    height: auto !important;
+    bottom: 0;
+    top: 30px;
+    left: 0 !important;
+    /* Fix left to 0 */
+    /* Flexbox right alignment for internal SVG */
+    display: flex !important;
+    flex-direction: row;
+    justify-content: flex-end !important;
+    /* Align content to right */
+    align-items: center;
+    background-color: #f0f0f0;
+    /* Slight gray background to show emptiness */
+}
+
+/* Force SVG to be behave as an image block that can be aligned */
+#xpg svg {
+    display: block !important;
+    width: 100% !important;
+    /* Restore 100% width */
+    height: 100% !important;
+    /* Fill height */
+    max-width: 100% !important;
+    /* Remove auto-margin hacks */
+}
+
+.hide-text-edit #textedit {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* EXPLODE REMOVED: Stabilize layout first.
    Image stays 50% even if text is hidden. */
 #container.hide-text-edit #xpg {
     width: 50% !important;
@@ -108,8 +229,11 @@
     z-index: 2000;
     position: absolute;
     top: 30px;
-    right: 0;
-    max-height: calc(100vh - 30px);
+    /* Below status bar */
+    left: 60%;
+    /* Explicitly start at 60% to occupy right 40% */
+    width: 40% !important;
+    height: calc(100vh - 30px);
     overflow-y: auto;
     background: white;
     border-left: 1px solid #ccc;
