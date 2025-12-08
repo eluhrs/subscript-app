@@ -61,7 +61,8 @@
     display: block;
     width: 100%;
     min-height: 1.2em;
-    padding: 4px 8px;
+    padding: 4px 8px 4px 40px;
+    /* Indent 20px extra (blockquote style) */
     margin-bottom: 0;
     background-color: white;
     /* Use transparent borders to reserve space and prevent shifts */
@@ -95,8 +96,8 @@
     /* 70% Width Red Highlight via Gradient */
     background: linear-gradient(to right, #ffcdd2 70%, white 70%);
 
-    /* Left Border Red */
-    border-left: 3px solid #ff0000 !important;
+    /* Border Removed per request */
+    border-left: none !important;
 
     /* MAINTAIN transparent borders to prevent height shift! */
     border-top: 1px solid transparent !important;
@@ -421,7 +422,8 @@ span#modeActive {
     /* Match btn-sm padding */
     color: #333;
     background-color: #fff;
-    border: 1px solid #ccc;
+    border: 1px solid #e0e0e0;
+    /* Lighter border per request */
     font-weight: normal;
     /* Bootstrap isn't usually bold */
     border-radius: 3px;
@@ -473,7 +475,8 @@ span#modeActive {
     background: #fff;
     font-weight: normal;
     cursor: pointer;
-    border: 1px solid #ccc;
+    border: 1px solid #e0e0e0;
+    /* Lighter border per request */
     border-radius: 3px;
     font-size: 12px;
     height: 22px;
@@ -488,13 +491,15 @@ span#modeActive {
 /* --- CONTROL GROUPS BORDER STYLING --- */
 #zoomControls,
 #pageControlsGroup {
-    border: 1px solid #ccc;
+    border: 1px solid #aaa;
+    /* Reverted to lighter grey */
     border-radius: 4px;
     padding: 3px 5px;
     /* Spacing inside the group border */
     display: inline-flex;
     align-items: center;
-    background-color: transparent;
+    background-color: #f2f2f2;
+    /* Reduced by ~2 shades (light grey) */
     /* Or slight grey if desired */
     margin: 0 5px;
     /* Spacing between groups */

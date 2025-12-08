@@ -57,11 +57,11 @@ RUN mkdir -p /var/www/nw-page-editor/data && \
     chown -R www-data:www-data /var/www/nw-page-editor/data && \
     chmod -R 775 /var/www/nw-page-editor/data
 # 3. Inject new CSS at the end of head
-RUN sed -i 's|</head>|\n<script>console.log("CACHE VERIFIED: v1084");</script><link rel="stylesheet" type="text/css" href="/editor/css/custom.css?v=1084" /></head>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</head>|\n<script>console.log("CACHE VERIFIED: v1089");</script><link rel="stylesheet" type="text/css" href="/editor/css/custom.css?v=1089" /></head>|' /var/www/nw-page-editor/web-app/index.php
 # 4. Inject new JS at the end of body
-RUN sed -i 's|</body>|\n<script src="/editor/js/custom.js?v=1084"></script></body>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</body>|\n<script src="/editor/js/custom.js?v=1089"></script></body>|' /var/www/nw-page-editor/web-app/index.php
 # 5. Update Title
-RUN sed -i 's|<title>.*</title>|<title>v1084-nw-page-editor</title>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|<title>.*</title>|<title>PageXML Editor</title>|' /var/www/nw-page-editor/web-app/index.php
 
 WORKDIR /var/www
 
