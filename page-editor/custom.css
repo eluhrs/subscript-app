@@ -1,15 +1,15 @@
 /* Side-by-side Layout (Image Left, Text Right) */
 
-/* Absolute Layout (The Hammer) */
+/* --- Layout & Panes --- */
+/* Ensure the main container accounts for the fixed navbar */
 #container {
+    padding-top: 0 !important;
     position: relative;
-    height: 100vh;
+    height: calc(100vh - 50px);
+    /* Subtract Navbar Height */
     width: 100vw;
     overflow: hidden;
-    display: block;
-    /* Remove flex */
-    background-color: #dbe4ff;
-    /* Blue Background */
+    margin-top: 0;
 }
 
 /* Status Bar full width at top */
@@ -22,36 +22,21 @@
     z-index: 100;
 }
 
-/* Image/Canvas Container (LEFT PANE) */
-#xpg {
-    position: absolute;
-    top: 30px;
-    left: 0 !important;
-    /* Flush Left */
-    width: 50% !important;
-    /* Take exactly half */
-    bottom: 0;
-    height: auto !important;
-    overflow: hidden;
-    border-right: 2px solid #ccc;
-    box-sizing: border-box;
-    flex: none !important;
-    /* Prevent shrinking */
-    order: 0;
-    margin: 0;
-    background-color: white;
-}
 
+/* New Full Text Side-Car Pane */
 /* New Full Text Side-Car Pane */
 #full-text-pane {
     position: absolute;
-    top: 30px;
+    top: 50px;
+    /* Matched to Navbar Height */
     left: 50%;
     /* Start at midpoint */
     width: 50% !important;
     /* Take other half */
-    height: calc(100vh - 30px);
-    background-color: #f8f9fa;
+    height: calc(100vh - 100px);
+    /* Account for 50px Header + 50px Footer */
+    background-color: #f0f0f0;
+    /* Matched to Image Pane */
     border-left: 1px solid #ccc;
     overflow-y: auto;
     padding: 10px;
@@ -59,7 +44,16 @@
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     z-index: 1500;
-    display: block !important;
+    display: flex !important;
+    /* Enable Flex for Centering */
+    flex-direction: column;
+}
+
+/* Content Container for Scroll/Center */
+#sidecar-content {
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 /* Individual Line Editors */
@@ -82,7 +76,8 @@
 }
 
 .line-editor:hover {
-    background-color: #fafafa;
+    /* Match the active line width constraint (70%) but use the new theme color */
+    background: linear-gradient(to right, #e0e0e0 70%, white 70%);
 }
 
 .line-editor:focus {
@@ -162,26 +157,159 @@ g.selected polygon {
     line-height: 25px;
 }
 
-/* Force image pane to stay put regardless of verification pane */
-/* Force image pane to stay put regardless of verification pane */
-#xpg {
-    /* Ensure no flex or grid shifts it */
-    flex: none !important;
-    width: 50% !important;
-    /* Fix width to 50% */
-    height: auto !important;
-    bottom: 0;
-    top: 30px;
-    left: 0 !important;
-    /* Fix left to 0 */
-    /* Flexbox right alignment for internal SVG */
+/* --- Global Resets for Layout --- */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#statusBar {
     display: flex !important;
-    flex-direction: row;
-    justify-content: flex-end !important;
-    /* Align content to right */
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    height: 50px !important;
+    background-color: #e0e0e0;
+    /* Darker grey for contrast */
+    border-bottom: 1px solid #ccc;
+    /* Slightly darker border */
+    padding: 0 15px !important;
+    box-sizing: border-box;
+    width: 100% !important;
+    position: absolute !important;
+    /* Fixed at top */
+    top: 0;
+    left: 0;
+    z-index: 9999 !important;
+    /* Force on top */
+    visibility: visible !important;
+    /* Prevent hiding */
+    opacity: 1 !important;
+    /* Prevent hiding */
+}
+
+/* Force inner containers to behave as flex rows, preventing stacking */
+#statusBar .navbar-header,
+#statusBar .navbar-brand,
+#statusBar .container-fluid,
+#statusBar .collapse {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    float: none !important;
+    margin: 0 !important;
+    width: auto !important;
+}
+
+/* Hide unwanted elements */
+#textFilter,
+#selectedType,
+#selectedId,
+#modeElement,
+#modeActive,
+span#modeActive {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Page Controls Group */
+#prevPage,
+#nextPage,
+#pageNumWrap {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#pageNumWrap {
+    margin: 0 2px;
+    /* Reduced from 10px to match zoom buttons */
+    padding-right: 5px;
+    /* Add requested padding after total pages */
+    display: inline-flex;
     align-items: center;
+    vertical-align: middle;
+    height: 22px;
+    /* Match button height */
+    line-height: 22px;
+    order: 4;
+}
+
+#pageNum {
+    width: 40px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0 5px;
+    /* Reduced vertical padding */
+    height: 22px;
+    line-height: 20px;
+    /* Account for borders */
+    margin-right: 2px;
+    /* Reduced from 5px */
+    vertical-align: middle;
+}
+
+#totPages {
+    vertical-align: middle;
+    line-height: 22px;
+}
+
+/* Zoom Controls Group (Injected by JS) */
+#zoomControls {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 20px;
+    /* Space between File info and Zoom */
+    vertical-align: middle;
+}
+
+#zoomControls button {
+    margin: 0 2px;
+    padding: 2px 8px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#zoomControls button:hover {
+    background: #e6e6e6;
+}
+
+/* Force SVG to fill container explicitly */
+#xpg svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: block !important;
+}
+
+/* Image Pane (Left) */
+#xpg {
+    position: absolute !important;
+    top: 50px !important;
+    /* Below Navbar */
+    left: 0 !important;
+    width: 50% !important;
+    height: calc(100vh - 100px) !important;
+    /* Account for 50px Header + 50px Footer */
+    overflow: hidden !important;
+    z-index: 10;
+    margin: 0 !important;
     background-color: #f0f0f0;
-    /* Slight gray background to show emptiness */
+    /* Default background */
+    border-right: 1px solid #ccc;
+    display: flex !important;
+    justify-content: center !important;
+    /* Center image */
+    align-items: center !important;
+    /* Center vertically */
 }
 
 /* Force SVG to be behave as an image block that can be aligned */
@@ -242,4 +370,214 @@ g.selected polygon {
 /* Allow the close button (if any) to be seen */
 #drawerButton {
     z-index: 2001;
+}
+
+/* --- REFINED NAVIGATION BAR STYLING --- */
+
+/* 1. Hide unwanted elements */
+/* Hide ALL native info elements inside stateInfo (garbage wrapper, mode indicators) */
+#stateInfo>* {
+    display: none !important;
+}
+
+/* Restore ONLY the custom filename element */
+#stateInfo #xmlFile {
+    display: inline-block !important;
+    font-weight: normal;
+    margin: 0 10px;
+    float: none !important;
+    position: static !important;
+    color: #333;
+}
+
+/* Hamburger Menu (Keep on far right) */
+#drawerButton {
+    /* Existing class usually handles float/pos, but flex item behavior overrides it */
+    margin-left: 0 !important;
+    order: 10;
+}
+
+/* Fix Editor Layout to account for Fixed Header if needed (but currently relative) */
+#container {
+    padding-top: 0 !important;
+    /* Reset any padding */
+}
+
+/* 5. Custom Page Label (Added via JS, styled here) */
+.custom-page-label {
+    margin-right: 5px;
+    color: #888;
+    font-size: 14px;
+}
+
+/* 6. Page Controls Styling - Match Zoom Buttons */
+/* 6. Page Controls Styling - Match Zoom Buttons (Bootstrap btn-default look) */
+#prevPage,
+#nextPage {
+    cursor: pointer;
+    margin: 1px 3px 1px 4px;
+    /* User specified spacing */
+    padding: 2px 8px;
+    /* Match btn-sm padding */
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    font-weight: normal;
+    /* Bootstrap isn't usually bold */
+    border-radius: 3px;
+    font-size: 12px;
+    height: 22px;
+    /* Adjust for border */
+    line-height: 16px;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+#prevPage:hover,
+#nextPage:hover {
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+
+#pageNum {
+    margin: 0 5px;
+}
+
+#pageInput {
+    color: black;
+    height: 20px;
+    font-size: 12px;
+    text-align: center;
+    border: none;
+    border-radius: 2px;
+}
+
+/* 7. Zoom Controls (Injected) */
+.custom-zoom-group {
+    /* margin-left: 15px; Removed spacing as order handles it */
+    display: inline-flex;
+    align-items: center;
+}
+
+.custom-zoom-label {
+    margin-right: 5px;
+    color: #888;
+}
+
+/* Update this to target the injected buttons explicitly */
+#zoomControls button {
+    margin: 1px 5px 1px 5px;
+    /* User specified spacing */
+    padding: 2px 8px;
+    color: #333;
+    background: #fff;
+    font-weight: normal;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+    height: 22px;
+    line-height: 16px;
+}
+
+#zoomControls button:hover {
+    background: #e6e6e6;
+    border-color: #adadad;
+}
+
+/* --- CONTROL GROUPS BORDER STYLING --- */
+#zoomControls,
+#pageControlsGroup {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 3px 5px;
+    /* Spacing inside the group border */
+    display: inline-flex;
+    align-items: center;
+    background-color: transparent;
+    /* Or slight grey if desired */
+    margin: 0 5px;
+    /* Spacing between groups */
+}
+
+/* --- FLEX ORDERING FOR NAVBAR --- */
+/* Target Order: [Zoom] [File Info] [Page Controls] */
+
+/* 1. Zoom Controls (Injected) */
+#zoomControls {
+    order: 1;
+    margin-right: 20px;
+    /* Space after Zoom */
+}
+
+/* 2. File Info (Container) */
+#stateInfo {
+    order: 2;
+    margin-right: 20px;
+    /* Space after File */
+}
+
+/* 3. Page Controls Group (Wrapped) */
+#pageControlsGroup {
+    order: 3;
+}
+
+/* Reset individual orders just in case */
+#prevPage,
+#pageNumWrap,
+#nextPage {
+    order: 0;
+}
+
+/* 4. Hamburger Menu (Far Right) */
+#drawerButton {
+    position: absolute !important;
+    right: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+    z-index: 2001 !important;
+    /* Ensure it stays on top */
+    float: none !important;
+}
+
+/* 8. Hamburger Menu (Settings) - Keep Right */
+/* Bootstrap .navbar-toggle is usually float: right. 
+   We need to ensure it stays right even with our Flexbox header.
+   Flexbox 'margin-left: auto' pushes it to the right. */
+.navbar-toggle {
+    padding: 9px 10px;
+    /* Bootstrap default adjustment */
+    border: none;
+    z-index: 200;
+}
+
+/* TEST: Target bottom footer area */
+#textedit {
+    background-color: #e0e0e0 !important;
+    /* Darker grey for contrast */
+    border-top: 1px solid #ccc !important;
+    /* Match header border style */
+}
+
+/* TEST: Fill the gap under the image pane */
+body {
+    background-color: #e0e0e0 !important;
+}
+
+/* Hide Cursor Coordinates in Footer */
+#cursor {
+    display: none !important;
+}
+
+/* Fix Drawer Menu Occlusion */
+#drawer {
+    top: 50px !important;
+    /* Push below the 50px header */
+    height: calc(100% - 50px) !important;
+    /* Adjust height to fit */
+    z-index: 9000 !important;
+    /* High, but typically below header if desired, or above? 
+                                 Usually drawer overlays everything. 
+                                 User said "don't put it over the top navbar", so it should respect top:50px. */
 }
