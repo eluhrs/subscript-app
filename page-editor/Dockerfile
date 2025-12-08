@@ -38,6 +38,7 @@ RUN sed -i '/custom\.css/d' /var/www/nw-page-editor/web-app/index.php
 # 2. Add custom CSS/JS files
 COPY custom.css /var/www/nw-page-editor/css/custom.css
 COPY custom.js /var/www/nw-page-editor/js/custom.js
+COPY saveFile.php /var/www/nw-page-editor/web-app/saveFile.php
 
 # Custom Menu Reordering and Renaming (Swap 'Lower pane' and 'Image', and rename)
 # 1. Replace 'Lower pane' (hide-text-edit) with a marker to avoid double-matching
@@ -57,9 +58,9 @@ RUN mkdir -p /var/www/nw-page-editor/data && \
     chown -R www-data:www-data /var/www/nw-page-editor/data && \
     chmod -R 775 /var/www/nw-page-editor/data
 # 3. Inject new CSS at the end of head
-RUN sed -i 's|</head>|\n<script>console.log("CACHE VERIFIED: v1090");</script><link rel="stylesheet" type="text/css" href="/editor/css/custom.css?v=1090" /></head>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</head>|\n<script>console.log("CACHE VERIFIED: v1091");</script><link rel="stylesheet" type="text/css" href="/editor/css/custom.css?v=1091" /></head>|' /var/www/nw-page-editor/web-app/index.php
 # 4. Inject new JS at the end of body
-RUN sed -i 's|</body>|\n<script src="/editor/js/custom.js?v=1090"></script></body>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</body>|\n<script src="/editor/js/custom.js?v=1091"></script></body>|' /var/www/nw-page-editor/web-app/index.php
 # 5. Update Title
 RUN sed -i 's|<title>.*</title>|<title>PageXML Editor</title>|' /var/www/nw-page-editor/web-app/index.php
 
