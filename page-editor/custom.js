@@ -127,10 +127,19 @@ $(document).ready(function () {
             // pageCanvas.util.svgRoot points to the SVG, but simpler to use jQuery on DOM
             var lines = $('.TextLine');
             if (lines.length === 0) {
+                // Safari Fix: Retry if SVG hasn't rendered yet
+                if (!window.sideCar._scanRetries) window.sideCar._scanRetries = 0;
+                if (window.sideCar._scanRetries < 10) {
+                    window.sideCar._scanRetries++;
+                    console.log("No lines found yet. Retrying (" + window.sideCar._scanRetries + "/10)...");
+                    setTimeout(window.sideCar.scanLines, 500);
+                    return;
+                }
+
                 content.html('<div style="color:#666; padding:20px;">No text lines found. waiting...</div>');
-                // Retry scan if empty?
                 return;
             }
+            window.sideCar._scanRetries = 0; // Reset on success
 
             console.log("Found " + lines.length + " lines. Building editor...");
 
