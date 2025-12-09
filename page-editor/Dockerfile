@@ -35,7 +35,18 @@ RUN sed -i 's|/var/www/html|/var/www/nw-page-editor|g' /etc/apache2/sites-availa
 # Robustly remove old relative links and inject new absolute ones (v1040)
 # 1. Remove ANY line containing 'custom.css' (native link)
 RUN sed -i '/custom\.css/d' /var/www/nw-page-editor/web-app/index.php
-# 2. Add custom CSS/JS files
+# Stale v2032 lines removed
+
+# 2. Remove ANY line containing 'custom.js' (native script load)
+RUN sed -i '/custom\.js/d' /var/www/nw-page-editor/web-app/index.php
+# Create CSS/JS directories if they don't exist (safety)
+RUN mkdir -p /var/www/nw-page-editor/css /var/www/nw-page-editor/js
+
+# Fix Permissions for Data Directory (Critical for Saving)
+RUN mkdir -p /var/www/nw-page-editor/data && \
+    chown -R www-data:www-data /var/www/nw-page-editor/data && \
+    chmod -R 775 /var/www/nw-page-editor/data
+
 COPY custom.css /var/www/nw-page-editor/css/custom.css
 COPY custom.js /var/www/nw-page-editor/js/custom.js
 COPY saveFile.php /var/www/nw-page-editor/web-app/saveFile.php
@@ -48,19 +59,9 @@ RUN sed -i 's|.*id="hide-img".*|      <label id="hide-text-edit"><input class="m
 # 3. Replace the marker with the NEW 'Background image pane' logic (keeping hide-img ID here)
 RUN sed -i 's|SWAP_MARKER|      <label id="hide-img"><input class="mousetrap" type="checkbox" checked=""/> Background image pane</label>|' /var/www/nw-page-editor/web-app/index.php
 
-# 2. Remove ANY line containing 'custom.js' (native script load)
-RUN sed -i '/custom\.js/d' /var/www/nw-page-editor/web-app/index.php
-# Create CSS/JS directories if they don't exist (safety)
-RUN mkdir -p /var/www/nw-page-editor/css /var/www/nw-page-editor/js
-
-# Fix Permissions for Data Directory (Critical for Saving)
-RUN mkdir -p /var/www/nw-page-editor/data && \
-    chown -R www-data:www-data /var/www/nw-page-editor/data && \
-    chmod -R 775 /var/www/nw-page-editor/data
 # 3. Inject new CSS at the end of head
-RUN sed -i 's|</head>|\n<script>console.log("CACHE VERIFIED: v1091");</script><link rel="stylesheet" type="text/css" href="/editor/css/custom.css?v=1091" /></head>|' /var/www/nw-page-editor/web-app/index.php
-# 4. Inject new JS at the end of body
-RUN sed -i 's|</body>|\n<script src="/editor/js/custom.js?v=1091"></script></body>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</head>|<link rel="stylesheet" href="/editor/css/custom.css" /></head>|' /var/www/nw-page-editor/web-app/index.php
+RUN sed -i 's|</body>|<script src="/editor/js/custom.js"></script></body>|' /var/www/nw-page-editor/web-app/index.php
 # 5. Update Title
 RUN sed -i 's|<title>.*</title>|<title>PageXML Editor</title>|' /var/www/nw-page-editor/web-app/index.php
 

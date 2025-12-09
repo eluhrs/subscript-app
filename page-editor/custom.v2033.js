@@ -1,6 +1,5 @@
-// Custom JS for PageXML Editor
-console.log('%c Antigravity Custom JS Loaded ', 'background: #222; color: #bada55');
-var $ = window.jQuery;
+// Custom JS for Side-Car Editor ---
+
 $(document).ready(function () {
     console.log("Custom JS Loaded: Initializing Side-Car Editor...");
 
@@ -78,56 +77,36 @@ $(document).ready(function () {
             // --- NEW: Update PDF Button ---
             // Parse query params to see if we have docId and token
             const urlParams = new URLSearchParams(window.location.search);
-            // 2b-FIX: Parse 'f' (filename) instead of 'docId' for the API call
-            // The API expects /api/rebuild-pdf/{filename_base64_or_path} ?? 
-            // Actually, the server/main.py expects `filename` as path param.
-            // Let's verify what 'f' contains. It's "eluhrs@gmail.com/mr-test.xml".
-            const filenameObj = urlParams.get('f');
-            const token = urlParams.get('token'); // RESTORED THIS LINE!
+            const docId = urlParams.get('docId');
+            const token = urlParams.get('token');
 
-            // We need BOTH docId (for context?) OR just filename? 
-            // Main.py: @app.post("/api/rebuild-pdf/{filename:path}")
-            // So we need to pass the raw filename.
+            if (docId && token) {
+                var pdfControls = $('<span id="pdfControls" class="pdf-controls" style="margin-right: 15px; padding-right: 15px; border-right: 1px solid #ddd;"></span>');
+                // Use btn-default to match other controls, but larger (no btn-sm)
+                var btnUpdatePdf = $('<button id="btnUpdatePdf" class="btn btn-default" title="Rebuild PDF from current XML">Update PDF</button>');
 
-            if (filenameObj && token) {
-                // DO NOT ENCODE the filename. The API uses {filename:path} which expects raw slashes.
+                // Removed custom css overrides for background color to match toolbar style
 
-                // --- NEW FINAL: Update PDF Button (Formerly "Update PDF 2") ---
-                // Replaces the old button. Uses .btn-prototype-v2 styles.
+                pdfControls.append(btnUpdatePdf);
 
-                var zoomClone = $('<span id="zoomClone" class="zoom-controls"></span>');
+                // Use relative path to leverage Nginx proxy (avoids CORS and hardcoded ports)
+                // This assumes the editor is accessed via the Dashboard (port 8080)
+                const apiEndpoint = '/api/rebuild-pdf/' + docId;
 
-                // Using .btn-prototype-v2 class to handle all styles. 
-                var btnResetClone = $('<button id="btnPrototype" class="btn btn-default btn-prototype-v2" title="Rebuild PDF">Update PDF</button>');
+                btnUpdatePdf.on('click', function (e) {
+                    e.preventDefault();
 
-                zoomClone.append(btnResetClone);
-                $('#statusBar').append(zoomClone);
-
-                // --- Button Action ---
-                $('#btnPrototype').click(function () {
+                    // Captured button reference to avoid 'this' context issues in callbacks
                     var $btn = $(this);
 
-                    // Prevent double clicks
-                    if ($btn.prop('disabled')) return;
+                    // Capture original state
+                    var originalHtml = $btn.html();
+                    var originalClasses = $btn.attr('class'); // Capture original classes to restore
 
-                    // 1. Get Parameters (reusing logic from original button)
-                    var urlParams = new URLSearchParams(window.location.search);
-                    var f_param = urlParams.get('f');
-                    var token = urlParams.get('token');
-                    var docId = urlParams.get('docId');
+                    // Spinner state
+                    $btn.html('<span class="spinner"></span> Updating...').prop('disabled', true);
 
-                    if (!docId || !token) {
-                        alert("Missing parameters (docId or token) for API call.");
-                        return;
-                    }
-
-                    // 2. Set Loading State
-                    var originalText = $btn.text();
-                    $btn.prop('disabled', true).html('<span class="spinner"></span> Updating...');
-
-                    // 3. API Call
-                    // FIX v2057: Use existing backend endpoint which handles "--onlypdf"
-                    fetch('/api/rebuild-pdf/' + docId, {
+                    fetch(apiEndpoint, {
                         method: 'POST',
                         headers: {
                             'Authorization': 'Bearer ' + token
@@ -135,37 +114,45 @@ $(document).ready(function () {
                     })
                         .then(response => {
                             if (response.ok) {
-                                // 4. Success State
-                                // "A checkmark in front of the text is preferred"
-                                // Light Green BG via .state-success
-                                $btn.addClass('state-success')
-                                    .html('&#10003; Updated'); // Checkmark + Text
+                                // Success - Green Checkmark (Using native btn-success for 3D style)
+                                $btn.html('<i class="fa fa-check"></i> Updated')
+                                    .removeClass('btn-default')
+                                    .addClass('btn-success')
+                                    .prop('disabled', true);
 
                                 // Revert after 3 seconds
-                                setTimeout(function () {
-                                    $btn.removeClass('state-success')
-                                        .html(originalText)
+                                setTimeout(() => {
+                                    $btn.html(originalHtml)
+                                        .removeClass('btn-success')
+                                        .addClass('btn-default') // Restore default
                                         .prop('disabled', false);
                                 }, 3000);
+
                             } else {
-                                throw new Error('API Error');
+                                throw new Error('API request failed');
                             }
                         })
-                        .catch(error => {
-                            console.error('Prototype API Error:', error);
-                            // 5. Error State
-                            // Light Red BG via .state-error
-                            $btn.addClass('state-error')
-                                .text('Error');
+                        .catch(err => {
+                            console.error(err);
+                            // Error state
+                            $btn.text("Error").prop('disabled', false).css('background-color', '#dc2626').css('color', 'white');
 
-                            // Revert after 3 seconds
-                            setTimeout(function () {
-                                $btn.removeClass('state-error')
-                                    .html(originalText)
-                                    .prop('disabled', false);
+                            // Revert after 3s
+                            setTimeout(() => {
+                                $btn.html(originalHtml)
+                                    .prop('disabled', false)
+                                    .css('background-color', '')
+                                    .css('color', '');
                             }, 3000);
                         });
                 });
+
+                // Apply custom sizing class immediately on creation (if not already done via attr)
+                btnUpdatePdf.addClass('btn-update-pdf-custom');
+
+                // Prepend or Append?
+                // Append to status bar, order naturally
+                $('#statusBar').append(pdfControls);
             }
 
             // Enhance Info Display with Persistent Cleaning

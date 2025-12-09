@@ -466,8 +466,8 @@ span#modeActive {
     color: #888;
 }
 
-/* Update this to target the injected buttons explicitly (Use class to include clone) */
-.zoom-controls button {
+/* Update this to target the injected buttons explicitly */
+#zoomControls button {
     margin: 1px 5px 1px 5px;
     /* User specified spacing */
     padding: 2px 8px;
@@ -483,7 +483,7 @@ span#modeActive {
     line-height: 16px;
 }
 
-.zoom-controls button:hover {
+#zoomControls button:hover {
     background: #e6e6e6;
     border-color: #adadad;
 }
@@ -615,84 +615,4 @@ body {
     text-align: center !important;
 }
 
-/* Light Green Success State (Flat Background Only - Matches Native 'Pressed' Logic) */
-.btn-success-light {
-    background-color: #d1e7dd !important;
-    background-image: none !important;
-    border-color: #cccccc !important;
-    /* Keep border grey like native buttons */
-    color: #0f5132 !important;
-    box-shadow: none !important;
-    /* No shadow, just color change */
-}
-
-/* Flat Error State */
-.btn-error-flat {
-    background-color: #dc2626 !important;
-    background-image: none !important;
-    border-color: #cccccc !important;
-    color: white !important;
-    box-shadow: none !important;
-}
-
-/* FIX v2051: Prototype Button Styles (Moved from inline JS) */
-/* Targeted specifically to override .zoom-controls button constraints */
-.zoom-controls .btn-prototype-v2 {
-    height: 30px !important;
-    padding: 5px 11px !important;
-    font-size: 14px !important;
-    font-weight: normal !important;
-    border: 1px solid #aaaaaa !important;
-    background-color: #fff !important;
-    background-image: linear-gradient(to bottom, #fff 0, #e6e6e6 100%) !important;
-    background-repeat: repeat-x !important;
-    min-width: 113px !important;
-    /* FIX v2055: Prevent shrinking on Error state */
-    text-align: center !important;
-    /* Ensure centered text when wider than content */
-}
-
-/* FIX v2051: Restore Hover State */
-.zoom-controls .btn-prototype-v2:hover {
-    background-color: #e6e6e6 !important;
-    background-image: none !important;
-    border-color: #adadad !important;
-    /* Bootstrap default hover border */
-}
-
-/* FIX v2052: Remove "blue inner line" (outline) on click */
-.zoom-controls .btn-prototype-v2:focus,
-.zoom-controls .btn-prototype-v2:active {
-    background-color: #e6e6e6 !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* FIX v2053: Prototype State Styles (Success/Error) */
-/* Success State: Light Green (Matches .btn-success-light) */
-.zoom-controls .btn-prototype-v2.state-success {
-    background-color: #d1e7dd !important;
-    background-image: none !important;
-    color: #0f5132 !important;
-    border-color: #cccccc !important;
-}
-
-/* Error State: Light Red (Requested "light red") */
-.zoom-controls .btn-prototype-v2.state-error {
-    background-color: #f8d7da !important;
-    background-image: none !important;
-    color: #721c24 !important;
-    border-color: #c38d92 !important;
-    /* FIX v2056: Darker border (#f5c6cb -> #c38d92) */
-}
-
-/* FIX v2059: Spacing for Update PDF Button */
-/* FIX v2059: Spacing for Update PDF Button */
-#zoomClone {
-    /* Move to the right of Page Controls (order: 3) */
-    order: 4 !important;
-    margin-left: 20px !important;
-    /* Space from Page Controls */
-    margin-right: 0 !important;
-    /* Reset right margin */
-}
+/* btn-update-success removed - using native btn-success */

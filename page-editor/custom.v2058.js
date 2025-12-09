@@ -1,5 +1,5 @@
 // Custom JS for PageXML Editor
-console.log('%c Antigravity Custom JS Loaded ', 'background: #222; color: #bada55');
+console.log('%c Antigravity Custom JS Loaded: v2058 (Final Update PDF) ', 'background: #222; color: #bada55');
 var $ = window.jQuery;
 $(document).ready(function () {
     console.log("Custom JS Loaded: Initializing Side-Car Editor...");

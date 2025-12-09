@@ -58,6 +58,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
 const DashboardScreen = ({ setView }) => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
+    console.log("DASHBOARD VERSION: 2026");
 
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -65,7 +66,7 @@ const DashboardScreen = ({ setView }) => {
 
     useEffect(() => {
         fetchDocuments();
-        const interval = setInterval(fetchDocuments, 5000); // Poll every 5 seconds
+        const interval = setInterval(fetchDocuments, 1000); // Poll every 1 second
         return () => clearInterval(interval);
     }, []);
 
@@ -113,14 +114,15 @@ const DashboardScreen = ({ setView }) => {
 
         // Use the PHP backend: /editor/web-app/index.php?f=path
         // Using encodeURI as requested to preserve slashes (less aggressive encoding)
-        const editorUrl = `/editor/web-app/index.php?f=${encodeURI(relPath)}`;
+        const token = localStorage.getItem('token');
+        const editorUrl = `/editor/web-app/index.php?f=${encodeURI(relPath)}&docId=${doc.id}&token=${token}`;
         window.open(editorUrl, '_blank');
     };
 
     const handleDownload = async (docId, type) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/download/${docId}/${type}`, {
+            const response = await fetch(`/api/download/${docId}/${type}?t=${new Date().getTime()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -131,6 +133,7 @@ const DashboardScreen = ({ setView }) => {
                 const url = window.URL.createObjectURL(blob);
 
                 if (type === 'pdf' || type === 'txt') {
+                    // Open in new tab
                     window.open(url, '_blank');
                 } else {
                     const a = document.createElement('a');
@@ -188,6 +191,7 @@ const DashboardScreen = ({ setView }) => {
         switch (status) {
             case 'completed': return 'bg-green-100 text-green-800';
             case 'processing': return 'bg-yellow-100 text-yellow-800';
+            case 'updating_pdf': return 'bg-yellow-100 text-yellow-800';
             case 'error': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -197,6 +201,7 @@ const DashboardScreen = ({ setView }) => {
         switch (status) {
             case 'completed': return 'Ready to edit';
             case 'processing': return 'Transcribing';
+            case 'updating_pdf': return 'Updating PDF';
             case 'error': return 'Error';
             default: return 'Queued';
         }
@@ -222,7 +227,7 @@ const DashboardScreen = ({ setView }) => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Modified</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -259,15 +264,25 @@ const DashboardScreen = ({ setView }) => {
                                             <span>{doc.filename}</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(doc.upload_date).toLocaleString()}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleString()}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}>
                                             {getStatusText(doc.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        {doc.status === 'processing' || doc.status === 'queued' ? (
+                                        {doc.status === 'processing' ? (
                                             <span className="text-gray-400 text-xs italic">Processing...</span>
+                                        ) : doc.status === 'queued' ? (
+                                            <button
+                                                onClick={() => handleDeleteClick(doc)}
+                                                title="Delete"
+                                                className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         ) : (
                                             <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDeleteClick} onEdit={handleEdit} />
                                         )}

@@ -13,6 +13,7 @@ services:
       - ./subscript.db:/app/subscript.db
       - ./documents:/app/documents
       - ./.env:/app/.env
+      - ./server:/app/server
       - ./config.yml:/app/config.yml
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}

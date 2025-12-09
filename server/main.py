@@ -51,6 +51,7 @@ class Document(Base):
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, index=True)
     upload_date = Column(DateTime, default=datetime.utcnow)
+    last_modified = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="uploaded") # uploaded, processing, completed, error
     error_message = Column(String, nullable=True)
     output_txt_path = Column(String, nullable=True)
@@ -126,6 +127,7 @@ class DocumentResponse(BaseModel):
     id: int
     filename: str
     upload_date: datetime
+    last_modified: Optional[datetime] = None
     status: str
     error_message: Optional[str] = None
     output_txt_path: Optional[str] = None
@@ -184,6 +186,33 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Dynamically update last_modified based on file system
+    for doc in current_user.documents:
+        clean_email = sanitize_email(current_user.email)
+        user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+        base_name = os.path.splitext(doc.filename)[0]
+        
+        # Check potential files
+        latest_mtime = doc.upload_date.timestamp()
+        if doc.last_modified:
+            latest_mtime = max(latest_mtime, doc.last_modified.timestamp())
+            
+        file_candidates = [
+            doc.filename,
+            f"{base_name}.xml",
+            f"{base_name}.txt",
+            f"{base_name}.pdf"
+        ]
+        
+        for f in file_candidates:
+            p = os.path.join(user_dir, f)
+            if os.path.exists(p):
+                mtime = os.path.getmtime(p)
+                if mtime > latest_mtime:
+                    latest_mtime = mtime
+                    
+        doc.last_modified = datetime.fromtimestamp(latest_mtime)
+
     return current_user.documents
 
 @app.post("/api/upload", response_model=DocumentResponse)
@@ -224,6 +253,34 @@ def get_document(
     doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    return doc
+
+@app.post("/api/rebuild-pdf/{doc_id}", response_model=DocumentResponse)
+def rebuild_pdf(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    clean_email = sanitize_email(current_user.email)
+    clean_filename = sanitize_filename(doc.filename)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    file_path = os.path.join(user_dir, clean_filename)
+    
+    if not os.path.exists(file_path):
+         raise HTTPException(status_code=404, detail=f"Original file not found at {file_path}")
+
+    doc.status = "updating_pdf" 
+    # Set immediately so dashboard reflects the action
+    db.commit()
+    db.refresh(doc)
+    
+    from server.tasks import rebuild_pdf_task
+    rebuild_pdf_task.delay(doc.id, file_path)
+    
     return doc
 
 @app.delete("/api/documents/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,5 +1,5 @@
 // Custom JS for PageXML Editor
-console.log('%c Antigravity Custom JS Loaded ', 'background: #222; color: #bada55');
+console.log('%c Antigravity Custom JS Loaded: v2057 (Use docId for API) ', 'background: #222; color: #bada55');
 var $ = window.jQuery;
 $(document).ready(function () {
     console.log("Custom JS Loaded: Initializing Side-Car Editor...");
@@ -90,20 +90,107 @@ $(document).ready(function () {
             // So we need to pass the raw filename.
 
             if (filenameObj && token) {
-                // DO NOT ENCODE the filename. The API uses {filename:path} which expects raw slashes.
+                // ... controls ...
+                var pdfControls = $('<span id="pdfControls" class="pdf-controls" style="margin-right: 15px; padding-right: 15px; border-right: 1px solid #ddd;"></span>');
+                var btnUpdatePdf = $('<button id="btnUpdatePdf" class="btn btn-default" title="Rebuild PDF from current XML">Update PDF</button>');
 
-                // --- NEW FINAL: Update PDF Button (Formerly "Update PDF 2") ---
-                // Replaces the old button. Uses .btn-prototype-v2 styles.
+                pdfControls.append(btnUpdatePdf);
+
+                // DO NOT ENCODE the filename. The API uses {filename:path} which expects raw slashes.
+                // If we encode it, it becomes %2F which causes a 404/422 in some proxies/routers.
+                const dbFilename = filenameObj;
+                const apiEndpoint = '/api/rebuild-pdf/' + dbFilename;
+
+                btnUpdatePdf.on('click', function (e) {
+                    e.preventDefault();
+                    var $btn = $(this);
+
+                    // Capture original
+                    var originalHtml = $btn.html();
+
+                    // Spinner
+                    $btn.html('<span class="spinner"></span> Updating...').prop('disabled', true);
+
+                    fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + token, // Send the token!
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                // Success - Light Green "Spreadsheet" Style
+                                $btn.html('<i class="fa fa-check"></i> Updated')
+                                    .removeClass('btn-default')
+                                    .addClass('btn-success-light')
+                                    .prop('disabled', true);
+
+                                // Revert after 3 seconds
+                                setTimeout(() => {
+                                    $btn.html(originalHtml)
+                                        .removeClass('btn-success-light')
+                                        .addClass('btn-default') // Restore default
+                                        .prop('disabled', false);
+                                }, 3000);
+
+                            } else {
+                                throw new Error('API request failed');
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            // Error state - Flat Red Style
+                            $btn.text("Error")
+                                .removeClass('btn-default')
+                                .addClass('btn-error-flat')
+                                .prop('disabled', false);
+
+                            // Revert after 3s
+                            setTimeout(() => {
+                                $btn.html(originalHtml)
+                                    .removeClass('btn-error-flat')
+                                    .addClass('btn-default')
+                                    .prop('disabled', false);
+                            }, 3000);
+                        });
+                });
+
+                // Apply custom sizing class immediately on creation (if not already done via attr)
+                btnUpdatePdf.addClass('btn-update-pdf-custom');
+
+                // Prepend or Append?
+                // Append to status bar, order naturally
+                $('#statusBar').append(pdfControls);
+
+                // --- PROTOTYPE: Zoom Control Clone (Reset Only) ---
+                // "Increase the hight... to match the Update PDF button" -> Remove btn-sm (Update PDF uses btn-default)
+                // "Change text to Update PDF 2"
+                // "Standard font weight, not bold" -> Ensure no explicit bold class.
+                // FIX v2046: The .zoom-controls CSS forces 22px height. We must override this to 34px.
+                // FIX v2047: "Increase the border darkness... a couple of shades." -> Changed #cccccc to #aaaaaa.
+                // FIX v2048: "Reduce the padding by 1px." -> Changed 6px 12px to 5px 11px.
+                // FIX v2049: "Reduce the height to 30px." -> Changed 34px to 30px.
+                // FIX v2050: "Make up state... same background color as... update PDF" -> Restore Bootstrap gradient.
+                // FIX v2051: "What happened to the hover color?" -> Inline !important blocked hover. Moved to CSS class .btn-prototype-v2.
+                // FIX v2052: "Blue inner line/border on click" -> Removed outline/focus ring in CSS.
+                // FIX v2054: Hook up API action, Spinner, and Success/Error states.
+                // Action: Call /api/rebuild-pdf/...
+                // Loading: TEXT "Updating..." + Spinner
+                // Success: COLOR Light Green + TEXT "Updated" + Checkmark
+                // Error: COLOR Light Red + TEXT "Error"
+                // FIX v2055: "Button width reduces... update padding" -> Measured 113px. Set min-width: 113px in CSS.
 
                 var zoomClone = $('<span id="zoomClone" class="zoom-controls"></span>');
 
                 // Using .btn-prototype-v2 class to handle all styles. 
-                var btnResetClone = $('<button id="btnPrototype" class="btn btn-default btn-prototype-v2" title="Rebuild PDF">Update PDF</button>');
+                // We add an ID to easily select it for events.
+                var btnResetClone = $('<button id="btnPrototype" class="btn btn-default btn-prototype-v2" title="Rebuild PDF Prototype">Update PDF 2</button>');
 
                 zoomClone.append(btnResetClone);
                 $('#statusBar').append(zoomClone);
 
-                // --- Button Action ---
+                // --- Prototype Button Action ---
                 $('#btnPrototype').click(function () {
                     var $btn = $(this);
 
