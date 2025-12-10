@@ -62,6 +62,7 @@ class Document(Base):
     # Grouping Fields
     is_container = Column(Boolean, default=False)
     page_order = Column(Integer, default=0)
+    directory_name = Column(String, nullable=True) # Stores {filename}-{hash}
     parent_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
     children = relationship("Document", 
                             backref="parent", 
@@ -211,6 +212,14 @@ def list_documents(
     for doc in docs:
         clean_email = sanitize_email(current_user.email)
         user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+        
+        # Use hashed directory if present (it should be for all new docs)
+        if doc.directory_name:
+             doc_dir = os.path.join(user_dir, doc.directory_name)
+        else:
+             # Fallback for legacy (though we wiped data)
+             doc_dir = user_dir
+             
         base_name = os.path.splitext(doc.filename)[0]
         
         # Check potential files
@@ -226,7 +235,7 @@ def list_documents(
         ]
         
         for f in file_candidates:
-            p = os.path.join(user_dir, f)
+            p = os.path.join(doc_dir, f)
             if os.path.exists(p):
                 mtime = os.path.getmtime(p)
                 if mtime > latest_mtime:
@@ -237,9 +246,9 @@ def list_documents(
         # Check for optional files to populate response flags
         # Note: These are not DB columns, so we set them on the object instances
         # which Pydantic will serialize.
-        xml_path = os.path.join(user_dir, f"{base_name}.xml")
-        thumb_path = os.path.join(user_dir, f"{base_name}-thumb.jpg")
-        debug_path = os.path.join(user_dir, f"{base_name}-debug.jpg")
+        xml_path = os.path.join(doc_dir, f"{base_name}.xml")
+        thumb_path = os.path.join(doc_dir, f"{base_name}-thumb.jpg")
+        debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
         
         doc.has_xml = os.path.exists(xml_path)
         # Keep has_debug for backward compatibility or debug download
@@ -247,12 +256,13 @@ def list_documents(
         
         if os.path.exists(thumb_path):
             # Point to API which requires token
-            doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
+            # Add cache busting
+            ts = int(os.path.getmtime(thumb_path))
+            doc.thumbnail_url = f"/api/thumbnail/{doc.id}?v={ts}"
         elif os.path.exists(debug_path):
-             # Fallback to debug image if thumb generation failed but debug exists
-             # But serve via API to ensure consistent access control?
-             # Or stick to static path? Let's use API to be safe.
-             doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
+             # Fallback
+             ts = int(os.path.getmtime(debug_path))
+             doc.thumbnail_url = f"/api/thumbnail/{doc.id}?v={ts}"
         else:
             doc.thumbnail_url = None
 
@@ -261,22 +271,36 @@ def list_documents(
 @app.post("/api/upload", response_model=DocumentResponse)
 def upload_document(
     file: UploadFile = File(...),
-    model: str = "gemini",
+    model: str = "gemini-pro-3", # Default to valid model key
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    import secrets
     clean_email = sanitize_email(current_user.email)
     clean_filename = sanitize_filename(file.filename)
     
-    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
-    os.makedirs(user_dir, exist_ok=True)
+    # Generate unique directory name: filename-hash
+    # We use base filename for the prefix
+    base_name = os.path.splitext(clean_filename)[0]
+    short_hash = secrets.token_hex(4) # 8 characters
+    dir_name = f"{base_name}-{short_hash}"
     
-    file_path = os.path.join(user_dir, clean_filename)
+    # Path: /app/documents/email/dir_name/
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    storage_dir = os.path.join(user_dir, dir_name)
+    os.makedirs(storage_dir, exist_ok=True)
+    
+    file_path = os.path.join(storage_dir, clean_filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    doc = Document(filename=clean_filename, status="queued", owner_id=current_user.id)
+    doc = Document(
+        filename=clean_filename, 
+        status="queued", 
+        owner_id=current_user.id,
+        directory_name=dir_name
+    )
     db.add(doc)
     db.commit()
     db.refresh(doc)
@@ -295,6 +319,7 @@ def upload_batch(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    import secrets
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
@@ -302,45 +327,65 @@ def upload_batch(
     
     # 1. Handle Grouping (Parent Document)
     parent_doc = None
+    upload_target_map = {} # map index -> (storage_dir, directory_name)
+    
     if group_filename:
-        # User requested grouping
+        # User requested grouping -> One shared directory
         clean_group_name = sanitize_filename(group_filename)
         
-        # Ensure it ends in .pdf if user forgot
         if not clean_group_name.lower().endswith(".pdf"):
             clean_group_name += ".pdf"
             
+        group_base = os.path.splitext(clean_group_name)[0]
+        short_hash = secrets.token_hex(4)
+        group_dir_name = f"{group_base}-{short_hash}"
+        
+        # Parent Record
         parent_doc = Document(
             filename=clean_group_name,
-            status="processing", # Container is "processing" while children upload?
+            status="processing", 
             owner_id=current_user.id,
             is_container=True,
-            output_pdf_path=None # No PDF yet
+            output_pdf_path=None,
+            directory_name=group_dir_name
         )
         db.add(parent_doc)
         db.commit()
         db.refresh(parent_doc)
         
-        # Create sub-directory for this group
-        # Remove extension for dir name: "MyBook.pdf" -> "MyBook"
-        group_dir_name = os.path.splitext(clean_group_name)[0]
+        # Directory: documents/{email}/{group_base}-{hash}/
         upload_dir = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # All files go here
+        for i in range(len(files)):
+            upload_target_map[i] = (upload_dir, group_dir_name)
+            
     else:
-        # No grouping - flat upload to root
-        upload_dir = os.path.join(USER_DOCS_DIR, clean_email)
+        # Flat upload -> Each file gets its own directory
         group_dir_name = None
+        for i, f in enumerate(files):
+            clean_f = sanitize_filename(f.filename)
+            base_f = os.path.splitext(clean_f)[0]
+            f_hash = secrets.token_hex(4)
+            f_dir_name = f"{base_f}-{f_hash}"
+            
+            f_storage_dir = os.path.join(USER_DOCS_DIR, clean_email, f_dir_name)
+            os.makedirs(f_storage_dir, exist_ok=True)
+            
+            upload_target_map[i] = (f_storage_dir, f_dir_name)
 
-    os.makedirs(upload_dir, exist_ok=True)
-    
+    # 2. Process Files
     # Trigger import
     from server.tasks import process_document_task
 
-    children_xmls = []
+    children_xmls = [] # relative paths for LST
 
-    # 2. Process Files
     for i, file in enumerate(files):
         clean_filename = sanitize_filename(file.filename)
-        file_path = os.path.join(upload_dir, clean_filename)
+        
+        storage_dir, dir_name = upload_target_map[i]
+        file_path = os.path.join(storage_dir, clean_filename)
         
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -351,7 +396,8 @@ def upload_batch(
             status="queued",
             owner_id=current_user.id,
             parent_id=parent_doc.id if parent_doc else None,
-            page_order=i + 1
+            page_order=i + 1,
+            directory_name=dir_name
         )
         db.add(doc)
         db.commit()
@@ -360,53 +406,33 @@ def upload_batch(
         # Trigger Task
         process_document_task.delay(doc.id, file_path, model)
         
-        # Track expected XML path for .lst generation relative to dashboard?
-        # The Editor expects paths relative to its data/ directory.
-        # If no group: clean_email/filename.xml (assuming editor mounts /documents as data/??)
-        # Actually we need to check how the editor resolves paths relative from index.php location.
-        # If user passes `l=../data/clean_email/list.lst`, and list contains `clean_email/group/file.xml`?
-        
-        # NOTE: This path logic is the trickiest part. 
-        # Assuming typical setup where `pages` serve from `data/`.
-        # If group_dir_name is set, files are in `clean_email/group_dir_name/file.xml`.
-        if parent_doc and group_dir_name:
+        # For LST generation:
+        # Browser loads LST via index.php?l=...
+        # LST content is prepended with "../data/" by index.php
+        # So we need "email/group_dir/filename.xml" --> "../data/email/group_dir/filename.xml"
+        if parent_doc:
              base_name = os.path.splitext(clean_filename)[0]
-             # Editor expects paths relative to data/ via index.php logic
-             children_xmls.append(os.path.join(clean_email, group_dir_name, f"{base_name}.xml"))
+             # Must be relative to USER_DOCS_DIR (mapped to data/) or whatever logic we decide.
+             # index.php logic: prepends "../data/" to each line.
+             # USER_DOCS_DIR is mounted to "../data/" (effectively).
+             # So we want distinct path from data root.
+             # "email/group_dir_name/file.xml"
+             children_xmls.append(os.path.join(clean_email, dir_name, f"{base_name}.xml"))
 
-    # 3. Finalize Parent
+    # 3. Finalize Parent (.lst and merging)
     if parent_doc:
-        # Generate .lst file for the editor
-        # Stored in root of user dir? Or inside group dir?
-        # Root is better so it's easily accessible? Or named same as group PDF?
-        lst_filename = f"{clean_group_name}.lst" # e.g. MyBook.pdf.lst or MyBook.lst?
-        # Let's match the group filename logic: MyBook.pdf -> MyBook.lst?
+        # LST goes INSIDE the hashed directory?
+        # Request: "refactor to put filename.lst ... within their respective directories"
+        # So LST should be at `USER_DOCS_DIR/email/group_dir/Group.lst`
         lst_base = os.path.splitext(clean_group_name)[0] + ".lst"
         
-        lst_path_abs = os.path.join(USER_DOCS_DIR, clean_email, lst_base)
-        
-        # The content of LST should be paths relative to...?
-        # The browser requests XMLs.
-        # Let's just list the RELATIVE paths from USER_DOCS_DIR/clean_email?
-        # index.php: $thelist = explode("\n", file_get_contents(...));
-        # array_walk($thelist, function(&$item){ $item = "'../data/".$item."'"; });
-        # So if we put 'subfolder/file.xml', it becomes '../data/subfolder/file.xml'.
-        # Since files are in `USER_DOCS_DIR/clean_email/subfolder/file.xml`...
-        # And `data` maps to `USER_DOCS_DIR`?
-        # Wait, editor mounts `USER_DOCS_DIR` to `/var/www/nw-page-editor/data`?
-        # Let's verify volume mount for page-editor.
-        
-        # ASSUMPTION: /app/documents (backend) == /var/www/nw-page-editor/data (editor)
-        # If index.php prepends `../data/`, and we are in `data/`, then relative path from `data/` is needed.
-        # Files are in `clean_email/group/file.xml`.
-        # So we write `clean_email/group/file.xml` into the list.
+        # Path inside the group directory
+        lst_path_abs = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name, lst_base)
         
         with open(lst_path_abs, "w") as f:
             f.write("\n".join(children_xmls) + "\n")
             
         parent_doc.status = "processing" 
-        # Store LST path? For now just rely on filename convention or future fields.
-        
         db.commit()
         return parent_doc
         
@@ -436,7 +462,13 @@ def rebuild_pdf(
     clean_email = sanitize_email(current_user.email)
     clean_filename = sanitize_filename(doc.filename)
     user_dir = os.path.join(USER_DOCS_DIR, clean_email)
-    file_path = os.path.join(user_dir, clean_filename)
+    
+    if doc.directory_name:
+         doc_dir = os.path.join(user_dir, doc.directory_name)
+    else:
+         doc_dir = user_dir
+         
+    file_path = os.path.join(doc_dir, clean_filename)
     
     if not os.path.exists(file_path):
          raise HTTPException(status_code=404, detail=f"Original file not found at {file_path}")
@@ -468,52 +500,62 @@ def delete_document(
     clean_email = sanitize_email(doc.owner.email)
     user_dir = os.path.join(USER_DOCS_DIR, clean_email)
     
-    # Try to delete likely associated files
-    base_name = os.path.splitext(doc.filename)[0]
-
-    if doc.is_container:
-        # Grouped Delete
-        # 1. Delete all children
-        children = db.query(Document).filter(Document.parent_id == doc.id).all()
-        for child in children:
-            db.delete(child)
-        
-        # 2. Delete Group Directory (contains child images/xmls)
-        group_dir = os.path.join(user_dir, base_name)
-        if os.path.exists(group_dir):
-            shutil.rmtree(group_dir, ignore_errors=True) # Recursive delete
-
-        # 3. Delete .lst file
-        lst_path = os.path.join(user_dir, f"{base_name}.lst")
-        if os.path.exists(lst_path):
-            os.remove(lst_path)
+    if doc.directory_name:
+        # Simple case: Just nuke the directory
+        target_dir = os.path.join(user_dir, doc.directory_name)
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir, ignore_errors=True)
             
-        # 4. Delete Merged PDF/TXT (stored in root user dir with parent filename)
-        pdf_path = os.path.join(user_dir, doc.filename)
-        txt_path = os.path.join(user_dir, f"{base_name}.txt")
-        if os.path.exists(pdf_path): os.remove(pdf_path)
-        if os.path.exists(txt_path): os.remove(txt_path)
-
+        # If it's a container, we should also probably delete the children DB records
+        if doc.is_container:
+            children = db.query(Document).filter(Document.parent_id == doc.id).all()
+            for child in children:
+                db.delete(child)
     else:
-        # Single Document Delete (or orphan child?)
-        # If it's a child, it's inside a group folder.
-        # But if we delete via API, we usually handle paths.
-        # Logic for existing flat files:
-        possible_files = [
-            doc.filename,          # Original
-            f"{base_name}.xml",
-            f"{base_name}.txt",
-            f"{base_name}.pdf",
-            f"{base_name}-debug.jpg"
-        ]
-        
-        for f in possible_files:
-            p = os.path.join(user_dir, f)
-            if os.path.exists(p):
-                try:
-                    os.remove(p)
-                except OSError:
-                    pass
+        # Legacy flat-file logic
+        base_name = os.path.splitext(doc.filename)[0]
+
+        if doc.is_container:
+            # Grouped Delete
+            # 1. Delete all children
+            children = db.query(Document).filter(Document.parent_id == doc.id).all()
+            for child in children:
+                db.delete(child)
+            
+            # 2. Delete Group Directory (contains child images/xmls)
+            group_dir = os.path.join(user_dir, base_name)
+            if os.path.exists(group_dir):
+                shutil.rmtree(group_dir, ignore_errors=True) # Recursive delete
+
+            # 3. Delete .lst file
+            lst_path = os.path.join(user_dir, f"{base_name}.lst")
+            if os.path.exists(lst_path):
+                os.remove(lst_path)
+                
+            # 4. Delete Merged PDF/TXT (stored in root user dir with parent filename)
+            pdf_path = os.path.join(user_dir, doc.filename)
+            txt_path = os.path.join(user_dir, f"{base_name}.txt")
+            if os.path.exists(pdf_path): os.remove(pdf_path)
+            if os.path.exists(txt_path): os.remove(txt_path)
+
+        else:
+            # Single Document Delete (or orphan child?)
+            possible_files = [
+                doc.filename,          # Original
+                f"{base_name}.xml",
+                f"{base_name}.txt",
+                f"{base_name}.pdf",
+                f"{base_name}-debug.jpg",
+                f"{base_name}-thumb.jpg"
+            ]
+            
+            for f in possible_files:
+                p = os.path.join(user_dir, f)
+                if os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except OSError:
+                        pass
     
     # Delete legacy paths from DB record if they exist and weren't caught above
     if doc.output_txt_path and os.path.exists(doc.output_txt_path):
@@ -544,18 +586,24 @@ def download_document(
     
     # Construct path based on consolidated directory structure
     clean_email = sanitize_email(current_user.email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    if doc.directory_name:
+         doc_dir = os.path.join(user_dir, doc.directory_name)
+    else:
+         doc_dir = user_dir
     
     if file_type == "pdf":
-        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.pdf")
+        file_path = os.path.join(doc_dir, f"{base_name}.pdf")
         media_type = "application/pdf"
     elif file_type == "txt":
-        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.txt")
+        file_path = os.path.join(doc_dir, f"{base_name}.txt")
         media_type = "text/plain"
     elif file_type == "xml":
-        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}.xml")
+        file_path = os.path.join(doc_dir, f"{base_name}.xml")
         media_type = "application/xml"
     elif file_type == "debug":
-        file_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-debug.jpg")
+        file_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
         media_type = "image/jpeg"
     else:
         raise HTTPException(status_code=400, detail="Invalid file type")
@@ -590,10 +638,17 @@ def get_thumbnail(
         
     # Serve thumbnail or debug image
     clean_email = sanitize_email(user.email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    if doc.directory_name:
+         doc_dir = os.path.join(user_dir, doc.directory_name)
+    else:
+         doc_dir = user_dir
+         
     base_name = os.path.splitext(doc.filename)[0]
     
-    thumb_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-thumb.jpg")
-    debug_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-debug.jpg")
+    thumb_path = os.path.join(doc_dir, f"{base_name}-thumb.jpg")
+    debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
     
     if os.path.exists(thumb_path):
         return FileResponse(thumb_path)

@@ -42,8 +42,10 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         
         # Mock sys.argv for the pipeline
+        # Usage: subscript [SEGMENTATION] [MODEL] INPUT [OPTIONS]
         sys.argv = [
             "subscript",
+            "historical-manuscript", # Explicit default segmentation
             model,
             file_path,
             "--output", output_dir
@@ -57,6 +59,7 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
 
             # Generate Thumbnail
             try:
+                from PIL import Image
                 with Image.open(file_path) as img:
                     img.thumbnail((300, 300))
                     if img.mode != 'RGB':
@@ -75,6 +78,7 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
 
             # Generate Thumbnail
             try:
+                from PIL import Image
                 with Image.open(file_path) as img:
                     img.thumbnail((300, 300))
                     if img.mode != 'RGB':
@@ -230,22 +234,34 @@ def merge_document_task(self, parent_id: int):
         # Let's put the output PDF in the `documents/email/` root (same as MyBook.lst)
         # So it matches the "ghost" entry.
         
+        # Determine paths
         user_dir = os.path.join(USER_DOCS_DIR, clean_email)
-        output_pdf_path = os.path.join(user_dir, parent.filename)
+        
+        # Parent Output Path
+        # Should go into the parent's specific directory.
+        if parent.directory_name:
+             parent_dir = os.path.join(user_dir, parent.directory_name)
+        else:
+             parent_dir = user_dir # fallback
+             
+        output_pdf_path = os.path.join(parent_dir, parent.filename)
         
         # Child paths
         child_paths = []
         for child in children:
-            # We need to find the child's input file path.
-            # child.filename = "page1.jpg"
-            # child is inside the group directory "MyBook"
-            base_name = os.path.splitext(parent.filename)[0]
-            child_full_path = os.path.join(user_dir, base_name, child.filename)
+            # Each child might be in its own directory (if flat upload) or same group dir
+            if child.directory_name:
+                 child_dir = os.path.join(user_dir, child.directory_name)
+            else:
+                 # If no directory name, assume legacy or same as parent group?
+                 # If we created correctly, ALL children have directory_name matching the group (if grouped)
+                 # or their own (if flat).
+                 child_dir = user_dir 
+                 
+            child_full_path = os.path.join(child_dir, child.filename)
             child_paths.append(child_full_path)
 
         # Import subscript
-        from subscript.__main__ import main as run_subscript_pipeline
-
         from subscript.__main__ import main as run_subscript_pipeline
 
         # Mock sys.argv
@@ -265,6 +281,57 @@ def merge_document_task(self, parent_id: int):
             # Also set TXT path: subscript creates "filename.txt" along with PDF?
             parent.output_txt_path = os.path.splitext(output_pdf_path)[0] + ".txt"
             parent.last_modified = datetime.utcnow()
+            
+            # Generate Thumbnail: Copy the first child's debug image (or image) to parent thumbnail
+            try:
+                # Find first child
+                first_child = db.query(Document).filter(
+                    Document.parent_id == parent.id
+                ).order_by(Document.page_order).first()
+                
+                if first_child:
+                    # Construct paths
+                    # Parent filename is "Group.pdf".
+                    group_base = os.path.splitext(parent.filename)[0]
+                    
+                    # Parent thumbnail path: in parent directory!
+                    parent_thumb_path = os.path.join(parent_dir, f"{group_base}-thumb.jpg")
+                    
+                    # Child Source
+                    if first_child.directory_name:
+                         c_dir = os.path.join(user_dir, first_child.directory_name)
+                    else:
+                         c_dir = user_dir
+                         
+                    child_filename_base = os.path.splitext(first_child.filename)[0]
+                    child_debug_path = os.path.join(c_dir, f"{child_filename_base}-debug.jpg")
+                    child_img_path = os.path.join(c_dir, f"{first_child.filename}")
+                    
+                    # Use original child image source if possible for better quality downscaling
+                    source_image_path = None
+                    if os.path.exists(child_img_path):
+                        source_image_path = child_img_path
+                    elif os.path.exists(child_debug_path):
+                        source_image_path = child_debug_path
+                        
+                    if source_image_path:
+                        try:
+                            with Image.open(source_image_path) as img:
+                                img.thumbnail((300, 300))
+                                if img.mode != 'RGB':
+                                    img = img.convert('RGB')
+                                img.save(parent_thumb_path, "JPEG", quality=80)
+                                logging.info(f"Generated merge thumbnail: {parent_thumb_path}")
+                        except Exception as e:
+                            logging.error(f"Failed to generate merge thumb: {e}")
+                    else:
+                        logging.warning(f"No child image found for thumbnail: {child_filename_base}")
+                else:
+                    logging.warning("No children found for thumbnail generation")
+
+            except Exception as e:
+                 logging.warning(f"Failed to generate thumbnail: {e}")
+
         except SystemExit as e:
             if e.code != 0:
                 raise Exception(f"Subscript merge exited with code {e.code}")
@@ -274,7 +341,6 @@ def merge_document_task(self, parent_id: int):
             parent.last_modified = datetime.utcnow()
             
             # Generate Thumbnail: Copy the first child's debug image (or image) to parent thumbnail
-            # This avoids dependencies like pdf2image/poppler
             try:
                 # Find first child
                 first_child = db.query(Document).filter(
@@ -283,24 +349,21 @@ def merge_document_task(self, parent_id: int):
                 
                 if first_child:
                     # Construct paths
-                    # Child is in subdirectory: clean_email/group_dir/filename.jpg
-                    # We need absolute path.
-                    # parent.filename is "Group.pdf". Directory is "Group".
-                    group_dir_name = os.path.splitext(parent.filename)[0]
+                    # Parent filename is "Group.pdf".
+                    group_base = os.path.splitext(parent.filename)[0]
+                    
+                    # Parent thumbnail path: in parent directory!
+                    parent_thumb_path = os.path.join(parent_dir, f"{group_base}-thumb.jpg")
+                    
+                    # Child Source
+                    if first_child.directory_name:
+                         c_dir = os.path.join(user_dir, first_child.directory_name)
+                    else:
+                         c_dir = user_dir
+                         
                     child_filename_base = os.path.splitext(first_child.filename)[0]
-                    
-                    # Try debug image first, then original
-                    # Note: child filename in DB is just base filename usually? or relative?
-                    # Let's assume standard structure: USER_DOCS_DIR/email/group/child.jpg
-                    
-                    user_email = sanitize_email(parent.owner.email) # Need owner from parent
-                    base_dir = os.path.join(USER_DOCS_DIR, user_email, group_dir_name)
-                    
-                    child_debug_path = os.path.join(base_dir, f"{child_filename_base}-debug.jpg")
-                    child_img_path = os.path.join(base_dir, f"{child_filename_base}.jpg")
-                    
-                    # Parent thumbnail path: USER_DOCS_DIR/email/Group-thumb.jpg
-                    parent_thumb_path = os.path.join(USER_DOCS_DIR, user_email, f"{group_dir_name}-thumb.jpg")
+                    child_debug_path = os.path.join(c_dir, f"{child_filename_base}-debug.jpg")
+                    child_img_path = os.path.join(c_dir, f"{first_child.filename}")
                     
                     # Use original child image source if possible for better quality downscaling
                     source_image_path = None

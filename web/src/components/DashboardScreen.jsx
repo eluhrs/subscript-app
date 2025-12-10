@@ -277,7 +277,7 @@ const DashboardScreen = ({ setView }) => {
         switch (status) {
             case 'completed': return 'Ready to edit';
             case 'processing': return 'Transcribing';
-            case 'merging': return 'Merging PDF...';
+            case 'merging': return 'Merging PDF';
             case 'updating_pdf': return 'Updating PDF';
             case 'error': return 'Error';
             default: return 'Queued';
@@ -352,7 +352,7 @@ const DashboardScreen = ({ setView }) => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {doc.status === 'processing' || doc.status === 'merging' ? (
                                             <span className="text-gray-400 text-xs italic">
-                                                {doc.status === 'merging' ? "Merging PDF..." : "Processing..."}
+                                                Processing...
                                             </span>
                                         ) : doc.status === 'queued' ? (
                                             <button
