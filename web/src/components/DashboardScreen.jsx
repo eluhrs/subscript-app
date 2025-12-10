@@ -319,7 +319,7 @@ const DashboardScreen = ({ setView }) => {
                                                 className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-200 cursor-pointer"
                                             >
                                                 <img
-                                                    src={`${doc.thumbnail_url}?token=${localStorage.getItem('token')}`}
+                                                    src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
                                                     alt="Thumbnail"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/e5e7eb/a3a3a3?text=PDF"; }}
