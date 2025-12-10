@@ -4,100 +4,101 @@ import ConfirmationModal from './ConfirmationModal';
 
 
 // --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
-    <div className="flex items-center space-x-3">
+const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
+    <div className="flex items-center space-x-1">
         {/* 1. Edit */}
-        <button
-            onClick={() => onEdit(doc)}
-            title={doc.is_container ? "Edit Group Layout" : "Edit Layout"}
-            className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition"
-        >
-            <Pencil size={18} />
-        </button>
+        <div className="w-8 flex justify-center">
+            <button
+                onClick={() => onEdit(doc)}
+                title={doc.is_container ? "Edit Group Layout" : "Edit Layout"}
+                className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition"
+            >
+                <Pencil size={18} />
+            </button>
+        </div>
 
         {/* 2. Debug (B) */}
-        {doc.has_debug && !doc.is_container ? (
-            <button
-                onClick={() => onDownload(doc.id, 'debug')}
-                title="Download Debug Image"
-                className="p-1 rounded-full hover:bg-red-50 transition flex items-center justify-center"
-            >
-                <div className="w-4 h-4 rounded-sm bg-white border border-red-500 text-red-600 flex items-center justify-center text-[10px] font-bold leading-none">
-                    B
-                </div>
-            </button>
-        ) : (
-            <span className="text-gray-500 text-xs select-none">--</span>
-        )}
+        <div className="w-8 flex justify-center">
+            {doc.has_debug && !doc.is_container ? (
+                <button
+                    onClick={() => onDownload(doc.id, 'debug')}
+                    title="Download Debug Image"
+                    className="p-1 rounded-full hover:bg-red-50 transition flex items-center justify-center"
+                >
+                    <div className="w-4 h-4 rounded-sm bg-white border border-red-500 text-red-600 flex items-center justify-center text-[10px] font-bold leading-none">
+                        B
+                    </div>
+                </button>
+            ) : (
+                <span className="text-gray-300 text-xs select-none">--</span>
+            )}
+        </div>
 
         {/* 3. Download TXT */}
-        {doc.output_txt_path ? (
-            <button
-                onClick={() => onDownload(doc.id, 'txt')}
-                title="Download TXT"
-                className="p-1 rounded-full hover:bg-green-100 transition flex items-center justify-center"
-            >
-                <img
-                    src="https://placehold.co/18x18/10b981/fff?text=T"
-                    alt="Download TXT"
-                    className="w-4 h-4 rounded-sm"
-                />
-            </button>
-        ) : (
-            <span className="text-gray-500 text-xs select-none">--</span>
-        )}
+        <div className="w-8 flex justify-center">
+            {doc.output_txt_path ? (
+                <button
+                    onClick={() => onDownload(doc.id, 'txt')}
+                    title="Download TXT"
+                    className="p-1 rounded-full hover:bg-green-100 transition flex items-center justify-center"
+                >
+                    <img
+                        src="https://placehold.co/18x18/10b981/fff?text=T"
+                        alt="Download TXT"
+                        className="w-4 h-4 rounded-sm"
+                    />
+                </button>
+            ) : (
+                <span className="text-gray-300 text-xs select-none">--</span>
+            )}
+        </div>
 
         {/* 4. XML (X) */}
-        {doc.has_xml && !doc.is_container ? (
-            <button
-                onClick={() => onDownload(doc.id, 'xml')}
-                title="Download XML"
-                className="p-1 rounded-full hover:bg-gray-200 transition flex items-center justify-center"
-            >
-                <div className="w-4 h-4 rounded-sm bg-black text-white flex items-center justify-center text-[10px] font-bold leading-none doc-icon-xml">
-                    X
-                </div>
-            </button>
-        ) : (
-            <span className="text-gray-500 text-xs select-none">--</span>
-        )}
+        <div className="w-8 flex justify-center">
+            {doc.has_xml && !doc.is_container ? (
+                <button
+                    onClick={() => onDownload(doc.id, 'xml')}
+                    title="Download XML"
+                    className="p-1 rounded-full hover:bg-gray-200 transition flex items-center justify-center"
+                >
+                    <div className="w-4 h-4 rounded-sm bg-black text-white flex items-center justify-center text-[10px] font-bold leading-none doc-icon-xml">
+                        X
+                    </div>
+                </button>
+            ) : (
+                <span className="text-gray-300 text-xs select-none">--</span>
+            )}
+        </div>
 
-        {/* 5. Update PDF */}
-        {doc.has_xml && (
-            <button
-                onClick={() => onUpdatePdf(doc.id)}
-                title="Update PDF"
-                className="p-1 rounded-full text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100 transition"
-            >
-                <RefreshCw size={18} />
-            </button>
-        )}
-
-        {/* 6. Download PDF */}
-        {doc.output_pdf_path ? (
-            <button
-                onClick={() => onDownload(doc.id, 'pdf')}
-                title="Download PDF"
-                className="p-1 rounded-full hover:bg-red-100 transition flex items-center justify-center"
-            >
-                <img
-                    src="https://placehold.co/18x18/ef4444/fff?text=P"
-                    alt="Download PDF"
-                    className="w-4 h-4 rounded-sm"
-                />
-            </button>
-        ) : (
-            <span className="text-gray-500 text-xs select-none">--</span>
-        )}
+        {/* 5. Download PDF */}
+        <div className="w-8 flex justify-center">
+            {doc.output_pdf_path ? (
+                <button
+                    onClick={() => onDownload(doc.id, 'pdf')}
+                    title="Download PDF"
+                    className="p-1 rounded-full hover:bg-red-100 transition flex items-center justify-center"
+                >
+                    <img
+                        src="https://placehold.co/18x18/ef4444/fff?text=P"
+                        alt="Download PDF"
+                        className="w-4 h-4 rounded-sm"
+                    />
+                </button>
+            ) : (
+                <span className="text-gray-300 text-xs select-none">--</span>
+            )}
+        </div>
 
         {/* 6. Delete */}
-        <button
-            onClick={() => onDelete(doc)}
-            title="Delete"
-            className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
-        >
-            <Trash2 size={18} />
-        </button>
+        <div className="w-8 flex justify-center">
+            <button
+                onClick={() => onDelete(doc)}
+                title="Delete"
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+            >
+                <Trash2 size={18} />
+            </button>
+        </div>
     </div>
 );
 
