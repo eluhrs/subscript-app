@@ -49,6 +49,7 @@ RUN mkdir -p /var/www/nw-page-editor/data && \
 
 COPY custom.css /var/www/nw-page-editor/css/custom.css
 COPY custom.js /var/www/nw-page-editor/js/custom.js
+COPY index.php /var/www/nw-page-editor/web-app/index.php
 COPY saveFile.php /var/www/nw-page-editor/web-app/saveFile.php
 
 # Custom Menu Reordering and Renaming (Swap 'Lower pane' and 'Image', and rename)

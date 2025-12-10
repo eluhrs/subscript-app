@@ -60,6 +60,8 @@ services:
       - "8002:80"
     volumes:
       - ./documents:/var/www/nw-page-editor/data
+      - ./page-editor/index.php:/var/www/nw-page-editor/web-app/index.php
+      - ./page-editor/web-app.js:/var/www/nw-page-editor/js/web-app.js
       - ./page-editor/custom.css:/var/www/nw-page-editor/css/custom.css
       - ./page-editor/custom.js:/var/www/nw-page-editor/js/custom.js
     environment:

@@ -35,7 +35,8 @@ transcription:
         You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the 
         supplied image exactly as written. Output only the transcribed text, with no commentary, no preamble, 
         no markdown, and no generated text after the transcription. Preserve all original spelling, punctuation, 
-        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. Output begins 
+        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization
+        you should perform is to modernize obsolete charactes (example, print "s" not "ſ". Output begins 
         immediately with the first character of the transcription and ends immediately after the last character 
         of transcription.
       cost_config:

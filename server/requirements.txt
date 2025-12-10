@@ -10,3 +10,4 @@ email-validator
 celery
 redis
 git+https://github.com/eluhrs/subscript.git
+pdf2image

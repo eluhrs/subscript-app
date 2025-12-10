@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
+
 // --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
-    <div className="flex space-x-2">
-        {/* Edit */}
+const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
+    <div className="flex items-center space-x-3">
+        {/* 1. Edit */}
         <button
             onClick={() => onEdit(doc)}
-            title="Edit Layout"
+            title={doc.is_container ? "Edit Group Layout" : "Edit Layout"}
             className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition"
         >
             <Pencil size={18} />
         </button>
 
-        {/* Download TXT */}
-        {doc.output_txt_path && (
+        {/* 2. Debug (B) */}
+        {doc.has_debug && !doc.is_container ? (
+            <button
+                onClick={() => onDownload(doc.id, 'debug')}
+                title="Download Debug Image"
+                className="p-1 rounded-full hover:bg-red-50 transition flex items-center justify-center"
+            >
+                <div className="w-4 h-4 rounded-sm bg-white border border-red-500 text-red-600 flex items-center justify-center text-[10px] font-bold leading-none">
+                    B
+                </div>
+            </button>
+        ) : (
+            <span className="text-gray-500 text-xs select-none">--</span>
+        )}
+
+        {/* 3. Download TXT */}
+        {doc.output_txt_path ? (
             <button
                 onClick={() => onDownload(doc.id, 'txt')}
                 title="Download TXT"
@@ -27,10 +43,38 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     className="w-4 h-4 rounded-sm"
                 />
             </button>
+        ) : (
+            <span className="text-gray-500 text-xs select-none">--</span>
         )}
 
-        {/* Download PDF */}
-        {doc.output_pdf_path && (
+        {/* 4. XML (X) */}
+        {doc.has_xml && !doc.is_container ? (
+            <button
+                onClick={() => onDownload(doc.id, 'xml')}
+                title="Download XML"
+                className="p-1 rounded-full hover:bg-gray-200 transition flex items-center justify-center"
+            >
+                <div className="w-4 h-4 rounded-sm bg-black text-white flex items-center justify-center text-[10px] font-bold leading-none doc-icon-xml">
+                    X
+                </div>
+            </button>
+        ) : (
+            <span className="text-gray-500 text-xs select-none">--</span>
+        )}
+
+        {/* 5. Update PDF */}
+        {doc.has_xml && (
+            <button
+                onClick={() => onUpdatePdf(doc.id)}
+                title="Update PDF"
+                className="p-1 rounded-full text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100 transition"
+            >
+                <RefreshCw size={18} />
+            </button>
+        )}
+
+        {/* 6. Download PDF */}
+        {doc.output_pdf_path ? (
             <button
                 onClick={() => onDownload(doc.id, 'pdf')}
                 title="Download PDF"
@@ -42,9 +86,11 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     className="w-4 h-4 rounded-sm"
                 />
             </button>
+        ) : (
+            <span className="text-gray-500 text-xs select-none">--</span>
         )}
 
-        {/* Delete */}
+        {/* 6. Delete */}
         <button
             onClick={() => onDelete(doc)}
             title="Delete"
@@ -93,10 +139,6 @@ const DashboardScreen = ({ setView }) => {
 
     const handleEdit = (doc) => {
         // Construct the file path relative to the editor's 'data' directory
-        // The editor maps 'data' to the documents root.
-        // Doc paths are like documents/email/file.xml
-        // We want 'email/file.xml' passed to ?f=...
-
         let relPath = "";
         let sourcePath = doc.output_xml_path || doc.output_pdf_path || doc.output_txt_path || doc.filename;
 
@@ -104,18 +146,29 @@ const DashboardScreen = ({ setView }) => {
             relPath = sourcePath
                 .replace(/^\/app\/documents\//, '')
                 .replace(/^documents\//, '');
-
-            // Ensure it points to XML
-            relPath = relPath.replace(/\.[^/.]+$/, "") + ".xml";
         } else {
-            // Fallback
-            relPath = `unknown/${doc.filename.replace(/\.[^/.]+$/, "")}.xml`;
+            relPath = `unknown/${doc.filename}`;
         }
 
-        // Use the PHP backend: /editor/web-app/index.php?f=path
-        // Using encodeURI as requested to preserve slashes (less aggressive encoding)
         const token = localStorage.getItem('token');
-        const editorUrl = `/editor/web-app/index.php?f=${encodeURI(relPath)}&docId=${doc.id}&token=${token}`;
+        let editorUrl = "";
+
+        if (doc.is_container) {
+            // For grouped docs, point to the .lst file
+            // Filename: MyBook.pdf -> MyBook.lst (?)
+            // Logic in backend: lst_base = os.path.splitext(clean_group_name)[0] + ".lst"
+            // relPath currently: email/MyBook.pdf
+            // We want: email/MyBook.lst
+
+            // Strip extension and add .lst
+            const listPath = relPath.substring(0, relPath.lastIndexOf('.')) + ".lst";
+            editorUrl = `/editor/web-app/index.php?l=${encodeURI(listPath)}&docId=${doc.id}&token=${token}`;
+        } else {
+            // For single docs, point to .xml
+            const xmlPath = relPath.substring(0, relPath.lastIndexOf('.')) + ".xml";
+            editorUrl = `/editor/web-app/index.php?f=${encodeURI(xmlPath)}&docId=${doc.id}&token=${token}`;
+        }
+
         window.open(editorUrl, '_blank');
     };
 
@@ -132,7 +185,7 @@ const DashboardScreen = ({ setView }) => {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
 
-                if (type === 'pdf' || type === 'txt') {
+                if (['pdf', 'txt', 'xml', 'debug'].includes(type)) {
                     // Open in new tab
                     window.open(url, '_blank');
                 } else {
@@ -151,6 +204,27 @@ const DashboardScreen = ({ setView }) => {
         } catch (error) {
             console.error("Download error", error);
             alert("Download error.");
+        }
+    };
+
+    const handleUpdatePdf = async (docId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/rebuild-pdf/${docId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                fetchDocuments(); // Optimistic refresh
+            } else {
+                alert("Update failed.");
+            }
+        } catch (error) {
+            console.error("Update error", error);
+            alert("Update error.");
         }
     };
 
@@ -191,6 +265,7 @@ const DashboardScreen = ({ setView }) => {
         switch (status) {
             case 'completed': return 'bg-green-100 text-green-800';
             case 'processing': return 'bg-yellow-100 text-yellow-800';
+            case 'merging': return 'bg-yellow-100 text-yellow-800';
             case 'updating_pdf': return 'bg-yellow-100 text-yellow-800';
             case 'error': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
@@ -201,6 +276,7 @@ const DashboardScreen = ({ setView }) => {
         switch (status) {
             case 'completed': return 'Ready to edit';
             case 'processing': return 'Transcribing';
+            case 'merging': return 'Merging PDF...';
             case 'updating_pdf': return 'Updating PDF';
             case 'error': return 'Error';
             default: return 'Queued';
@@ -236,13 +312,13 @@ const DashboardScreen = ({ setView }) => {
                             {documents.map((doc) => (
                                 <tr key={doc.id} className="hover:bg-indigo-50 transition duration-150">
                                     <td className="px-6 py-4 whitespace-nowrap w-20">
-                                        {doc.output_pdf_path ? (
+                                        {doc.thumbnail_url ? (
                                             <div
                                                 onClick={() => handleDownload(doc.id, 'pdf')}
-                                                className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs hover:bg-gray-300 cursor-pointer overflow-hidden"
+                                                className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-200 cursor-pointer"
                                             >
                                                 <img
-                                                    src={`/api/thumbnail/${doc.id}?token=${localStorage.getItem('token')}`}
+                                                    src={doc.thumbnail_url}
                                                     alt="Thumbnail"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/e5e7eb/a3a3a3?text=PDF"; }}
@@ -273,8 +349,10 @@ const DashboardScreen = ({ setView }) => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        {doc.status === 'processing' ? (
-                                            <span className="text-gray-400 text-xs italic">Processing...</span>
+                                        {doc.status === 'processing' || doc.status === 'merging' ? (
+                                            <span className="text-gray-400 text-xs italic">
+                                                {doc.status === 'merging' ? "Merging PDF..." : "Processing..."}
+                                            </span>
                                         ) : doc.status === 'queued' ? (
                                             <button
                                                 onClick={() => handleDeleteClick(doc)}
@@ -284,7 +362,7 @@ const DashboardScreen = ({ setView }) => {
                                                 <Trash2 size={18} />
                                             </button>
                                         ) : (
-                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDeleteClick} onEdit={handleEdit} />
+                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDeleteClick} onEdit={handleEdit} onUpdatePdf={handleUpdatePdf} />
                                         )}
                                     </td>
                                 </tr>

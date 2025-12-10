@@ -3,7 +3,7 @@ import shutil
 import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends, status
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
@@ -58,6 +58,15 @@ class Document(Base):
     output_pdf_path = Column(String, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="documents")
+
+    # Grouping Fields
+    is_container = Column(Boolean, default=False)
+    page_order = Column(Integer, default=0)
+    parent_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
+    children = relationship("Document", 
+                            backref="parent", 
+                            remote_side=[id],
+                            order_by="Document.page_order")
 
 Base.metadata.create_all(bind=engine)
 
@@ -128,10 +137,16 @@ class DocumentResponse(BaseModel):
     filename: str
     upload_date: datetime
     last_modified: Optional[datetime] = None
+    is_container: bool = False
+    page_order: int = 0
+    parent_id: Optional[int] = None
+    thumbnail_url: Optional[str] = None
     status: str
     error_message: Optional[str] = None
     output_txt_path: Optional[str] = None
     output_pdf_path: Optional[str] = None
+    has_xml: bool = False
+    has_debug: bool = False
     class Config:
         orm_mode = True
 
@@ -187,7 +202,13 @@ def list_documents(
     current_user: User = Depends(get_current_user)
 ):
     # Dynamically update last_modified based on file system
-    for doc in current_user.documents:
+    # Filter out child documents (only show parents and loose files)
+    docs = db.query(Document).filter(
+        Document.owner_id == current_user.id,
+        Document.parent_id == None
+    ).all()
+
+    for doc in docs:
         clean_email = sanitize_email(current_user.email)
         user_dir = os.path.join(USER_DOCS_DIR, clean_email)
         base_name = os.path.splitext(doc.filename)[0]
@@ -213,7 +234,23 @@ def list_documents(
                     
         doc.last_modified = datetime.fromtimestamp(latest_mtime)
 
-    return current_user.documents
+        # Check for optional files to populate response flags
+        # Note: These are not DB columns, so we set them on the object instances
+        # which Pydantic will serialize.
+        xml_path = os.path.join(user_dir, f"{base_name}.xml")
+        debug_path = os.path.join(user_dir, f"{base_name}-debug.jpg")
+        
+        doc.has_xml = os.path.exists(xml_path)
+        doc.has_debug = os.path.exists(debug_path)
+        
+        if doc.has_debug:
+            # Construct URL path: /documents/email/filename-debug.jpg
+            # Note: clean_email/base_name-debug.jpg
+            doc.thumbnail_url = f"/documents/{clean_email}/{base_name}-debug.jpg"
+        else:
+            doc.thumbnail_url = None
+
+    return docs
 
 @app.post("/api/upload", response_model=DocumentResponse)
 def upload_document(
@@ -242,6 +279,131 @@ def upload_document(
     from server.tasks import process_document_task
     process_document_task.delay(doc.id, file_path, model)
     
+    return doc
+
+@app.post("/api/upload-batch", response_model=DocumentResponse)
+def upload_batch(
+    files: List[UploadFile] = File(...),
+    model: str = Form("gemini"),
+    group_filename: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    clean_email = sanitize_email(current_user.email)
+    
+    # 1. Handle Grouping (Parent Document)
+    parent_doc = None
+    if group_filename:
+        # User requested grouping
+        clean_group_name = sanitize_filename(group_filename)
+        
+        # Ensure it ends in .pdf if user forgot
+        if not clean_group_name.lower().endswith(".pdf"):
+            clean_group_name += ".pdf"
+            
+        parent_doc = Document(
+            filename=clean_group_name,
+            status="processing", # Container is "processing" while children upload?
+            owner_id=current_user.id,
+            is_container=True,
+            output_pdf_path=None # No PDF yet
+        )
+        db.add(parent_doc)
+        db.commit()
+        db.refresh(parent_doc)
+        
+        # Create sub-directory for this group
+        # Remove extension for dir name: "MyBook.pdf" -> "MyBook"
+        group_dir_name = os.path.splitext(clean_group_name)[0]
+        upload_dir = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name)
+    else:
+        # No grouping - flat upload to root
+        upload_dir = os.path.join(USER_DOCS_DIR, clean_email)
+        group_dir_name = None
+
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Trigger import
+    from server.tasks import process_document_task
+
+    children_xmls = []
+
+    # 2. Process Files
+    for i, file in enumerate(files):
+        clean_filename = sanitize_filename(file.filename)
+        file_path = os.path.join(upload_dir, clean_filename)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Create Document Record
+        doc = Document(
+            filename=clean_filename,
+            status="queued",
+            owner_id=current_user.id,
+            parent_id=parent_doc.id if parent_doc else None,
+            page_order=i + 1
+        )
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+        
+        # Trigger Task
+        process_document_task.delay(doc.id, file_path, model)
+        
+        # Track expected XML path for .lst generation relative to dashboard?
+        # The Editor expects paths relative to its data/ directory.
+        # If no group: clean_email/filename.xml (assuming editor mounts /documents as data/??)
+        # Actually we need to check how the editor resolves paths relative from index.php location.
+        # If user passes `l=../data/clean_email/list.lst`, and list contains `clean_email/group/file.xml`?
+        
+        # NOTE: This path logic is the trickiest part. 
+        # Assuming typical setup where `pages` serve from `data/`.
+        # If group_dir_name is set, files are in `clean_email/group_dir_name/file.xml`.
+        if parent_doc and group_dir_name:
+             base_name = os.path.splitext(clean_filename)[0]
+             # Editor expects paths relative to data/ via index.php logic
+             children_xmls.append(os.path.join(clean_email, group_dir_name, f"{base_name}.xml"))
+
+    # 3. Finalize Parent
+    if parent_doc:
+        # Generate .lst file for the editor
+        # Stored in root of user dir? Or inside group dir?
+        # Root is better so it's easily accessible? Or named same as group PDF?
+        lst_filename = f"{clean_group_name}.lst" # e.g. MyBook.pdf.lst or MyBook.lst?
+        # Let's match the group filename logic: MyBook.pdf -> MyBook.lst?
+        lst_base = os.path.splitext(clean_group_name)[0] + ".lst"
+        
+        lst_path_abs = os.path.join(USER_DOCS_DIR, clean_email, lst_base)
+        
+        # The content of LST should be paths relative to...?
+        # The browser requests XMLs.
+        # Let's just list the RELATIVE paths from USER_DOCS_DIR/clean_email?
+        # index.php: $thelist = explode("\n", file_get_contents(...));
+        # array_walk($thelist, function(&$item){ $item = "'../data/".$item."'"; });
+        # So if we put 'subfolder/file.xml', it becomes '../data/subfolder/file.xml'.
+        # Since files are in `USER_DOCS_DIR/clean_email/subfolder/file.xml`...
+        # And `data` maps to `USER_DOCS_DIR`?
+        # Wait, editor mounts `USER_DOCS_DIR` to `/var/www/nw-page-editor/data`?
+        # Let's verify volume mount for page-editor.
+        
+        # ASSUMPTION: /app/documents (backend) == /var/www/nw-page-editor/data (editor)
+        # If index.php prepends `../data/`, and we are in `data/`, then relative path from `data/` is needed.
+        # Files are in `clean_email/group/file.xml`.
+        # So we write `clean_email/group/file.xml` into the list.
+        
+        with open(lst_path_abs, "w") as f:
+            f.write("\n".join(children_xmls) + "\n")
+            
+        parent_doc.status = "processing" 
+        # Store LST path? For now just rely on filename convention or future fields.
+        
+        db.commit()
+        return parent_doc
+        
     return doc
 
 @app.get("/api/documents/{doc_id}", response_model=DocumentResponse)
@@ -302,22 +464,50 @@ def delete_document(
     
     # Try to delete likely associated files
     base_name = os.path.splitext(doc.filename)[0]
-    
-    possible_files = [
-        doc.filename,          # Original
-        f"{base_name}.txt",    # Output TXT
-        f"{base_name}.pdf",    # Output PDF
-        f"{base_name}.xml",    # Output XML
-        f"{base_name}-debug.jpg" # Debug image
-    ]
-    
-    for f in possible_files:
-        p = os.path.join(user_dir, f)
-        if os.path.exists(p):
-            try:
-                os.remove(p)
-            except OSError:
-                pass
+
+    if doc.is_container:
+        # Grouped Delete
+        # 1. Delete all children
+        children = db.query(Document).filter(Document.parent_id == doc.id).all()
+        for child in children:
+            db.delete(child)
+        
+        # 2. Delete Group Directory (contains child images/xmls)
+        group_dir = os.path.join(user_dir, base_name)
+        if os.path.exists(group_dir):
+            shutil.rmtree(group_dir, ignore_errors=True) # Recursive delete
+
+        # 3. Delete .lst file
+        lst_path = os.path.join(user_dir, f"{base_name}.lst")
+        if os.path.exists(lst_path):
+            os.remove(lst_path)
+            
+        # 4. Delete Merged PDF/TXT (stored in root user dir with parent filename)
+        pdf_path = os.path.join(user_dir, doc.filename)
+        txt_path = os.path.join(user_dir, f"{base_name}.txt")
+        if os.path.exists(pdf_path): os.remove(pdf_path)
+        if os.path.exists(txt_path): os.remove(txt_path)
+
+    else:
+        # Single Document Delete (or orphan child?)
+        # If it's a child, it's inside a group folder.
+        # But if we delete via API, we usually handle paths.
+        # Logic for existing flat files:
+        possible_files = [
+            doc.filename,          # Original
+            f"{base_name}.xml",
+            f"{base_name}.txt",
+            f"{base_name}.pdf",
+            f"{base_name}-debug.jpg"
+        ]
+        
+        for f in possible_files:
+            p = os.path.join(user_dir, f)
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
     
     # Delete legacy paths from DB record if they exist and weren't caught above
     if doc.output_txt_path and os.path.exists(doc.output_txt_path):

@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install system dependencies (for cv2/kraken if needed) AND nano for debugging
 # Install system dependencies (git required for pip install git+...)
-RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 nano git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 nano git poppler-utils && rm -rf /var/lib/apt/lists/*
 
 # Add alias for ls
 RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc
