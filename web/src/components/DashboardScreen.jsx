@@ -4,7 +4,7 @@ import ConfirmationModal from './ConfirmationModal';
 
 
 // --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
+const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
     <div className="flex items-center space-x-1">
         {/* 1. Edit */}
         <div className="w-8 flex justify-center">
@@ -30,7 +30,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     </div>
                 </button>
             ) : (
-                <span className="text-gray-300 text-xs select-none">--</span>
+                <span className="text-gray-400 text-xs select-none">--</span>
             )}
         </div>
 
@@ -49,7 +49,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     />
                 </button>
             ) : (
-                <span className="text-gray-300 text-xs select-none">--</span>
+                <span className="text-gray-400 text-xs select-none">--</span>
             )}
         </div>
 
@@ -66,7 +66,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     </div>
                 </button>
             ) : (
-                <span className="text-gray-300 text-xs select-none">--</span>
+                <span className="text-gray-400 text-xs select-none">--</span>
             )}
         </div>
 
@@ -85,7 +85,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
                     />
                 </button>
             ) : (
-                <span className="text-gray-300 text-xs select-none">--</span>
+                <span className="text-gray-400 text-xs select-none">--</span>
             )}
         </div>
 
@@ -94,7 +94,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit }) => (
             <button
                 onClick={() => onDelete(doc)}
                 title="Delete"
-                className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+                className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
             >
                 <Trash2 size={18} />
             </button>
@@ -319,7 +319,7 @@ const DashboardScreen = ({ setView }) => {
                                                 className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-200 cursor-pointer"
                                             >
                                                 <img
-                                                    src={doc.thumbnail_url}
+                                                    src={`${doc.thumbnail_url}?token=${localStorage.getItem('token')}`}
                                                     alt="Thumbnail"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/e5e7eb/a3a3a3?text=PDF"; }}

@@ -238,15 +238,21 @@ def list_documents(
         # Note: These are not DB columns, so we set them on the object instances
         # which Pydantic will serialize.
         xml_path = os.path.join(user_dir, f"{base_name}.xml")
+        thumb_path = os.path.join(user_dir, f"{base_name}-thumb.jpg")
         debug_path = os.path.join(user_dir, f"{base_name}-debug.jpg")
         
         doc.has_xml = os.path.exists(xml_path)
+        # Keep has_debug for backward compatibility or debug download
         doc.has_debug = os.path.exists(debug_path)
         
-        if doc.has_debug:
-            # Construct URL path: /documents/email/filename-debug.jpg
-            # Note: clean_email/base_name-debug.jpg
-            doc.thumbnail_url = f"/documents/{clean_email}/{base_name}-debug.jpg"
+        if os.path.exists(thumb_path):
+            # Point to API which requires token
+            doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
+        elif os.path.exists(debug_path):
+             # Fallback to debug image if thumb generation failed but debug exists
+             # But serve via API to ensure consistent access control?
+             # Or stick to static path? Let's use API to be safe.
+             doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
         else:
             doc.thumbnail_url = None
 
@@ -582,13 +588,18 @@ def get_thumbnail(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    # Serve input file as thumbnail if it exists
+    # Serve thumbnail or debug image
     clean_email = sanitize_email(user.email)
-    user_input_path = os.path.join(USER_DOCS_DIR, clean_email, doc.filename)
+    base_name = os.path.splitext(doc.filename)[0]
     
-    if os.path.exists(user_input_path):
-        return FileResponse(user_input_path)
+    thumb_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-thumb.jpg")
+    debug_path = os.path.join(USER_DOCS_DIR, clean_email, f"{base_name}-debug.jpg")
+    
+    if os.path.exists(thumb_path):
+        return FileResponse(thumb_path)
+    elif os.path.exists(debug_path):
+        return FileResponse(debug_path)
     else:
-        # Fallback to placeholder or 404
+        # Do not serve original file as thumbnail (too large)
         raise HTTPException(status_code=404, detail="Thumbnail not found")
 

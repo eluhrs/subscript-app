@@ -83,13 +83,11 @@ $(document).ready(function () {
             // Actually, the server/main.py expects `filename` as path param.
             // Let's verify what 'f' contains. It's "eluhrs@gmail.com/mr-test.xml".
             const filenameObj = urlParams.get('f');
-            const token = urlParams.get('token'); // RESTORED THIS LINE!
+            const listObj = urlParams.get('l');
+            const token = urlParams.get('token');
 
-            // We need BOTH docId (for context?) OR just filename? 
-            // Main.py: @app.post("/api/rebuild-pdf/{filename:path}")
-            // So we need to pass the raw filename.
-
-            if (filenameObj && token) {
+            // Show button if we have authentication (token) and context (f or l)
+            if ((filenameObj || listObj) && token) {
                 // DO NOT ENCODE the filename. The API uses {filename:path} which expects raw slashes.
 
                 // --- NEW FINAL: Update PDF Button (Formerly "Update PDF 2") ---
@@ -113,6 +111,7 @@ $(document).ready(function () {
                     // 1. Get Parameters (reusing logic from original button)
                     var urlParams = new URLSearchParams(window.location.search);
                     var f_param = urlParams.get('f');
+                    var l_param = urlParams.get('l'); // List param
                     var token = urlParams.get('token');
                     var docId = urlParams.get('docId');
 
@@ -120,6 +119,10 @@ $(document).ready(function () {
                         alert("Missing parameters (docId or token) for API call.");
                         return;
                     }
+
+                    // Determine which file path to use for title/logic if needed, 
+                    // though API mainly needs docId now.
+
 
                     // 2. Set Loading State
                     var originalText = $btn.text();

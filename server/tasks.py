@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 import re
+from PIL import Image
 from datetime import datetime
 from server.celery_app import celery_app
 from sqlalchemy import create_engine
@@ -53,12 +54,36 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
             doc.status = "completed"
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+
+            # Generate Thumbnail
+            try:
+                with Image.open(file_path) as img:
+                    img.thumbnail((300, 300))
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    thumb_path = os.path.join(output_dir, f"{base_name}-thumb.jpg")
+                    img.save(thumb_path, "JPEG", quality=80)
+                    logging.info(f"Generated thumbnail: {thumb_path}")
+            except Exception as e:
+                logging.error(f"Failed to generate thumbnail: {e}")
         except SystemExit as e:
             if e.code != 0:
                 raise Exception(f"Subscript exited with code {e.code}")
             doc.status = "completed"
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+
+            # Generate Thumbnail
+            try:
+                with Image.open(file_path) as img:
+                    img.thumbnail((300, 300))
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    thumb_path = os.path.join(output_dir, f"{base_name}-thumb.jpg")
+                    img.save(thumb_path, "JPEG", quality=80)
+                    logging.info(f"Generated thumbnail: {thumb_path}")
+            except Exception as e:
+                logging.error(f"Failed to generate thumbnail: {e}")
 
             # Post-Process XML: Uniquify IDs if part of a container
             if doc.parent_id:
@@ -274,21 +299,28 @@ def merge_document_task(self, parent_id: int):
                     child_debug_path = os.path.join(base_dir, f"{child_filename_base}-debug.jpg")
                     child_img_path = os.path.join(base_dir, f"{child_filename_base}.jpg")
                     
-                    # Parent thumbnail path: USER_DOCS_DIR/email/Group-debug.jpg
-                    parent_thumb_path = os.path.join(USER_DOCS_DIR, user_email, f"{group_dir_name}-debug.jpg")
+                    # Parent thumbnail path: USER_DOCS_DIR/email/Group-thumb.jpg
+                    parent_thumb_path = os.path.join(USER_DOCS_DIR, user_email, f"{group_dir_name}-thumb.jpg")
                     
-                    if os.path.exists(child_debug_path):
-                        import shutil
-                        shutil.copy(child_debug_path, parent_thumb_path)
-                        logging.info(f"Copied thumbnail from {child_debug_path}")
-                    elif os.path.exists(child_img_path):
-                        # If no debug image, resize original? Or just copy (might be large)
-                        # For now, just copy. Dashboard scales it.
-                        import shutil
-                        shutil.copy(child_img_path, parent_thumb_path)
-                        logging.info(f"Copied thumbnail from {child_img_path}")
+                    # Use original child image source if possible for better quality downscaling
+                    source_image_path = None
+                    if os.path.exists(child_img_path):
+                        source_image_path = child_img_path
+                    elif os.path.exists(child_debug_path):
+                        source_image_path = child_debug_path
+                        
+                    if source_image_path:
+                        try:
+                            with Image.open(source_image_path) as img:
+                                img.thumbnail((300, 300))
+                                if img.mode != 'RGB':
+                                    img = img.convert('RGB')
+                                img.save(parent_thumb_path, "JPEG", quality=80)
+                                logging.info(f"Generated merge thumbnail: {parent_thumb_path}")
+                        except Exception as e:
+                            logging.error(f"Failed to generate merge thumb: {e}")
                     else:
-                        logging.warning(f"No child image found for thumbnail: {child_img_path}")
+                        logging.warning(f"No child image found for thumbnail: {child_filename_base}")
                 else:
                     logging.warning("No children found for thumbnail generation")
 

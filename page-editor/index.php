@@ -52,6 +52,9 @@ if (isset($_GET['l'])) {
   array_walk($thelist, function (&$item) {
     $item = "'" . $item . "'";
   });
+} elseif (isset($_GET['f'])) {
+  // Single file mode
+  $thelist = ["'../data/" . $_GET['f'] . "'"];
 }
 
 $pagenum = isset($_GET['n']) ? intval($_GET['n']) : 0;
@@ -107,7 +110,7 @@ if (getenv('CSS') !== false) {
   <script type="text/javascript" src="../js/page-canvas.js<?= $v ?>"></script>
   <script type="text/javascript" src="../js/page-editor.js<?= $v ?>"></script>
   <?= $script ?>
-  <script type="text/javascript" src="../js/web-app.js?v=DEBUG_<?= time() ?>"></script>
+  <script type="text/javascript" src="../js/web-app.js?v=<?= filemtime('../js/web-app.js') ?>"></script>
   <?= $provided_js_files ?>
   <link rel="stylesheet" href="../css/custom.css" />
 </head>
@@ -345,7 +348,7 @@ if (getenv('CSS') !== false) {
   <div id="spinner" class="modal">
     <div></div>
   </div>
-  <script src="../js/custom.js"></script>
+  <script src="../js/custom.js?v=<?= filemtime('../js/custom.js') ?>"></script>
 </body>
 
 </html>
