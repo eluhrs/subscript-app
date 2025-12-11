@@ -1,11 +1,17 @@
+from logging.handlers import RotatingFileHandler
 import os
 import shutil
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import List, Optional
+
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -13,7 +19,7 @@ from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
-# Import subscript
+# Import subscript modules (handling import error for dev environment)
 try:
     from subscript.__main__ import main as run_subscript_pipeline
     from subscript.modules.transcription import preprocess_image
@@ -23,6 +29,25 @@ except ImportError:
     from subscript.__main__ import main as run_subscript_pipeline
 
 from server.utils import sanitize_filename, sanitize_email
+
+# Configure Logging (Shared Volume, Rotation)
+LOG_DIR = "/app/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "server.log")
+
+# Configure Logging (Shared Volume, Rotation)
+# Note: Uvicorn configures root logger, so basicConfig is ignored. We must attach handler explicitly.
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+
+# Avoid adding handler multiple times on reload
+if not any(isinstance(h, RotatingFileHandler) and h.baseFilename == LOG_FILE for h in root_logger.handlers):
+    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=3)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    root_logger.addHandler(file_handler)
+
+logger = logging.getLogger(__name__)
+logger.info(f"SYSTEM: Server module initialized at {datetime.now()}")
 
 # --- Configuration ---
 USER_DOCS_DIR = "/app/documents"
@@ -37,6 +62,12 @@ os.makedirs(USER_DOCS_DIR, exist_ok=True)
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# --- App ---
+app = FastAPI()
+
+
+
 
 class User(Base):
     __tablename__ = "users"
@@ -357,6 +388,8 @@ def upload_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
+    
+    logger.info(f"JOB SUBMITTED: User {current_user.email} uploaded {clean_filename}")
     
     # Trigger Celery Task
     from server.tasks import process_document_task
@@ -756,3 +789,63 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     db.commit()
     return {"message": "User deleted"}
 
+
+@app.get("/api/admin/health")
+def admin_health(current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        total, used, free = shutil.disk_usage(USER_DOCS_DIR)
+        
+        # System Load (1 min, 5 min, 15 min)
+        try:
+            load_avg = os.getloadavg()
+        except AttributeError:
+             load_avg = (0, 0, 0) # Windows fallback
+
+        # Format bytes helper
+        def format_bytes(size):
+            power = 1024
+            n = 0
+            power_labels = {0 : '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
+            while size > power:
+                size /= power
+                n += 1
+            return f"{size:.2f} {power_labels[n]}B"
+
+        return {
+            "status": "online",
+            "system_load": {
+                "1min": f"{load_avg[0]:.2f}",
+                "5min": f"{load_avg[1]:.2f}",
+                "15min": f"{load_avg[2]:.2f}"
+            },
+            "disk_usage": {
+                "total": format_bytes(total),
+                "used": format_bytes(used),
+                "free": format_bytes(free),
+                "percent": f"{(used / total) * 100:.1f}%"
+            },
+            "documents_path": USER_DOCS_DIR
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/admin/logs")
+def admin_logs(lines: int = 50, current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Use global LOG_FILE constant defined at configuration
+    primary_log = LOG_FILE 
+    
+    try:
+        if os.path.exists(primary_log):
+            with open(primary_log, "r") as f:
+                content = f.readlines()
+                return {"logs": [l.strip() for l in content[-lines:]]}
+        else:
+             return {"logs": ["Log file not yet created."]}
+    except Exception as e:
+        return {"logs": [f"Error reading log file: {str(e)}"]}

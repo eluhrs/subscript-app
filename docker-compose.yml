@@ -12,6 +12,7 @@ services:
     volumes:
       - ./subscript.db:/app/subscript.db
       - ./documents:/app/documents
+      - ./logs:/app/logs
       - ./.env:/app/.env
       - ./server:/app/server
       - ./config.yml:/app/config.yml
@@ -34,6 +35,7 @@ services:
     volumes:
       - ./subscript.db:/app/subscript.db
       - ./documents:/app/documents
+      - ./logs:/app/logs
       - ./.env:/app/.env
       - ./server:/app/server
       - ./config.yml:/app/config.yml

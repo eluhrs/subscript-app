@@ -9,6 +9,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from server.main import Document, DATABASE_URL, USER_DOCS_DIR
 from server.utils import sanitize_email, sanitize_filename
+import io
+import contextlib
 
 # Setup DB session for worker
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -52,7 +54,19 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
         ]
         
         try:
-            run_subscript_pipeline()
+            logging.info(f"TASK START: Processing {doc.filename} (ID: {doc.id})")
+            
+            # Capture Output
+            params = " ".join(sys.argv)
+            logging.info(f"Command: {params}")
+            
+            f_out = io.StringIO()
+            with contextlib.redirect_stdout(f_out), contextlib.redirect_stderr(f_out):
+                run_subscript_pipeline()
+            
+            output = f_out.getvalue()
+            logging.info(f"SUBSCRIPT OUTPUT for {doc.id}:\n{output}")
+            
             doc.status = "completed"
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")

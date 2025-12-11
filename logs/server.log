@@ -1,0 +1,235 @@
+2025-12-11 04:30:56.618701 - MODULE IMPORT - Writing to log file.
+2025-12-11 04:30:58.449046 - MODULE IMPORT - Writing to log file.
+2025-12-11 04:31:00.202854 - MODULE IMPORT - Writing to log file.
+2025-12-11 04:33:13,155 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:33:13.155723
+2025-12-11 04:33:14,733 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:33:14.733019
+2025-12-11 04:37:13,976 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:37:13.976527
+2025-12-11 04:37:15,868 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:37:15.868931
+2025-12-11 04:37:34,912 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:37:34.912191
+2025-12-11 04:37:36,066 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:37:36.066883
+2025-12-11 04:38:05,215 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:38:05.215848
+2025-12-11 04:38:06,336 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:38:06.336564
+2025-12-11 04:38:07,733 - INFO - Connected to redis://redis:6379/0
+2025-12-11 04:38:07,737 - INFO - mingle: searching for neighbors
+2025-12-11 04:38:08,750 - INFO - mingle: all alone
+2025-12-11 04:38:08,765 - INFO - celery@d89871f458aa ready.
+2025-12-11 04:38:41,200 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:38:41.200865
+2025-12-11 04:39:02,912 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:39:02.912522
+2025-12-11 04:39:03,811 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:39:03.811510
+2025-12-11 04:39:04,805 - INFO - Connected to redis://redis:6379/0
+2025-12-11 04:39:04,807 - INFO - mingle: searching for neighbors
+2025-12-11 04:39:05,821 - INFO - mingle: all alone
+2025-12-11 04:39:05,846 - INFO - celery@d89871f458aa ready.
+2025-12-11 04:39:23,208 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:39:23.208150
+2025-12-11 04:39:24,041 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:39:24.041066
+2025-12-11 04:39:24,966 - INFO - Connected to redis://redis:6379/0
+2025-12-11 04:39:24,968 - INFO - mingle: searching for neighbors
+2025-12-11 04:39:25,983 - INFO - mingle: all alone
+2025-12-11 04:39:25,995 - INFO - celery@d89871f458aa ready.
+2025-12-11 04:40:32,710 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:40:32.710322
+2025-12-11 04:40:45,495 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:40:45.495467
+2025-12-11 04:40:46,749 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:40:46.749121
+2025-12-11 04:40:48,168 - INFO - Connected to redis://redis:6379/0
+2025-12-11 04:40:48,171 - INFO - mingle: searching for neighbors
+2025-12-11 04:40:49,181 - INFO - mingle: all alone
+2025-12-11 04:40:49,191 - INFO - celery@d89871f458aa ready.
+2025-12-11 04:41:57,571 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded Add_70520_0116.jpg
+2025-12-11 04:41:57,722 - INFO - Task server.tasks.process_document_task[20031a10-ddee-4030-b89f-d30f55aea889] received
+2025-12-11 04:41:57,755 - INFO - TASK START: Processing Add_70520_0116.jpg (ID: 12)
+2025-12-11 04:41:57,755 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.jpg --output /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5
+2025-12-11 04:41:57,764 - INFO - Running from: /app
+2025-12-11 04:41:57,764 - INFO - Using config: /app/config.yml
+2025-12-11 04:41:57,765 - INFO - Output directory: /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5
+2025-12-11 04:41:57,765 - INFO - ----------------------------------------
+2025-12-11 04:42:00,666 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-11 04:42:00,667 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-11 04:42:00,667 - INFO - Processing 1 files...
+2025-12-11 04:42:00,667 - INFO - Processing /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.jpg...
+2025-12-11 04:42:00,667 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.jpg with Kraken...
+2025-12-11 04:42:00,672 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-11 04:42:01,192 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.jpg
+2025-12-11 04:42:04,554 - INFO - Vectorizing regions
+2025-12-11 04:42:04,696 - INFO - Vectorizing regions
+2025-12-11 04:42:04,836 - INFO - Vectorizing baselines
+2025-12-11 04:42:11,639 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-11 04:42:11,640 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 04:42:11,640 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-11 04:42:11,641 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 04:42:11,643 - INFO - Found 18 lines.
+2025-12-11 04:42:11,644 - INFO - Initializing Gemini model: gemini-3-pro-preview
+2025-12-11 04:42:11,658 - INFO - Annotating 18 regions for Visual Tagging...
+2025-12-11 04:42:11,695 - INFO - Saved debug image to /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116-debug.jpg
+2025-12-11 04:42:11,696 - INFO - Sending annotated image to Gemini...
+2025-12-11 04:45:13,447 - INFO - Received JSON response from Gemini.
+2025-12-11 04:45:13,449 - WARNING - Gemini did not return text for box 9
+2025-12-11 04:45:13,625 - INFO - SUBSCRIPT OUTPUT for 12:
+
+------------- gemini-pro-3 output for Add_70520_0116.jpg -------------
+glad aspects were present (confirming her
+Maiestie wth THEODOSIES dylligence, ARETAPHE=
+LIS constancie; and ANTIGONVS clemencie)
+setlinge them selues euar sence, in her Princelie
+brest: as ye rarenes and greatnes of her Gracis
+vertuse declare. Whom God presaruid from
+formar perell, to rule & reygne ouer us, in
+this last leaden adge: wherin Iniquitie hath
+
+sought to surmount ye glorie of his Deitie, and
+so presumed to suppresse his professors: As if
+Shylde of her Souerayntie (for worldlie
+Quens
+Ma:tie is ye per force) did not protect his poore membars a=
+fect protector of Religion mong us: what error wold not inuade us?
+What Scisme or sect wold not assawte us?
+What treason wold not entrapp us? When
+all
+----------------------------------------------------------------
+
+Saved PageXML to /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.xml
+Saved TXT to /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.txt
+Saved PDF to /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116.pdf
+
+Time:   00:03:12
+Input:  1329 tokens
+Output: 314 tokens
+Cost:   $0.0064
+
+----------------------------------------------------------------
+
+
+2025-12-11 04:45:13,640 - INFO - Generated thumbnail: /app/documents/eluhrs@gmail.com/Add_70520_0116-0cb467d5/Add_70520_0116-thumb.jpg
+2025-12-11 04:45:13,657 - INFO - Task server.tasks.process_document_task[20031a10-ddee-4030-b89f-d30f55aea889] succeeded in 195.9325876730145s: None
+2025-12-11 04:48:14,431 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded Add_70520_0116.jpg
+2025-12-11 04:48:14,453 - INFO - Task server.tasks.process_document_task[86a2e109-55b7-4bca-b39f-8f641e17cc78] received
+2025-12-11 04:48:14,471 - INFO - TASK START: Processing Add_70520_0116.jpg (ID: 13)
+2025-12-11 04:48:14,472 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.jpg --output /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886
+2025-12-11 04:48:14,488 - INFO - Running from: /app
+2025-12-11 04:48:14,488 - INFO - Using config: /app/config.yml
+2025-12-11 04:48:14,489 - INFO - Output directory: /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886
+2025-12-11 04:48:14,489 - INFO - ----------------------------------------
+2025-12-11 04:48:14,491 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-11 04:48:14,491 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-11 04:48:14,491 - INFO - Processing 1 files...
+2025-12-11 04:48:14,492 - INFO - Processing /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.jpg...
+2025-12-11 04:48:14,492 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.jpg with Kraken...
+2025-12-11 04:48:14,494 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-11 04:48:15,003 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.jpg
+2025-12-11 04:48:18,721 - INFO - Vectorizing regions
+2025-12-11 04:48:18,867 - INFO - Vectorizing regions
+2025-12-11 04:48:19,001 - INFO - Vectorizing baselines
+2025-12-11 04:48:25,708 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-11 04:48:25,709 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 04:48:25,710 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-11 04:48:25,710 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 04:48:25,711 - INFO - Found 18 lines.
+2025-12-11 04:48:25,712 - INFO - Initializing Gemini model: gemini-3-pro-preview
+2025-12-11 04:48:25,728 - INFO - Annotating 18 regions for Visual Tagging...
+2025-12-11 04:48:25,765 - INFO - Saved debug image to /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116-debug.jpg
+2025-12-11 04:48:25,765 - INFO - Sending annotated image to Gemini...
+2025-12-11 04:51:06,103 - INFO - Received JSON response from Gemini.
+2025-12-11 04:51:06,292 - INFO - SUBSCRIPT OUTPUT for 13:
+
+------------- gemini-pro-3 output for Add_70520_0116.jpg -------------
+glad aspects were present (confirming her
+Maiestie wth THEODOSIES dylligence, ARETAPHE-
+LIS constancie, and ANTIGONVS clemencie)
+setlinge them selues euar sence, in her Princelie
+brest: as ye rarenes and greatnes of her Gracis
+vertuse declare. Whom God presaruid from
+formar perell, to rule & reygne ouer us, in
+this last leaden adge: wherin Iniquitie hath
+sought to surmount ye glorie of his Deitie, and
+so presumed to suppresse his professors: As if
+ye Shylde of her Souerayntie (for worldlie
+force) did not protect his poore membars a=
+Qurens
+Ma:tie is ye per
+fect protector
+What Scisme or sect wold not assawte us?
+What treason wold not entrapp us? When
+all
+----------------------------------------------------------------
+
+Saved PageXML to /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.xml
+Saved TXT to /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.txt
+Saved PDF to /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116.pdf
+
+Time:   00:02:51
+Input:  1329 tokens
+Output: 307 tokens
+Cost:   $0.0063
+
+----------------------------------------------------------------
+
+
+2025-12-11 04:51:06,306 - INFO - Generated thumbnail: /app/documents/eluhrs@gmail.com/Add_70520_0116-72d47886/Add_70520_0116-thumb.jpg
+2025-12-11 04:51:06,320 - INFO - Task server.tasks.process_document_task[86a2e109-55b7-4bca-b39f-8f641e17cc78] succeeded in 171.86233287100913s: None
+2025-12-11 04:52:50,966 - INFO - SYSTEM: Server module initialized at 2025-12-11 04:52:50.966786
+2025-12-11 05:02:05,578 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded Add_70520_0116.jpg
+2025-12-11 05:02:05,816 - INFO - Task server.tasks.process_document_task[d5ca0522-b63f-4697-946d-812b69e8b9a2] received
+2025-12-11 05:02:05,849 - INFO - TASK START: Processing Add_70520_0116.jpg (ID: 14)
+2025-12-11 05:02:05,850 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.jpg --output /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9
+2025-12-11 05:02:05,870 - INFO - Running from: /app
+2025-12-11 05:02:05,870 - INFO - Using config: /app/config.yml
+2025-12-11 05:02:05,871 - INFO - Output directory: /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9
+2025-12-11 05:02:05,871 - INFO - ----------------------------------------
+2025-12-11 05:02:05,874 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-11 05:02:05,874 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-11 05:02:05,875 - INFO - Processing 1 files...
+2025-12-11 05:02:05,875 - INFO - Processing /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.jpg...
+2025-12-11 05:02:05,875 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.jpg with Kraken...
+2025-12-11 05:02:05,878 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-11 05:02:06,381 - INFO - Segmenting /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.jpg
+2025-12-11 05:02:10,301 - INFO - Vectorizing regions
+2025-12-11 05:02:10,448 - INFO - Vectorizing regions
+2025-12-11 05:02:10,592 - INFO - Vectorizing baselines
+2025-12-11 05:02:17,106 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-11 05:02:17,107 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 05:02:17,107 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-11 05:02:17,108 - INFO - Perform topological sort on partially ordered lines
+2025-12-11 05:02:17,111 - INFO - Found 18 lines.
+2025-12-11 05:02:17,111 - INFO - Initializing Gemini model: gemini-3-pro-preview
+2025-12-11 05:02:17,127 - INFO - Annotating 18 regions for Visual Tagging...
+2025-12-11 05:02:17,164 - INFO - Saved debug image to /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116-debug.jpg
+2025-12-11 05:02:17,164 - INFO - Sending annotated image to Gemini...
+2025-12-11 05:04:06,057 - INFO - Received JSON response from Gemini.
+2025-12-11 05:04:06,241 - INFO - SUBSCRIPT OUTPUT for 14:
+
+------------- gemini-pro-3 output for Add_70520_0116.jpg -------------
+glad aspects were present (confirming her
+Maiestie wth THEODOSIES dylligence, ARETAPHE=
+LIS constancie, and ANTIGONVS clemencie)
+setlinge them selues euar sence, in her Princelie
+brest: as ye rarenes and greatnes of her Gracis
+vertuse declare. Whom God presaruid from
+formar perell, to rule & reygne ouer us, in
+this last leaden adge: wherin Iniquitie hath
+sought to surmount ye glorie of his Deitie, and
+so presumed to suppresse his professors: As if
+ye Shylde of her Souerayntie (for worldlie
+force) did not protect his poore membars a=
+Quiens
+Ma:tie is ye per
+fect protector
+of Religion
+mong us: What error wold not inuade us?
+What Scisme or sect wold not assawte us?
+----------------------------------------------------------------
+
+Saved PageXML to /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.xml
+Saved TXT to /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.txt
+Saved PDF to /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116.pdf
+
+Time:   00:02:00
+Input:  1329 tokens
+Output: 353 tokens
+Cost:   $0.0069
+
+----------------------------------------------------------------
+
+
+2025-12-11 05:04:06,255 - INFO - Generated thumbnail: /app/documents/eluhrs@gmail.com/Add_70520_0116-a1cda2c9/Add_70520_0116-thumb.jpg
+2025-12-11 05:04:06,263 - INFO - Task server.tasks.process_document_task[d5ca0522-b63f-4697-946d-812b69e8b9a2] succeeded in 120.43892855499871s: None
