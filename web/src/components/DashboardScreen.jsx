@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 
@@ -30,7 +30,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
                     </div>
                 </button>
             ) : (
-                <span className="text-gray-400 text-xs select-none">--</span>
+                <span className="text-gray-900 text-xs select-none">--</span>
             )}
         </div>
 
@@ -49,7 +49,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
                     />
                 </button>
             ) : (
-                <span className="text-gray-400 text-xs select-none">--</span>
+                <span className="text-gray-900 text-xs select-none">--</span>
             )}
         </div>
 
@@ -66,7 +66,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
                     </div>
                 </button>
             ) : (
-                <span className="text-gray-400 text-xs select-none">--</span>
+                <span className="text-gray-900 text-xs select-none">--</span>
             )}
         </div>
 
@@ -85,7 +85,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
                     />
                 </button>
             ) : (
-                <span className="text-gray-400 text-xs select-none">--</span>
+                <span className="text-gray-900 text-xs select-none">--</span>
             )}
         </div>
 
@@ -264,12 +264,12 @@ const DashboardScreen = ({ setView }) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'completed': return 'bg-green-100 text-green-800';
-            case 'processing': return 'bg-yellow-100 text-yellow-800';
-            case 'merging': return 'bg-yellow-100 text-yellow-800';
-            case 'updating_pdf': return 'bg-yellow-100 text-yellow-800';
-            case 'error': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'completed': return 'bg-green-100 text-gray-900';
+            case 'processing': return 'bg-yellow-100 text-gray-900';
+            case 'merging': return 'bg-yellow-100 text-gray-900';
+            case 'updating_pdf': return 'bg-yellow-100 text-gray-900';
+            case 'error': return 'bg-red-100 text-gray-900';
+            default: return 'bg-gray-100 text-gray-900';
         }
     };
 
@@ -287,36 +287,39 @@ const DashboardScreen = ({ setView }) => {
     return (
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
-                <button
-                    onClick={() => setView('new')}
-                    className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150"
-                >
-                    <Plus size={20} />
-                    <span>New Document</span>
-                </button>
+                <h2 className="text-3xl font-bold text-[#3A5A80]">Dashboard</h2>
+                {/* New Document button removed, moved to Header */}
             </div>
 
-            <div className="bg-white shadow-xl rounded-xl overflow-hidden">
+            <div className="bg-[#EDEDEB] shadow-xl rounded-xl overflow-hidden border border-gray-500">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-[#D8D8D7] border-b border-gray-400">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Modified</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Preview</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Filename</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Last Modified</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {documents.map((doc) => (
-                                <tr key={doc.id} className="hover:bg-indigo-50 transition duration-150">
+                        <tbody className="bg-[#EDEDEB]">
+                            {documents.map((doc, index) => (
+                                <tr
+                                    key={doc.id}
+                                    className="hover:bg-[#E0E0DE] transition duration-150"
+                                    style={index === documents.length - 1 ? {} : {
+                                        backgroundImage: 'linear-gradient(to right, transparent 2.5%, #9ca3af 2.5%, #9ca3af 97.5%, transparent 97.5%)',
+                                        backgroundSize: '100% 1px',
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'bottom'
+                                    }}
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap w-20">
                                         {doc.thumbnail_url ? (
                                             <div
                                                 onClick={() => handleDownload(doc.id, 'pdf')}
-                                                className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-200 cursor-pointer"
+                                                className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-500 cursor-pointer"
                                             >
                                                 <img
                                                     src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
@@ -326,7 +329,7 @@ const DashboardScreen = ({ setView }) => {
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-500 text-xs">...</div>
+                                            <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-900 text-xs">...</div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 font-medium text-gray-900">
@@ -341,17 +344,17 @@ const DashboardScreen = ({ setView }) => {
                                             <span>{doc.filename}</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                    <td className="px-6 py-4 text-sm text-gray-900">
                                         {new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}>
+                                        <span className={`px-3 inline-flex text-xs leading-5 font-semibold rounded-full border border-gray-400 ${getStatusColor(doc.status)}`}>
                                             {getStatusText(doc.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {doc.status === 'processing' || doc.status === 'merging' ? (
-                                            <span className="text-gray-400 text-xs italic">
+                                            <span className="text-gray-900 text-xs italic">
                                                 Processing...
                                             </span>
                                         ) : doc.status === 'queued' ? (
@@ -389,7 +392,7 @@ const DashboardScreen = ({ setView }) => {
                 cancelText="Cancel"
                 type="danger"
             />
-        </div>
+        </div >
     );
 };
 

@@ -35,7 +35,7 @@ function App() {
 
   // If authenticated, show the main layout
   return (
-    <div className="min-h-screen bg-gray-50 font-sans antialiased">
+    <div className="min-h-screen bg-[#e5e5e5] font-sans antialiased">
       <Header currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
 
       <main className="pb-10">

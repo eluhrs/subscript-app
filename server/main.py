@@ -195,6 +195,39 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
+@app.put("/api/auth/me", response_model=UserResponse)
+def update_user_me(user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # If email is being changed, check for uniqueness
+    if user_update.email and user_update.email != current_user.email:
+        existing_user = db.query(User).filter(User.email == user_update.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = user_update.email
+    
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@app.put("/api/auth/password")
+def change_password(password_change: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not verify_password(password_change.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+    
+    current_user.hashed_password = get_password_hash(password_change.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
 # --- Document Endpoints (Protected) ---
 
 @app.get("/api/documents", response_model=List[DocumentResponse])

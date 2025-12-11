@@ -67,7 +67,7 @@ transcription:
         top_p: 0.95
         top_k: 64
 
-    gemini-flash:
+    gemini-flash-2.5:
       provider: "gemini"
       model: "gemini-2.5-flash"
       prompt: |
@@ -84,7 +84,7 @@ transcription:
         temperature: 0.0
         max_output_tokens: 8192
 
-    gemini-flash-lite:
+    gemini-flash-lite-2.5:
       provider: "gemini"
       model: "gemini-2.5-flash-lite"
       prompt: |
@@ -101,7 +101,7 @@ transcription:
         temperature: 0.0
         max_output_tokens: 8192
 
-    gpt-4o:
+    openai-gpt-4o:
       provider: "openai"
       model: "gpt-4o"
       prompt: "Transcribe this handwritten text exactly as written."
@@ -112,7 +112,7 @@ transcription:
         temperature: 0.0
         max_output_tokens: 4096
 
-    claude-sonnet:
+    claude-sonnet-4.5:
       provider: "anthropic"
       model: "claude-sonnet-4-5-20250929"      
       prompt: "Transcribe this handwritten text exactly as written."
