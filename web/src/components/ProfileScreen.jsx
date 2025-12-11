@@ -122,6 +122,8 @@ const ProfileScreen = () => {
                     email: data.email || '',
                     is_admin: data.is_admin || false
                 });
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
             console.error("Error fetching user", error);
@@ -138,6 +140,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setAdminUsers(data);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
             console.error("Error fetching users", error);
@@ -155,6 +159,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setHealthData(data);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
             console.error("Error fetching health", error);
@@ -170,6 +176,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setLogs(data.logs || []);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
             console.error("Error fetching logs", error);
@@ -185,6 +193,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setRegistrationMode(data.registration_mode);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) { console.error("Error fetching settings", error); }
     };
@@ -198,6 +208,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 const data = await response.json();
                 setInvites(data);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) { console.error("Error fetching invites", error); }
     };
@@ -218,6 +230,8 @@ const ProfileScreen = () => {
 
             if (response.ok) {
                 fetchUsersList();
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 const err = await response.json();
                 showModal("Error", err.detail || "Failed to update role", "danger");
@@ -247,6 +261,8 @@ const ProfileScreen = () => {
 
             if (response.ok) {
                 fetchUsersList();
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 const err = await response.json();
                 showModal("Error", err.detail || "Failed to toggle lock", "danger");
@@ -276,6 +292,8 @@ const ProfileScreen = () => {
                 setShowEditModal(false);
                 fetchUsersList();
                 showModal("Success", "User updated successfully", "success");
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 const data = await response.json();
                 showModal("Error", data.detail || "Failed to update user", "danger");
@@ -294,6 +312,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 fetchUsersList();
                 setConfirmAction({ ...confirmAction, isOpen: false });
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 const err = await response.json();
                 showModal("Error", err.detail || "Failed to delete user", "danger");
@@ -329,7 +349,10 @@ const ProfileScreen = () => {
                 body: JSON.stringify({ full_name: user.full_name })
             });
             if (profileRes.ok) successMessage.push("Profile updated.");
-            else {
+            else if (profileRes.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
+                return;
+            } else {
                 errorOccurred = true;
                 successMessage.push("Failed to update profile.");
             }
@@ -348,7 +371,10 @@ const ProfileScreen = () => {
                     body: JSON.stringify({ old_password: passwords.current, new_password: passwords.new })
                 });
                 if (passRes.ok) successMessage.push("Password updated.");
-                else {
+                else if (passRes.status === 401) {
+                    window.dispatchEvent(new Event('auth:unauthorized'));
+                    return;
+                } else {
                     errorOccurred = true;
                     successMessage.push("Password update failed.");
                 }
@@ -372,6 +398,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 setRegistrationMode(newMode);
                 showModal("Updated", `Registration is now ${newMode === 'open' ? 'Open to Everyone' : 'Invite Only'}`, "success");
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (e) { showModal("Error", "Failed to update settings", "danger"); }
     };
@@ -387,6 +415,8 @@ const ProfileScreen = () => {
             if (response.ok) {
                 setNewInviteEmail('');
                 fetchInvites();
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (e) { showModal("Error", "Failed to create invite", "danger"); }
     };
@@ -399,6 +429,7 @@ const ProfileScreen = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) fetchInvites();
+            else if (response.status === 401) window.dispatchEvent(new Event('auth:unauthorized'));
             else showModal("Error", "Failed to delete invite", "danger");
         } catch (e) { showModal("Error", "Network error", "danger"); }
     };

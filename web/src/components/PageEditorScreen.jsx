@@ -26,6 +26,11 @@ const PageEditorScreen = ({ docId, setView }) => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
+                if (response.status === 401) {
+                    window.dispatchEvent(new Event('auth:unauthorized'));
+                    throw new Error("Unauthorized");
+                }
+
                 if (!response.ok) {
                     throw new Error("Failed to load document");
                 }

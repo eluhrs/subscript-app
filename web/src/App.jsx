@@ -35,6 +35,17 @@ function App() {
     setCurrentView('login');
   };
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      handleLogout();
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
   // If not authenticated, show the Login or Register screen
   if (!isAuthenticated) {
     if (currentView === 'register') {

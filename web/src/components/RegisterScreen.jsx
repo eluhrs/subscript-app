@@ -12,8 +12,11 @@ const RegisterScreen = ({ setView }) => {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        const t = params.get('token');
-        if (t) setToken(t);
+        if (t) {
+            setToken(t);
+            // Clean URL: remove query params but keep the path
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
 
         fetch('/api/system/config')
             .then(res => res.json())

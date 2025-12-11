@@ -130,6 +130,7 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 setDocuments(data);
             } else if (response.status === 401) {
                 console.error("Unauthorized");
+                window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
             console.error("Failed to fetch documents", error);
@@ -169,6 +170,8 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 }
 
                 setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 alert("Download failed.");
             }
@@ -190,6 +193,8 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
 
             if (response.ok) {
                 fetchDocuments(); // Optimistic refresh
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 alert("Update failed.");
             }
@@ -220,6 +225,8 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
 
             if (response.ok) {
                 fetchDocuments(); // Refresh list
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
                 alert("Delete failed.");
             }
