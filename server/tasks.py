@@ -66,6 +66,11 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
             output = f_out.getvalue()
             logging.info(f"SUBSCRIPT OUTPUT for {doc.id}:\n{output}")
             
+            # Check if output directory still exists (user might have deleted the doc)
+            if not os.path.exists(output_dir):
+                logging.warning(f"Output directory {output_dir} not found. Document likely deleted by user. Aborting task completion.")
+                return
+
             doc.status = "completed"
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
@@ -75,6 +80,11 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
         except SystemExit as e:
             if e.code != 0:
                 raise Exception(f"Subscript exited with code {e.code}")
+            # Check if output directory still exists (user might have deleted the doc)
+            if not os.path.exists(output_dir):
+                logging.warning(f"Output directory {output_dir} not found. Document likely deleted by user. Aborting task completion.")
+                return
+
             doc.status = "completed"
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
@@ -133,6 +143,12 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
                     merge_document_task.delay(parent.id)
 
     except Exception as e:
+        db.rollback()
+        # Check if doc deleted during processing
+        if "0 were matched" in str(e) or not db.query(Document).filter(Document.id == doc_id).first():
+            logging.warning(f"Document {doc_id} deleted during processing. Suppressing error.")
+            return
+
         logging.error(f"Processing failed: {e}")
         doc.status = "error"
         doc.error_message = str(e)

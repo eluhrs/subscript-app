@@ -13,6 +13,10 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [docToDelete, setDocToDelete] = useState(null);
 
+    // Share Modal State
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+
     useEffect(() => {
         fetchDocuments();
         const interval = setInterval(fetchDocuments, 1000); // Poll every 1 second
@@ -145,7 +149,8 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 const data = await response.json();
                 const shareUrl = `${window.location.origin}/s/${data.share_token}`;
                 navigator.clipboard.writeText(shareUrl);
-                alert("Share link copied to clipboard!\n" + shareUrl);
+                setShareUrl(shareUrl);
+                setShareModalOpen(true);
             } else if (response.status === 401) {
                 window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
@@ -163,152 +168,167 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 <h2 className="text-3xl font-bold text-[#3A5A80]">Dashboard</h2>
             </div>
 
-            <div className="space-y-4">
-                {documents.map((doc) => (
-                    <div key={doc.id} className="bg-[#EDEDEB] rounded-xl shadow-lg border border-gray-400 overflow-visible relative">
-                        <div className="flex items-center px-4 py-4 gap-4">
+            {/* Table Layout Container */}
+            <div className="bg-[#EDEDEB] rounded-xl shadow-lg border border-gray-400">
+                {/* Header */}
+                <div className="flex items-center px-4 py-3 bg-[#D4D4D2] border-b border-gray-400 text-sm font-bold text-gray-800 rounded-t-xl">
+                    <div className="flex-1">Document Information</div>
+                    <div className="w-auto">Actions</div>
+                </div>
 
-                            {/* Thumbnail */}
-                            <div className="w-16 flex-shrink-0">
-                                <div className="w-12 h-16 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer"
-                                    onClick={() => handleFileAction(doc.id, 'pdf', 'view')}>
-                                    {doc.thumbnail_url ? (
-                                        <img
-                                            src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
-                                            alt="Thumbnail"
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/eee/999?text=IMG"; }}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-xs text-gray-400">...</div>
-                                    )}
+                {/* Rows */}
+                <div className="flex flex-col">
+                    {documents.map((doc, index) => (
+                        <React.Fragment key={doc.id}>
+                            {/* Divider (95% width) */}
+                            {index > 0 && <div className="w-[95%] h-px bg-gray-300 mx-auto"></div>}
+
+                            <div className="flex items-center px-4 py-3 gap-4 group hover:bg-[#E5E5E3] transition-colors relative last:rounded-b-xl">
+
+                                {/* Info Column */}
+                                <div className="flex-1 flex items-center gap-4 min-w-0">
+                                    {/* Thumbnail */}
+                                    <div className="w-12 flex-shrink-0">
+                                        <div className="w-10 h-14 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer"
+                                            onClick={() => handleFileAction(doc.id, 'pdf', 'view')}>
+                                            {doc.thumbnail_url ? (
+                                                <img
+                                                    src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
+                                                    alt="Thumbnail"
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x56/eee/999?text=IMG"; }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-[10px] text-gray-400">...</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Text Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm md:text-base font-semibold text-gray-900 truncate" title={doc.filename}>
+                                            {doc.filename}
+                                        </h4>
+                                        <div className="flex items-center gap-1 md:gap-3 text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
+                                            <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-[10px] md:text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
+                                            <span className="hidden md:block w-1 h-1 rounded-full bg-gray-400"></span>
+                                            {doc.status === 'completed' && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[9px] md:text-[10px] font-medium border border-green-200">Done</span>}
+                                            {doc.status === 'processing' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Transcribing</span>}
+                                            {doc.status === 'merging' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Merging</span>}
+                                            {doc.status === 'updating_pdf' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Updating</span>}
+                                            {(doc.status === 'error' || doc.status === 'queued') && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[9px] md:text-[10px] font-medium border border-red-200">Error</span>}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Info */}
-                            <div className="flex-1 min-w-0 mr-4">
-                                <h4 className="text-lg font-semibold text-gray-900 truncate" title={doc.filename}>
-                                    {doc.filename}
-                                </h4>
-                                <div className="flex items-center gap-3 text-sm text-gray-500 mt-1 font-medium">
-                                    <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
-                                    <span className="w-1 h-1 rounded-full bg-gray-400"></span>
-                                    {doc.status === 'completed' && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium border border-green-200">Ready</span>}
-                                    {doc.status === 'processing' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Processing</span>}
-                                    {doc.status === 'merging' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Merging</span>}
-                                    {doc.status === 'updating_pdf' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Updating PDF</span>}
-                                    {doc.status === 'error' && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium border border-red-200">Error</span>}
-                                    {doc.status === 'queued' && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200">Queued</span>}
-                                </div>
-                            </div>
+                                {/* Actions Toolbar */}
+                                <div className="flex items-center bg-[#F7F7F5] rounded-lg p-1 gap-1 flex-shrink-0">
 
-                            {/* Actions Toolbar */}
-                            <div className="flex items-center bg-[#F7F7F5] rounded-lg p-1 gap-1">
-
-                                <button onClick={() => handleEdit(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-[#E0E0DE] rounded text-gray-700 transition" title="Edit">
-                                    <Pencil size={16} className="mb-0.5" />
-                                    <span className="text-[9px] font-medium">Edit</span>
-                                </button>
-
-                                <div className="w-px h-6 bg-gray-300"></div>
-
-                                <button onClick={() => handleShare(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-[#E0E0DE] rounded text-gray-700 transition" title="Share (Public Link)">
-                                    <Share2 size={16} className="mb-0.5" />
-                                    <span className="text-[9px] font-medium">Share</span>
-                                </button>
-
-                                <div className="w-px h-6 bg-gray-300"></div>
-
-                                {/* Files Menu Trigger */}
-                                <div className="relative">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id);
-                                        }}
-                                        className={`flex flex-col items-center justify-center w-14 h-10 rounded transition ${activeMenuDocId === doc.id ? 'bg-[#E0E0DE] text-[#3A5A80]' : 'bg-[#F7F7F5] text-[#3A5A80] hover:bg-[#E0E0DE]'}`}
-                                    >
-                                        <FolderOpen size={16} className="mb-0.5" />
-                                        <span className="text-[9px] font-medium">Files ▼</span>
+                                    <button onClick={() => handleEdit(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition" title="Edit">
+                                        <Pencil size={16} className="mb-0.5" />
+                                        <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Edit</span>
                                     </button>
 
-                                    {/* Files Popover */}
-                                    {activeMenuDocId === doc.id && (
-                                        <div ref={menuRef} className="absolute right-0 top-12 w-64 bg-[#F7F7F5] border-0 rounded-lg shadow-xl z-50 p-2 ring-1 ring-gray-200">
-                                            {/* MAP (Debug) */}
-                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
-                                                <div className="flex items-center gap-2">
-                                                    <Map size={16} className="text-purple-500" />
-                                                    <span className="text-sm font-medium text-gray-700">MAP</span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button onClick={() => handleFileAction(doc.id, 'debug', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                    <button onClick={() => handleFileAction(doc.id, 'debug', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
-                                                </div>
-                                            </div>
-                                            {/* TXT */}
-                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
-                                                <div className="flex items-center gap-2">
-                                                    <AlignLeft size={16} className="text-gray-500" />
-                                                    <span className="text-sm font-medium text-gray-700">TXT</span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button onClick={() => handleFileAction(doc.id, 'txt', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                    <button onClick={() => handleFileAction(doc.id, 'txt', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
-                                                </div>
-                                            </div>
-                                            {/* XML */}
-                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
-                                                <div className="flex items-center gap-2">
-                                                    <Code size={16} className="text-orange-500" />
-                                                    <span className="text-sm font-medium text-gray-700">XML</span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button onClick={() => handleFileAction(doc.id, 'xml', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                    <button onClick={() => handleFileAction(doc.id, 'xml', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
-                                                </div>
-                                            </div>
-                                            {/* PDF */}
-                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
-                                                <div className="flex items-center gap-2">
-                                                    <FileText size={16} className="text-red-500" />
-                                                    <span className="text-sm font-medium text-gray-700">PDF</span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button onClick={() => handleFileAction(doc.id, 'pdf', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="View"><Eye size={14} /></button>
-                                                    <button onClick={() => handleFileAction(doc.id, 'pdf', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded" title="Download"><Download size={14} /></button>
-                                                </div>
-                                            </div>
+                                    <div className="w-px h-6 bg-gray-300"></div>
 
-                                            <div className="border-t border-gray-300 my-1"></div>
+                                    <button onClick={() => handleShare(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition" title="Share (Public Link)">
+                                        <Share2 size={16} className="mb-0.5" />
+                                        <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Share</span>
+                                    </button>
 
-                                            {/* Download All */}
-                                            <button
-                                                onClick={() => handleFileAction(doc.id, 'zip', 'download')}
-                                                className="w-full block p-2 text-center text-xs font-bold text-white bg-[#3A5A80] hover:bg-[#2A4A70] rounded shadow-sm transition"
-                                            >
-                                                Download All Assets (ZIP)
-                                            </button>
-                                        </div>
-                                    )}
+                                    <div className="w-px h-6 bg-gray-300"></div>
+
+                                    {/* Files Menu Trigger */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id);
+                                            }}
+                                            className={`flex flex-col items-center justify-center w-12 md:w-14 h-8 md:h-10 rounded transition ${activeMenuDocId === doc.id ? 'bg-[#E0E0DE] text-[#3A5A80]' : 'bg-[#F7F7F5] text-[#3A5A80] hover:bg-[#E0E0DE]'}`}
+                                        >
+                                            <FolderOpen size={16} className="mb-0.5" />
+                                            <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Files ▼</span>
+                                        </button>
+
+                                        {/* Files Popover */}
+                                        {activeMenuDocId === doc.id && (
+                                            <div ref={menuRef} className="absolute right-0 top-12 w-64 bg-[#F7F7F5] border-0 rounded-lg shadow-xl z-50 p-2 ring-1 ring-gray-200">
+                                                {/* MAP (Debug) */}
+                                                <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                    <div className="flex items-center gap-2">
+                                                        <Map size={16} className="text-purple-500" />
+                                                        <span className="text-sm font-medium text-gray-700">MAP</span>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleFileAction(doc.id, 'debug', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => handleFileAction(doc.id, 'debug', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                    </div>
+                                                </div>
+                                                {/* TXT */}
+                                                <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                    <div className="flex items-center gap-2">
+                                                        <AlignLeft size={16} className="text-gray-500" />
+                                                        <span className="text-sm font-medium text-gray-700">TXT</span>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleFileAction(doc.id, 'txt', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => handleFileAction(doc.id, 'txt', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                    </div>
+                                                </div>
+                                                {/* XML */}
+                                                <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                    <div className="flex items-center gap-2">
+                                                        <Code size={16} className="text-orange-500" />
+                                                        <span className="text-sm font-medium text-gray-700">XML</span>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleFileAction(doc.id, 'xml', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => handleFileAction(doc.id, 'xml', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                    </div>
+                                                </div>
+                                                {/* PDF */}
+                                                <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText size={16} className="text-red-500" />
+                                                        <span className="text-sm font-medium text-gray-700">PDF</span>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleFileAction(doc.id, 'pdf', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="View"><Eye size={14} /></button>
+                                                        <button onClick={() => handleFileAction(doc.id, 'pdf', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded" title="Download"><Download size={14} /></button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-gray-300 my-1"></div>
+
+                                                {/* Download All */}
+                                                <button
+                                                    onClick={() => handleFileAction(doc.id, 'zip', 'download')}
+                                                    className="w-full block p-2 text-center text-xs font-bold text-white bg-[#3A5A80] hover:bg-[#2A4A70] rounded shadow-sm transition"
+                                                >
+                                                    Download All Assets (ZIP)
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="w-px h-6 bg-gray-300"></div>
+
+                                    <button onClick={() => handleDeleteClick(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-red-50 text-red-600 rounded transition" title="Delete">
+                                        <Trash2 size={16} className="mb-0.5" />
+                                        <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Del</span>
+                                    </button>
                                 </div>
-
-                                <div className="w-px h-6 bg-gray-300"></div>
-
-                                <button onClick={() => handleDeleteClick(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-red-50 text-red-600 rounded transition" title="Delete">
-                                    <Trash2 size={16} className="mb-0.5" />
-                                    <span className="text-[9px] font-medium">Del</span>
-                                </button>
                             </div>
-                        </div>
-                    </div>
-                ))}
+                        </React.Fragment>
+                    ))}
 
-                {documents.length === 0 && !loading && (
-                    <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                        <p>No documents found. Upload one to get started.</p>
-                    </div>
-                )}
+                    {documents.length === 0 && !loading && (
+                        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-b-xl">
+                            <p>No documents found. Upload one to get started.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ConfirmationModal
@@ -320,6 +340,16 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 confirmText="Delete"
                 cancelText="Cancel"
                 type="danger"
+            />
+
+            <ConfirmationModal
+                isOpen={shareModalOpen}
+                onClose={() => setShareModalOpen(false)}
+                title="Link Created"
+                message={`The share link has been copied to your clipboard:\n\n${shareUrl}`}
+                singleButton={true}
+                confirmText="OK"
+                type="success"
             />
         </div>
     );
