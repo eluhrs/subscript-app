@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCcw } from 'lucide-react';
 
 const LoginScreen = ({ setIsAuthenticated, setView }) => {
@@ -6,6 +6,14 @@ const LoginScreen = ({ setIsAuthenticated, setView }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [registrationMode, setRegistrationMode] = useState('open');
+
+    useEffect(() => {
+        fetch('/api/system/config')
+            .then(res => res.json())
+            .then(data => setRegistrationMode(data.registration_mode))
+            .catch(err => console.error("Failed to fetch system config", err));
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -99,12 +107,18 @@ const LoginScreen = ({ setIsAuthenticated, setView }) => {
                 </form>
 
                 <div className="text-center mt-4">
-                    <p className="text-sm text-gray-600">
-                        Don't have an account?{' '}
-                        <button onClick={() => setView('register')} className="font-medium text-[#3A5A80] hover:text-[#4A6D94] transition duration-150">
-                            Sign up
-                        </button>
-                    </p>
+                    {registrationMode === 'open' ? (
+                        <p className="text-sm text-gray-600">
+                            Don't have an account?{' '}
+                            <button onClick={() => setView('register')} className="font-medium text-[#3A5A80] hover:text-[#4A6D94] transition duration-150">
+                                Sign up
+                            </button>
+                        </p>
+                    ) : (
+                        <p className="text-sm text-gray-500 italic">
+                            Accounts are by invitation only.
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

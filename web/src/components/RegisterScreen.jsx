@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 
 const RegisterScreen = ({ setView }) => {
@@ -7,6 +7,22 @@ const RegisterScreen = ({ setView }) => {
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [token, setToken] = useState('');
+    const [registrationMode, setRegistrationMode] = useState('open');
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('token');
+        if (t) setToken(t);
+
+        fetch('/api/system/config')
+            .then(res => res.json())
+            .then(data => setRegistrationMode(data.registration_mode))
+            .catch(console.error);
+    }, []);
+
+    const isInviteOnly = registrationMode === 'invite';
+    const canRegister = !isInviteOnly || (isInviteOnly && token);
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -14,7 +30,8 @@ const RegisterScreen = ({ setView }) => {
         setError('');
 
         try {
-            const response = await fetch('/api/auth/register', {
+            const url = token ? `/api/auth/register?token=${token}` : '/api/auth/register';
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,6 +81,19 @@ const RegisterScreen = ({ setView }) => {
                     </div>
                 )}
 
+                {isInviteOnly && !token && (
+                    <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded relative text-center">
+                        <p className="font-bold">Invitation Required</p>
+                        <p className="text-sm">Registration is currently limited to invited users only.</p>
+                    </div>
+                )}
+
+                {token && (
+                    <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-2 rounded text-center text-sm mb-4">
+                        Invitation Code Applied
+                    </div>
+                )}
+
                 <form onSubmit={handleRegister} className="space-y-3">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Full Name</label>
@@ -96,7 +126,7 @@ const RegisterScreen = ({ setView }) => {
                     </div>
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || !canRegister}
                         className="w-full flex justify-center py-2 px-4 border border-gray-600 rounded-lg shadow-sm text-lg font-semibold text-white bg-[#5B84B1] hover:bg-[#4A6D94] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out disabled:opacity-50"
                     >
                         {loading ? (

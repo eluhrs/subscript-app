@@ -17,7 +17,15 @@ function App() {
     if (token) {
       setIsAuthenticated(true);
     } else {
-      setCurrentView('login');
+      // Check if URL indicates registration (e.g. /register or ?token=...)
+      const path = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
+
+      if (path === '/register' || params.get('token')) {
+        setCurrentView('register');
+      } else {
+        setCurrentView('login');
+      }
     }
   }, []);
 

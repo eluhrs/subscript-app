@@ -3,6 +3,7 @@ import os
 import shutil
 import logging
 import time
+import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -19,14 +20,7 @@ from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
-# Import subscript modules (handling import error for dev environment)
-try:
-    from subscript.__main__ import main as run_subscript_pipeline
-    from subscript.modules.transcription import preprocess_image
-except ImportError:
-    import sys
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-    from subscript.__main__ import main as run_subscript_pipeline
+
 
 from server.utils import sanitize_filename, sanitize_email
 
@@ -76,6 +70,7 @@ class User(Base):
     hashed_password = Column(String)
     full_name = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
+    is_locked = Column(Boolean, default=False)
     documents = relationship("Document", back_populates="owner")
 
 class Document(Base):
@@ -100,6 +95,21 @@ class Document(Base):
                             backref="parent", 
                             remote_side=[id],
                             order_by="Document.page_order")
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+    key = Column(String, primary_key=True, index=True)
+    value = Column(String)
+
+class Invitation(Base):
+    __tablename__ = "invitations"
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, unique=True, index=True)
+    email = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_used = Column(Boolean, default=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    # No need for back-relationship on User for now
 
 Base.metadata.create_all(bind=engine)
 
@@ -168,6 +178,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: Optional[str] = None
     is_admin: bool = False
+    is_locked: bool = False
     class Config:
         orm_mode = True
 
@@ -193,6 +204,30 @@ class DocumentResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class SystemConfigResponse(BaseModel):
+    registration_mode: str
+
+class InviteCreate(BaseModel):
+    email: Optional[EmailStr] = None
+
+class InviteResponse(BaseModel):
+    id: int
+    token: str
+    email: Optional[str]
+    created_at: datetime
+    is_used: bool
+    class Config:
+        orm_mode = True
+
+class SettingsUpdate(BaseModel):
+    registration_mode: str
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    is_locked: Optional[bool] = None
+
 # --- App ---
 app = FastAPI()
 
@@ -207,7 +242,19 @@ app.add_middleware(
 # --- Auth Endpoints ---
 
 @app.post("/api/auth/register", response_model=UserResponse)
-def register(user: UserCreate, db: Session = Depends(get_db)):
+def register(user: UserCreate, token: Optional[str] = None, db: Session = Depends(get_db)):
+    # Check registration mode
+    mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
+    mode = mode_setting.value if mode_setting else "open"
+
+    invite_obj = None
+    if mode == "invite":
+        if not token:
+            raise HTTPException(status_code=403, detail="Registration is by invitation only.")
+        invite_obj = db.query(Invitation).filter(Invitation.token == token, Invitation.is_used == False).first()
+        if not invite_obj:
+            raise HTTPException(status_code=403, detail="Invalid or used invitation token")
+
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -223,6 +270,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         is_admin=is_admin
     )
     db.add(db_user)
+    
+    # Consume token if applicable
+    if invite_obj:
+        invite_obj.is_used = True
+        db.add(invite_obj)
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -236,6 +289,13 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    if user.is_locked:
+         raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is locked. Please contact administrator.",
+        )
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
@@ -246,9 +306,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+
 
 class PasswordChange(BaseModel):
     old_password: str
@@ -773,6 +831,46 @@ def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Session = De
     db.refresh(user)
     return user
 
+@app.put("/api/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Check for email uniqueness if changed
+    # Check for email uniqueness if changed
+    if user_update.email and user_update.email != user.email:
+        existing_user = db.query(User).filter(User.email == user_update.email).first()
+        if existing_user:
+             raise HTTPException(status_code=400, detail="Email already taken")
+    
+    if user_update.full_name:
+        user.full_name = user_update.full_name
+    if user_update.email:
+        user.email = user_update.email
+    
+    if user_update.password:
+        user.hashed_password = get_password_hash(user_update.password)
+        
+    if user_update.is_locked is not None:
+        # Prevent locking yourself
+        if user.id == current_user.id and user_update.is_locked:
+             raise HTTPException(status_code=400, detail="Cannot lock yourself")
+        user.is_locked = user_update.is_locked
+        
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+
+        
+    # Check for email uniqueness if changed
+
+
 @app.delete("/api/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not current_user.is_admin:
@@ -849,3 +947,67 @@ def admin_logs(lines: int = 50, current_user: User = Depends(get_current_user)):
              return {"logs": ["Log file not yet created."]}
     except Exception as e:
         return {"logs": [f"Error reading log file: {str(e)}"]}
+
+
+# --- System / Invitation Endpoints ---
+
+@app.get("/api/system/config", response_model=SystemConfigResponse)
+def get_system_config(db: Session = Depends(get_db)):
+    mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
+    return {"registration_mode": mode_setting.value if mode_setting else "open"}
+
+@app.get("/api/admin/settings", response_model=SystemConfigResponse)
+def get_admin_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
+    return {"registration_mode": mode_setting.value if mode_setting else "open"}
+
+@app.put("/api/admin/settings", response_model=SystemConfigResponse)
+def update_admin_settings(settings: SettingsUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
+    if not mode_setting:
+        mode_setting = SystemSettings(key="registration_mode", value=settings.registration_mode)
+        db.add(mode_setting)
+    else:
+        mode_setting.value = settings.registration_mode
+    db.commit()
+    return {"registration_mode": mode_setting.value}
+
+@app.get("/api/admin/invites", response_model=List[InviteResponse])
+def get_invites(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return db.query(Invitation).order_by(Invitation.created_at.desc()).all()
+
+@app.post("/api/admin/invites", response_model=InviteResponse)
+def create_invite(invite: InviteCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    token = str(uuid.uuid4())
+    new_invite = Invitation(
+        token=token,
+        email=invite.email,
+        created_by_id=current_user.id
+    )
+    db.add(new_invite)
+    db.commit()
+    db.refresh(new_invite)
+    return new_invite
+
+@app.delete("/api/admin/invites/{invite_id}")
+def delete_invite(invite_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    invite = db.query(Invitation).filter(Invitation.id == invite_id).first()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+        
+    db.delete(invite)
+    db.commit()
+    return {"message": "Invitation deleted"}

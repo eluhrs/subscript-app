@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Trash, Check, X } from 'lucide-react';
+import { Save, Trash, Check, X, Copy, Link, Edit2, Lock, Unlock } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 // Helper to format log lines (moved outside to avoid re-creation)
@@ -43,6 +43,15 @@ const ProfileScreen = () => {
     const [healthData, setHealthData] = useState(null);
     const [logs, setLogs] = useState([]);
 
+    // Invites State
+    const [registrationMode, setRegistrationMode] = useState('open'); // 'open' | 'invite'
+    const [invites, setInvites] = useState([]);
+    const [newInviteEmail, setNewInviteEmail] = useState('');
+
+    // Edit User State
+    const [editingUser, setEditingUser] = useState(null); // { id, full_name, email, is_locked, password (optional) }
+    const [showEditModal, setShowEditModal] = useState(false);
+
     // Refs for Logs
     const logsEndRef = useRef(null);
 
@@ -73,6 +82,8 @@ const ProfileScreen = () => {
     useEffect(() => {
         if (activeTab === 'admin' && user.is_admin) {
             if (adminSubTab === 'users') fetchUsersList();
+            if (adminSubTab === 'users') fetchUsersList();
+            if (adminSubTab === 'availability') { fetchSettings(); fetchInvites(); }
             if (adminSubTab === 'health') fetchHealth();
             if (adminSubTab === 'logs') fetchLogs();
         }
@@ -165,6 +176,32 @@ const ProfileScreen = () => {
         }
     };
 
+    const fetchSettings = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/admin/settings', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setRegistrationMode(data.registration_mode);
+            }
+        } catch (error) { console.error("Error fetching settings", error); }
+    };
+
+    const fetchInvites = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/admin/invites', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setInvites(data);
+            }
+        } catch (error) { console.error("Error fetching invites", error); }
+    };
+
     // --- Actions ---
 
     const handleRoleUpdate = async (targetUser, newIsAdmin) => {
@@ -188,6 +225,62 @@ const ProfileScreen = () => {
         } catch (error) {
             showModal("Error", "Network error updating role", "danger");
         }
+    };
+
+    const handleToggleLock = async (targetUser) => {
+        // Prevent self-locking
+        if (targetUser.id === user.id) {
+            showModal("Warning", "You cannot lock your own account", "warning");
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/api/users/${targetUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ is_locked: !targetUser.is_locked })
+            });
+
+            if (response.ok) {
+                fetchUsersList();
+            } else {
+                const err = await response.json();
+                showModal("Error", err.detail || "Failed to toggle lock", "danger");
+            }
+        } catch (e) { showModal("Error", "Network error", "danger"); }
+    };
+
+    const handleUpdateUser = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/api/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    full_name: editingUser.full_name,
+                    email: editingUser.email,
+                    is_locked: editingUser.is_locked,
+                    password: editingUser.password || undefined // Only send if set
+                })
+            });
+
+            if (response.ok) {
+                setShowEditModal(false);
+                fetchUsersList();
+                showModal("Success", "User updated successfully", "success");
+            } else {
+                const data = await response.json();
+                showModal("Error", data.detail || "Failed to update user", "danger");
+            }
+        } catch (e) { showModal("Error", "Network error", "danger"); }
     };
 
     const handleDeleteUser = async (targetUser) => {
@@ -267,6 +360,54 @@ const ProfileScreen = () => {
         if (!errorOccurred && passwords.current) setPasswords({ current: '', new: '', confirm: '' });
     };
 
+    const handleToggleMode = async () => {
+        const token = localStorage.getItem('token');
+        const newMode = registrationMode === 'open' ? 'invite' : 'open';
+        try {
+            const response = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ registration_mode: newMode })
+            });
+            if (response.ok) {
+                setRegistrationMode(newMode);
+                showModal("Updated", `Registration is now ${newMode === 'open' ? 'Open to Everyone' : 'Invite Only'}`, "success");
+            }
+        } catch (e) { showModal("Error", "Failed to update settings", "danger"); }
+    };
+
+    const handleCreateInvite = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/admin/invites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ email: newInviteEmail || null })
+            });
+            if (response.ok) {
+                setNewInviteEmail('');
+                fetchInvites();
+            }
+        } catch (e) { showModal("Error", "Failed to create invite", "danger"); }
+    };
+
+    const handleDeleteInvite = async (id) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/api/admin/invites/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) fetchInvites();
+            else showModal("Error", "Failed to delete invite", "danger");
+        } catch (e) { showModal("Error", "Network error", "danger"); }
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        // Could show a temporary tooltip, but for now silent toast?
+    };
+
     const showModal = (title, message, type = 'info') => {
         setModalConfig({ isOpen: true, title, message, type, onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false })) });
     };
@@ -340,13 +481,13 @@ const ProfileScreen = () => {
                         {/* Sub Tabs */}
                         <div className="flex justify-center mb-6">
                             <div className="bg-gray-200 p-1 rounded-lg inline-flex space-x-1">
-                                {['users', 'health', 'logs'].map(tab => (
+                                {['users', 'availability', 'health', 'logs'].map(tab => (
                                     <button
                                         key={tab}
                                         onClick={() => setAdminSubTab(tab)}
                                         className={`px-4 py-1.5 rounded-md text-sm font-medium capitalize w-24 ${adminSubTab === tab ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:bg-gray-300'}`}
                                     >
-                                        {tab}
+                                        {tab === 'availability' ? 'Availability' : tab}
                                     </button>
                                 ))}
                             </div>
@@ -376,13 +517,137 @@ const ProfileScreen = () => {
                                                             {u.is_admin ? <Check size={14} /> : <X size={14} />} <span>{u.is_admin ? 'Yes' : 'No'}</span>
                                                         </button>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        {u.id !== user.id && <button onClick={() => confirmDeleteUser(u)} className="text-red-600"><Trash size={18} /></button>}
+                                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
+                                                        <button
+                                                            onClick={() => { setEditingUser({ ...u, password: '' }); setShowEditModal(true); }}
+                                                            className="text-blue-600 hover:text-blue-800"
+                                                            title="Edit User"
+                                                        >
+                                                            <Edit2 size={18} />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => u.id !== user.id && handleToggleLock(u)}
+                                                            disabled={u.id === user.id}
+                                                            className={`${u.is_locked ? 'text-red-500 hover:text-red-700' : 'text-green-500 hover:text-green-700'} ${u.id === user.id ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                                            title={u.is_locked ? "Unlock Account" : "Lock Account"}
+                                                        >
+                                                            {u.is_locked ? <Lock size={18} /> : <Unlock size={18} />}
+                                                        </button>
+
+                                                        {u.id !== user.id ? (
+                                                            <button onClick={() => confirmDeleteUser(u)} className="text-gray-500 hover:text-red-600" title="Delete User"><Trash size={18} /></button>
+                                                        ) : (
+                                                            <button disabled className="text-gray-300 cursor-not-allowed" title="Cannot delete yourself"><Trash size={18} /></button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Availability */}
+                        {adminSubTab === 'availability' && (
+                            <div className="space-y-6">
+                                {/* Mode Toggle */}
+                                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-gray-900">System Availability</h3>
+                                        <p className="text-sm text-gray-500">
+                                            {registrationMode === 'open'
+                                                ? "Anyone can create an account."
+                                                : "Accounts can only be created with an invitation link."}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <span className={`text-sm font-medium ${registrationMode === 'open' ? 'text-green-700' : 'text-gray-400'}`}>
+                                            Open Registration
+                                        </span>
+                                        <button
+                                            onClick={handleToggleMode}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${registrationMode === 'invite' ? 'bg-red-500' : 'bg-green-600'}`}
+                                        >
+                                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${registrationMode === 'invite' ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                        <span className={`text-sm font-medium ${registrationMode === 'invite' ? 'text-red-600' : 'text-gray-400'}`}>
+                                            By Invitation Only
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Create Invite */}
+                                {registrationMode === 'invite' && (
+                                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                                        <h3 className="text-md font-medium text-gray-900 mb-4">Generate Invitation</h3>
+                                        <div className="flex gap-4">
+                                            <input
+                                                type="email"
+                                                placeholder="Recipient Email (Optional, for tracking)"
+                                                value={newInviteEmail}
+                                                onChange={(e) => setNewInviteEmail(e.target.value)}
+                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                                onClick={handleCreateInvite}
+                                                className="px-6 py-2 bg-[#3A5A80] text-white rounded-lg hover:bg-[#2A4A70] font-medium"
+                                            >
+                                                Generate Link
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Invites List - ONLY IN INVITE MODE */}
+                                {registrationMode === 'invite' && (
+                                    <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Token / Link</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">For</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {invites.map((invite) => (
+                                                    <tr key={invite.id}>
+                                                        <td className="px-6 py-4 text-sm font-mono text-gray-600 truncate max-w-xs">{invite.token}</td>
+                                                        <td className="px-6 py-4 text-sm text-gray-600">{invite.email || '-'}</td>
+                                                        <td className="px-6 py-4 text-sm">
+                                                            <span className={`px-2 py-1 rounded-full text-xs ${invite.is_used ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                                                                {invite.is_used ? 'Used' : 'Active'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                                            {!invite.is_used && (
+                                                                <button
+                                                                    onClick={() => copyToClipboard(`${window.location.origin}/register?token=${invite.token}`)}
+                                                                    className="text-blue-600 hover:text-blue-800"
+                                                                    title="Copy Link"
+                                                                >
+                                                                    <Link size={16} />
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleDeleteInvite(invite.id)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                                title="Delete Invite"
+                                                            >
+                                                                <Trash size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {invites.length === 0 && (
+                                                    <tr><td colSpan="4" className="text-center py-8 text-gray-400">No invitations created.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -441,6 +706,92 @@ const ProfileScreen = () => {
                 )}
             </div>
 
+            {/* Edit User Modal */}
+            {showEditModal && editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6 border-b pb-4">
+                            <h3 className="text-xl font-bold text-gray-800">Edit User</h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateUser} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editingUser.full_name || ''}
+                                    onChange={e => setEditingUser({ ...editingUser, full_name: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={editingUser.email || ''}
+                                    onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Password (Leave blank to keep)</label>
+                                <input
+                                    type="password"
+                                    placeholder="Set new password..."
+                                    value={editingUser.password || ''}
+                                    onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                                <div className="flex items-center gap-2">
+                                    {editingUser.is_locked ? <Lock size={20} className="text-red-500" /> : <Unlock size={20} className="text-green-500" />}
+                                    <span className={`font-medium ${editingUser.is_locked ? 'text-red-700' : 'text-gray-700'}`}>
+                                        {editingUser.is_locked ? 'Account Locked' : 'Account Active'}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser({ ...editingUser, is_locked: !editingUser.is_locked })}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${editingUser.is_locked ? 'bg-red-500' : 'bg-green-500'}`}
+                                >
+                                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${editingUser.is_locked ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+
+                            {/* Prevent self-locking warning */}
+                            {editingUser.id === user.id && editingUser.is_locked && (
+                                <p className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                                    Warning: You are locking your own account. You will be logged out immediately.
+                                </p>
+                            )}
+
+                            <div className="flex justify-end gap-3 mt-8 pt-4 border-t">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-[#3A5A80] text-white rounded-lg hover:bg-[#2A4A70] font-medium transition-colors flex items-center gap-2"
+                                >
+                                    <Save size={18} /> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             <ConfirmationModal
                 isOpen={modalConfig.isOpen}
                 onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
