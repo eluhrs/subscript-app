@@ -37,3 +37,20 @@ def sanitize_email(email: str) -> str:
     # IF the FS supports it. To be super safe, let's keep it restricted.
     s = re.sub(r'[^a-zA-Z0-9._@-]', '_', email)
     return s
+
+def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300)):
+    """
+    Generate a thumbnail for the given image path.
+    Saves it to thumb_path.
+    """
+    try:
+        from PIL import Image
+        with Image.open(image_path) as img:
+            img.thumbnail(size)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            img.save(thumb_path, "JPEG", quality=80)
+            return True
+    except Exception as e:
+        print(f"Error generating thumbnail for {image_path}: {e}")
+        return False

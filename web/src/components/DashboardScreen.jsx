@@ -1,111 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Pencil, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Pencil, Trash2, Share2, FolderOpen, FileText, Code, AlignLeft, Map, Eye, Download, Archive, MoreVertical } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
-
-
-// --- Icon Definitions for Actions ---
-const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
-    <div className="flex items-center space-x-1">
-        {/* 1. Edit */}
-        <div className="w-8 flex justify-center">
-            <button
-                onClick={() => onEdit(doc)}
-                title={doc.is_container ? "Edit Group Layout" : "Edit Layout"}
-                className="p-1 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-100 transition"
-            >
-                <Pencil size={18} />
-            </button>
-        </div>
-
-        {/* 2. Debug (B) */}
-        <div className="w-8 flex justify-center">
-            {doc.has_debug && !doc.is_container ? (
-                <button
-                    onClick={() => onDownload(doc.id, 'debug')}
-                    title="Download Debug Image"
-                    className="p-1 rounded-full hover:bg-red-50 transition flex items-center justify-center"
-                >
-                    <div className="w-4 h-4 rounded-sm bg-white border border-red-500 text-red-600 flex items-center justify-center text-[10px] font-bold leading-none">
-                        B
-                    </div>
-                </button>
-            ) : (
-                <span className="text-gray-900 text-xs select-none">--</span>
-            )}
-        </div>
-
-        {/* 3. Download TXT */}
-        <div className="w-8 flex justify-center">
-            {doc.output_txt_path ? (
-                <button
-                    onClick={() => onDownload(doc.id, 'txt')}
-                    title="Download TXT"
-                    className="p-1 rounded-full hover:bg-green-100 transition flex items-center justify-center"
-                >
-                    <img
-                        src="https://placehold.co/18x18/10b981/fff?text=T"
-                        alt="Download TXT"
-                        className="w-4 h-4 rounded-sm"
-                    />
-                </button>
-            ) : (
-                <span className="text-gray-900 text-xs select-none">--</span>
-            )}
-        </div>
-
-        {/* 4. XML (X) */}
-        <div className="w-8 flex justify-center">
-            {doc.has_xml && !doc.is_container ? (
-                <button
-                    onClick={() => onDownload(doc.id, 'xml')}
-                    title="Download XML"
-                    className="p-1 rounded-full hover:bg-gray-200 transition flex items-center justify-center"
-                >
-                    <div className="w-4 h-4 rounded-sm bg-black text-white flex items-center justify-center text-[10px] font-bold leading-none doc-icon-xml">
-                        X
-                    </div>
-                </button>
-            ) : (
-                <span className="text-gray-900 text-xs select-none">--</span>
-            )}
-        </div>
-
-        {/* 5. Download PDF */}
-        <div className="w-8 flex justify-center">
-            {doc.output_pdf_path ? (
-                <button
-                    onClick={() => onDownload(doc.id, 'pdf')}
-                    title="Download PDF"
-                    className="p-1 rounded-full hover:bg-red-100 transition flex items-center justify-center"
-                >
-                    <img
-                        src="https://placehold.co/18x18/ef4444/fff?text=P"
-                        alt="Download PDF"
-                        className="w-4 h-4 rounded-sm"
-                    />
-                </button>
-            ) : (
-                <span className="text-gray-900 text-xs select-none">--</span>
-            )}
-        </div>
-
-        {/* 6. Delete */}
-        <div className="w-8 flex justify-center">
-            <button
-                onClick={() => onDelete(doc)}
-                title="Delete"
-                className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
-            >
-                <Trash2 size={18} />
-            </button>
-        </div>
-    </div>
-);
 
 const DashboardScreen = ({ setView, setEditorDocId }) => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
-    console.log("DASHBOARD VERSION: 2026");
+    // Track which row has its "Files" menu open
+    const [activeMenuDocId, setActiveMenuDocId] = useState(null);
+    const menuRef = useRef(null);
 
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -117,19 +19,27 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
         return () => clearInterval(interval);
     }, []);
 
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setActiveMenuDocId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const fetchDocuments = async () => {
         try {
             const token = localStorage.getItem('token');
             const response = await fetch('/api/documents', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
                 const data = await response.json();
                 setDocuments(data);
             } else if (response.status === 401) {
-                console.error("Unauthorized");
                 window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) {
@@ -144,63 +54,54 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
         setView('page-editor');
     };
 
-    const handleDownload = async (docId, type) => {
+    const handleFileAction = async (docId, type, action) => {
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(`/api/download/${docId}/${type}?t=${new Date().getTime()}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-
-                if (['pdf', 'txt', 'xml', 'debug'].includes(type)) {
-                    // Open in new tab
+                // For 'view', we want to open in new tab if browser supports it
+                if (action === 'view') {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
                     window.open(url, '_blank');
+                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
                 } else {
+                    // For download, we rely on the backend Content-Disposition header
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `document.${type}`;
+
+                    // Extract filename from header if present
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = `document_${docId}.${type}`;
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (filenameMatch && filenameMatch.length === 2)
+                            filename = filenameMatch[1];
+                    } else {
+                        // Fallback logic
+                        if (type === 'debug') filename = `debug-${docId}.jpg`;
+                        if (type === 'zip') filename = `assets-${docId}.zip`;
+                    }
+
+                    a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
                 }
-
-                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
             } else if (response.status === 401) {
                 window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
-                alert("Download failed.");
+                alert("Action failed: " + response.statusText);
             }
         } catch (error) {
-            console.error("Download error", error);
-            alert("Download error.");
-        }
-    };
-
-    const handleUpdatePdf = async (docId) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`/api/rebuild-pdf/${docId}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.ok) {
-                fetchDocuments(); // Optimistic refresh
-            } else if (response.status === 401) {
-                window.dispatchEvent(new Event('auth:unauthorized'));
-            } else {
-                alert("Update failed.");
-            }
-        } catch (error) {
-            console.error("Update error", error);
-            alert("Update error.");
+            console.error("Action error", error);
+            alert("Action failed.");
         }
     };
 
@@ -210,21 +111,16 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
         setDeleteModalOpen(true);
     };
 
-    // Actual Delete Logic
     const confirmDelete = async () => {
         if (!docToDelete) return;
-
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(`/api/documents/${docToDelete.id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
             if (response.ok) {
-                fetchDocuments(); // Refresh list
+                fetchDocuments();
             } else if (response.status === 401) {
                 window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
@@ -232,133 +128,189 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
             }
         } catch (error) {
             console.error("Delete error", error);
-            alert("Delete error.");
         } finally {
             setDeleteModalOpen(false);
             setDocToDelete(null);
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'completed': return 'bg-green-100 text-gray-900';
-            case 'processing': return 'bg-yellow-100 text-gray-900';
-            case 'merging': return 'bg-yellow-100 text-gray-900';
-            case 'updating_pdf': return 'bg-yellow-100 text-gray-900';
-            case 'error': return 'bg-red-100 text-gray-900';
-            default: return 'bg-gray-100 text-gray-900';
-        }
-    };
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case 'completed': return 'Ready to edit';
-            case 'processing': return 'Transcribing';
-            case 'merging': return 'Merging PDF';
-            case 'updating_pdf': return 'Updating PDF';
-            case 'error': return 'Error';
-            default: return 'Queued';
+    const handleShare = async (doc) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/documents/${doc.id}/share`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const shareUrl = `${window.location.origin}/s/${data.share_token}`;
+                navigator.clipboard.writeText(shareUrl);
+                alert("Share link copied to clipboard!\n" + shareUrl);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
+            } else {
+                alert("Share failed.");
+            }
+        } catch (error) {
+            console.error("Share error", error);
+            alert("Share failed.");
         }
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-40">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-[#3A5A80]">Dashboard</h2>
-                {/* New Document button removed, moved to Header */}
             </div>
 
-            <div className="bg-[#EDEDEB] shadow-xl rounded-xl overflow-hidden border border-gray-500">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-[#D8D8D7] border-b border-gray-400">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Preview</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Filename</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Last Modified</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-[#EDEDEB]">
-                            {documents.map((doc, index) => (
-                                <tr
-                                    key={doc.id}
-                                    className="hover:bg-[#E0E0DE] transition duration-150"
-                                    style={index === documents.length - 1 ? {} : {
-                                        backgroundImage: 'linear-gradient(to right, transparent 2.5%, #9ca3af 2.5%, #9ca3af 97.5%, transparent 97.5%)',
-                                        backgroundSize: '100% 1px',
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'bottom'
-                                    }}
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap w-20">
-                                        {doc.thumbnail_url ? (
-                                            <div
-                                                onClick={() => handleDownload(doc.id, 'pdf')}
-                                                className="w-12 h-16 bg-gray-100 rounded-md overflow-hidden border border-gray-500 cursor-pointer"
-                                            >
-                                                <img
-                                                    src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
-                                                    alt="Thumbnail"
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/e5e7eb/a3a3a3?text=PDF"; }}
-                                                />
+            <div className="space-y-4">
+                {documents.map((doc) => (
+                    <div key={doc.id} className="bg-[#EDEDEB] rounded-xl shadow-lg border border-gray-400 overflow-visible relative">
+                        <div className="flex items-center px-4 py-4 gap-4">
+
+                            {/* Thumbnail */}
+                            <div className="w-16 flex-shrink-0">
+                                <div className="w-12 h-16 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer"
+                                    onClick={() => handleFileAction(doc.id, 'pdf', 'view')}>
+                                    {doc.thumbnail_url ? (
+                                        <img
+                                            src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
+                                            alt="Thumbnail"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/48x64/eee/999?text=IMG"; }}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-xs text-gray-400">...</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 mr-4">
+                                <h4 className="text-lg font-semibold text-gray-900 truncate" title={doc.filename}>
+                                    {doc.filename}
+                                </h4>
+                                <div className="flex items-center gap-3 text-sm text-gray-500 mt-1 font-medium">
+                                    <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
+                                    <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                                    {doc.status === 'completed' && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium border border-green-200">Ready</span>}
+                                    {doc.status === 'processing' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Processing</span>}
+                                    {doc.status === 'merging' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Merging</span>}
+                                    {doc.status === 'updating_pdf' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium border border-yellow-200">Updating PDF</span>}
+                                    {doc.status === 'error' && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium border border-red-200">Error</span>}
+                                    {doc.status === 'queued' && <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200">Queued</span>}
+                                </div>
+                            </div>
+
+                            {/* Actions Toolbar */}
+                            <div className="flex items-center bg-[#F7F7F5] rounded-lg p-1 gap-1">
+
+                                <button onClick={() => handleEdit(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-[#E0E0DE] rounded text-gray-700 transition" title="Edit">
+                                    <Pencil size={16} className="mb-0.5" />
+                                    <span className="text-[9px] font-medium">Edit</span>
+                                </button>
+
+                                <div className="w-px h-6 bg-gray-300"></div>
+
+                                <button onClick={() => handleShare(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-[#E0E0DE] rounded text-gray-700 transition" title="Share (Public Link)">
+                                    <Share2 size={16} className="mb-0.5" />
+                                    <span className="text-[9px] font-medium">Share</span>
+                                </button>
+
+                                <div className="w-px h-6 bg-gray-300"></div>
+
+                                {/* Files Menu Trigger */}
+                                <div className="relative">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id);
+                                        }}
+                                        className={`flex flex-col items-center justify-center w-14 h-10 rounded transition ${activeMenuDocId === doc.id ? 'bg-[#E0E0DE] text-[#3A5A80]' : 'bg-[#F7F7F5] text-[#3A5A80] hover:bg-[#E0E0DE]'}`}
+                                    >
+                                        <FolderOpen size={16} className="mb-0.5" />
+                                        <span className="text-[9px] font-medium">Files ▼</span>
+                                    </button>
+
+                                    {/* Files Popover */}
+                                    {activeMenuDocId === doc.id && (
+                                        <div ref={menuRef} className="absolute right-0 top-12 w-64 bg-[#F7F7F5] border-0 rounded-lg shadow-xl z-50 p-2 ring-1 ring-gray-200">
+                                            {/* MAP (Debug) */}
+                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <Map size={16} className="text-purple-500" />
+                                                    <span className="text-sm font-medium text-gray-700">MAP</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => handleFileAction(doc.id, 'debug', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                    <button onClick={() => handleFileAction(doc.id, 'debug', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="w-12 h-16 bg-gray-200 rounded-md flex items-center justify-center text-gray-900 text-xs">...</div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">
-                                        {doc.output_pdf_path ? (
+                                            {/* TXT */}
+                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <AlignLeft size={16} className="text-gray-500" />
+                                                    <span className="text-sm font-medium text-gray-700">TXT</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => handleFileAction(doc.id, 'txt', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                    <button onClick={() => handleFileAction(doc.id, 'txt', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                </div>
+                                            </div>
+                                            {/* XML */}
+                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <Code size={16} className="text-orange-500" />
+                                                    <span className="text-sm font-medium text-gray-700">XML</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => handleFileAction(doc.id, 'xml', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                    <button onClick={() => handleFileAction(doc.id, 'xml', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                </div>
+                                            </div>
+                                            {/* PDF */}
+                                            <div className="flex items-center justify-between p-2 hover:bg-[#E0E0DE] rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText size={16} className="text-red-500" />
+                                                    <span className="text-sm font-medium text-gray-700">PDF</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => handleFileAction(doc.id, 'pdf', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="View"><Eye size={14} /></button>
+                                                    <button onClick={() => handleFileAction(doc.id, 'pdf', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded" title="Download"><Download size={14} /></button>
+                                                </div>
+                                            </div>
+
+                                            <div className="border-t border-gray-300 my-1"></div>
+
+                                            {/* Download All */}
                                             <button
-                                                onClick={() => handleDownload(doc.id, 'pdf')}
-                                                className="hover:text-indigo-600 hover:underline text-left"
+                                                onClick={() => handleFileAction(doc.id, 'zip', 'download')}
+                                                className="w-full block p-2 text-center text-xs font-bold text-white bg-[#3A5A80] hover:bg-[#2A4A70] rounded shadow-sm transition"
                                             >
-                                                {doc.filename}
+                                                Download All Assets (ZIP)
                                             </button>
-                                        ) : (
-                                            <span>{doc.filename}</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-900">
-                                        {new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 inline-flex text-xs leading-5 font-semibold rounded-full border border-gray-400 ${getStatusColor(doc.status)}`}>
-                                            {getStatusText(doc.status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {doc.status === 'processing' || doc.status === 'merging' ? (
-                                            <span className="text-gray-900 text-xs italic">
-                                                Processing...
-                                            </span>
-                                        ) : doc.status === 'queued' ? (
-                                            <button
-                                                onClick={() => handleDeleteClick(doc)}
-                                                title="Delete"
-                                                className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        ) : (
-                                            <ActionIcons doc={doc} onDownload={handleDownload} onDelete={handleDeleteClick} onEdit={handleEdit} onUpdatePdf={handleUpdatePdf} />
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {documents.length === 0 && !loading && (
-                                <tr>
-                                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">No documents found. Upload one to get started.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-px h-6 bg-gray-300"></div>
+
+                                <button onClick={() => handleDeleteClick(doc)} className="flex flex-col items-center justify-center w-12 h-10 hover:bg-red-50 text-red-600 rounded transition" title="Delete">
+                                    <Trash2 size={16} className="mb-0.5" />
+                                    <span className="text-[9px] font-medium">Del</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
+                {documents.length === 0 && !loading && (
+                    <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <p>No documents found. Upload one to get started.</p>
+                    </div>
+                )}
             </div>
 
-            {/* Delete Confirmation Modal */}
             <ConfirmationModal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
@@ -369,7 +321,7 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 cancelText="Cancel"
                 type="danger"
             />
-        </div >
+        </div>
     );
 };
 

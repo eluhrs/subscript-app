@@ -6,8 +6,11 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
+import zipfile
+from io import BytesIO
 
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, Depends, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -22,7 +25,7 @@ from jose import JWTError, jwt
 
 
 
-from server.utils import sanitize_filename, sanitize_email
+from server.utils import sanitize_filename, sanitize_email, create_thumbnail
 
 # Configure Logging (Shared Volume, Rotation)
 LOG_DIR = "/app/logs"
@@ -91,6 +94,7 @@ class Document(Base):
     page_order = Column(Integer, default=0)
     directory_name = Column(String, nullable=True) # Stores {filename}-{hash}
     parent_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
+    share_token = Column(String, unique=True, index=True, nullable=True)
     children = relationship("Document", 
                             backref="parent", 
                             remote_side=[id],
@@ -201,6 +205,7 @@ class DocumentResponse(BaseModel):
     output_pdf_path: Optional[str] = None
     has_xml: bool = False
     has_debug: bool = False
+    share_token: Optional[str] = None
     class Config:
         orm_mode = True
 
@@ -237,6 +242,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 # --- Auth Endpoints ---
@@ -534,6 +540,14 @@ def upload_batch(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
+        # Generate Thumbnail Immediately
+        try:
+            thumb_path = os.path.join(storage_dir, f"{os.path.splitext(clean_filename)[0]}-thumb.jpg")
+            create_thumbnail(file_path, thumb_path)
+        except Exception as e:
+            logger.error(f"Thumbnail generation failed for {clean_filename}: {e}")
+            # Continue without thumbnail
+            
         # Create Document Record
         doc = Document(
             filename=clean_filename,
@@ -575,6 +589,23 @@ def upload_batch(
         
         with open(lst_path_abs, "w") as f:
             f.write("\n".join(children_xmls) + "\n")
+            
+        # Create Parent Thumbnail (Copy from first child)
+        if len(files) > 0:
+            first_index = 0
+            # Get first child's storage
+            c_storage, c_dir = upload_target_map[first_index]
+            c_filename = sanitize_filename(files[first_index].filename)
+            c_base = os.path.splitext(c_filename)[0]
+            c_thumb = os.path.join(c_storage, f"{c_base}-thumb.jpg")
+            
+            p_base = os.path.splitext(clean_group_name)[0]
+            # Parent thumb lives in group dir (same as LST)
+            p_thumb = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name, f"{p_base}-thumb.jpg")
+            
+            if os.path.exists(c_thumb):
+                shutil.copy2(c_thumb, p_thumb)
+                logger.info(f"Created parent thumbnail at {p_thumb}")
             
         parent_doc.status = "processing" 
         db.commit()
@@ -740,22 +771,53 @@ def download_document(
     if file_type == "pdf":
         file_path = os.path.join(doc_dir, f"{base_name}.pdf")
         media_type = "application/pdf"
+        download_filename = f"{base_name}.pdf"
     elif file_type == "txt":
         file_path = os.path.join(doc_dir, f"{base_name}.txt")
         media_type = "text/plain"
+        download_filename = f"{base_name}.txt"
     elif file_type == "xml":
         file_path = os.path.join(doc_dir, f"{base_name}.xml")
         media_type = "application/xml"
-    elif file_type == "debug":
+        download_filename = f"{base_name}.xml"
+    elif file_type == "debug" or file_type == "map":
         file_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
         media_type = "image/jpeg"
+        download_filename = f"{base_name}-debug.jpg"
+    elif file_type == "zip":
+        # Create ZIP on the fly
+        memory_file = BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # Add PDF
+            pdf_path = os.path.join(doc_dir, f"{base_name}.pdf")
+            if os.path.exists(pdf_path):
+                zf.write(pdf_path, f"{base_name}.pdf")
+            # Add XML
+            xml_path = os.path.join(doc_dir, f"{base_name}.xml")
+            if os.path.exists(xml_path):
+                zf.write(xml_path, f"{base_name}.xml")
+            # Add TXT
+            txt_path = os.path.join(doc_dir, f"{base_name}.txt")
+            if os.path.exists(txt_path):
+                zf.write(txt_path, f"{base_name}.txt")
+            # Add Debug
+            debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
+            if os.path.exists(debug_path):
+                zf.write(debug_path, f"{base_name}-debug.jpg")
+        
+        memory_file.seek(0)
+        return StreamingResponse(
+            memory_file, 
+            media_type="application/zip", 
+            headers={"Content-Disposition": f"attachment; filename={base_name}-assets.zip"}
+        )
     else:
         raise HTTPException(status_code=400, detail="Invalid file type")
         
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
         
-    return FileResponse(file_path, media_type=media_type, filename=os.path.basename(file_path))
+    return FileResponse(file_path, media_type=media_type, filename=download_filename)
 
 @app.get("/api/thumbnail/{doc_id}")
 def get_thumbnail(
@@ -801,6 +863,61 @@ def get_thumbnail(
     else:
         # Do not serve original file as thumbnail (too large)
         raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+# --- Share Functionality ---
+
+@app.post("/api/documents/{doc_id}/share", response_model=DocumentResponse)
+def share_document(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    if not doc.share_token:
+        # Generate new token
+        import secrets
+        doc.share_token = secrets.token_hex(4)
+        db.commit()
+        db.refresh(doc)
+        
+    return doc
+
+@app.get("/s/{share_token}")
+def access_shared_document(
+    share_token: str,
+    db: Session = Depends(get_db)
+):
+    doc = db.query(Document).filter(Document.share_token == share_token).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Shared document not found")
+        
+    # Serve PDF directly for now (or maybe a viewer page? Requirements implied "Sharable link to the PDF")
+    # Actually, serving raw PDF is best for "Share Link" usually. 
+    
+    # Construct path
+    user = db.query(User).filter(User.id == doc.owner_id).first()
+    if not user:
+         raise HTTPException(status_code=404, detail="Owner not found") # Should not happen
+         
+    clean_email = sanitize_email(user.email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    if doc.directory_name:
+         doc_dir = os.path.join(user_dir, doc.directory_name)
+    else:
+         doc_dir = user_dir
+         
+    base_name = os.path.splitext(doc.filename)[0]
+    file_path = os.path.join(doc_dir, f"{base_name}.pdf")
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    # Serve inline so it opens in browser
+    return FileResponse(file_path, media_type="application/pdf", filename=f"{doc.filename}", content_disposition_type="inline")
 
 # --- Admin Endpoints ---
 
