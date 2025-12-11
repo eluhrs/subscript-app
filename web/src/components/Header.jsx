@@ -1,17 +1,17 @@
 import React from 'react';
-import { User, LayoutDashboard, LogOut, Plus } from 'lucide-react';
+import { User, LayoutDashboard, LogOut, FolderPlus } from 'lucide-react';
 
 const Header = ({ currentView, setView, onLogout }) => {
     const NavButton = ({ viewName, icon: Icon, label }) => (
         <button
             onClick={() => setView(viewName)}
             className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium border border-transparent transition duration-150 ease-in-out ${currentView === viewName
-                ? 'bg-[#5B84B1] text-white shadow-md' // Replaced bg-[#0D9488] (Teal)
-                : 'text-gray-700 hover:bg-gray-200 hover:text-[#5B84B1] hover:border-gray-400' // Replaced hover:text-[#0D9488] (Teal)
+                ? 'bg-[#5B84B1] text-white shadow-md'
+                : 'text-gray-700 hover:bg-gray-200 hover:text-[#5B84B1] hover:border-gray-400'
                 }`}
         >
             <Icon size={20} />
-            <span>{label}</span>
+            <span className="hidden md:inline">{label}</span>
         </button>
     );
 
@@ -27,14 +27,14 @@ const Header = ({ currentView, setView, onLogout }) => {
                 {/* Top-right Nav Buttons */}
                 <nav className="flex space-x-2 items-center">
                     <NavButton viewName="dashboard" icon={LayoutDashboard} label="Dashboard" />
-                    <NavButton viewName="new" icon={Plus} label="Upload" />
+                    <NavButton viewName="new" icon={FolderPlus} label="Upload" />
                     <NavButton viewName="profile" icon={User} label="Profile" />
                     <button
                         onClick={onLogout}
                         className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium border border-transparent text-gray-700 hover:bg-gray-200 hover:text-red-600 hover:border-gray-400 transition duration-150 ease-in-out ml-2"
                     >
                         <LogOut size={20} />
-                        <span>Logout</span>
+                        <span className="hidden md:inline">Logout</span>
                     </button>
                 </nav>
             </div>

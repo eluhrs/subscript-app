@@ -102,7 +102,7 @@ const ActionIcons = ({ doc, onDownload, onDelete, onEdit, onUpdatePdf }) => (
     </div>
 );
 
-const DashboardScreen = ({ setView }) => {
+const DashboardScreen = ({ setView, setEditorDocId }) => {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     console.log("DASHBOARD VERSION: 2026");
@@ -139,38 +139,8 @@ const DashboardScreen = ({ setView }) => {
     };
 
     const handleEdit = (doc) => {
-        // Construct the file path relative to the editor's 'data' directory
-        let relPath = "";
-        let sourcePath = doc.output_xml_path || doc.output_pdf_path || doc.output_txt_path || doc.filename;
-
-        if (sourcePath) {
-            relPath = sourcePath
-                .replace(/^\/app\/documents\//, '')
-                .replace(/^documents\//, '');
-        } else {
-            relPath = `unknown/${doc.filename}`;
-        }
-
-        const token = localStorage.getItem('token');
-        let editorUrl = "";
-
-        if (doc.is_container) {
-            // For grouped docs, point to the .lst file
-            // Filename: MyBook.pdf -> MyBook.lst (?)
-            // Logic in backend: lst_base = os.path.splitext(clean_group_name)[0] + ".lst"
-            // relPath currently: email/MyBook.pdf
-            // We want: email/MyBook.lst
-
-            // Strip extension and add .lst
-            const listPath = relPath.substring(0, relPath.lastIndexOf('.')) + ".lst";
-            editorUrl = `/editor/web-app/index.php?l=${encodeURI(listPath)}&docId=${doc.id}&token=${token}`;
-        } else {
-            // For single docs, point to .xml
-            const xmlPath = relPath.substring(0, relPath.lastIndexOf('.')) + ".xml";
-            editorUrl = `/editor/web-app/index.php?f=${encodeURI(xmlPath)}&docId=${doc.id}&token=${token}`;
-        }
-
-        window.open(editorUrl, '_blank');
+        setEditorDocId(doc.id);
+        setView('page-editor');
     };
 
     const handleDownload = async (docId, type) => {

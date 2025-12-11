@@ -5,10 +5,12 @@ import Header from './components/Header';
 import DashboardScreen from './components/DashboardScreen';
 import ProfileScreen from './components/ProfileScreen';
 import NewDocumentScreen from './components/NewDocumentScreen';
+import PageEditorScreen from './components/PageEditorScreen';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'profile', 'new', 'login', 'register'
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'profile', 'new', 'login', 'register', 'page-editor'
+  const [editorDocId, setEditorDocId] = useState(null); // ID of document being edited
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,9 +41,10 @@ function App() {
       <Header currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
 
       <main className="pb-10">
-        {currentView === 'dashboard' && <DashboardScreen setView={setCurrentView} />}
+        {currentView === 'dashboard' && <DashboardScreen setView={setCurrentView} setEditorDocId={setEditorDocId} />}
         {currentView === 'profile' && <ProfileScreen setView={setCurrentView} />}
         {currentView === 'new' && <NewDocumentScreen setView={setCurrentView} />}
+        {currentView === 'page-editor' && <PageEditorScreen docId={editorDocId} setView={setCurrentView} />}
       </main>
     </div>
   );

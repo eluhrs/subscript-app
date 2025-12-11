@@ -44,6 +44,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     full_name = Column(String, nullable=True)
+    is_admin = Column(Boolean, default=False)
     documents = relationship("Document", back_populates="owner")
 
 class Document(Base):
@@ -70,6 +71,15 @@ class Document(Base):
                             order_by="Document.page_order")
 
 Base.metadata.create_all(bind=engine)
+
+# DB Migration: Ensure is_admin column exists
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("SELECT is_admin FROM users LIMIT 1"))
+    except Exception:
+        print("Migrating DB: Adding is_admin column to users table")
+        conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
 
 def get_db():
     db = SessionLocal()
@@ -126,6 +136,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     full_name: Optional[str] = None
+    is_admin: bool = False
     class Config:
         orm_mode = True
 
@@ -170,7 +181,16 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed_password = get_password_hash(user.password)
-    db_user = User(email=user.email, hashed_password=hashed_password, full_name=user.full_name)
+    
+    # First user is admin
+    is_admin = db.query(User).count() == 0
+    
+    db_user = User(
+        email=user.email, 
+        hashed_password=hashed_password, 
+        full_name=user.full_name,
+        is_admin=is_admin
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -690,4 +710,49 @@ def get_thumbnail(
     else:
         # Do not serve original file as thumbnail (too large)
         raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+# --- Admin Endpoints ---
+
+@app.get("/api/users", response_model=List[UserResponse])
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return db.query(User).all()
+
+class UserRoleUpdate(BaseModel):
+    is_admin: bool
+
+@app.put("/api/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Prevent self-demotion
+    if user.id == current_user.id and not role_update.is_admin:
+         raise HTTPException(status_code=400, detail="Cannot demote yourself")
+
+    user.is_admin = role_update.is_admin
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.delete("/api/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+        
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted"}
 
