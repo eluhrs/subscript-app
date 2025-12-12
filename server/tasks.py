@@ -11,12 +11,17 @@ from server.utils import sanitize_email, sanitize_filename
 import io
 import contextlib
 
+import io
+import contextlib
+import json
+import yaml
+
 # Setup DB session for worker
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @celery_app.task(bind=True)
-def process_document_task(self, doc_id: int, file_path: str, model: str):
+def process_document_task(self, doc_id: int, file_path: str, model: str, options: str = None):
     db = SessionLocal()
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
@@ -51,6 +56,25 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
             file_path,
             "--output", output_dir
         ]
+
+        # Handle Options Overrides (e.g. Prompt)
+        temp_config_path = None
+        logging.info(f"Task {doc_id} received options raw: {options}")
+        
+        if options:
+            try:
+                opts = json.loads(options)
+                logging.info(f"Task {doc_id} parsed options: {opts}")
+                
+                transcription_opts = opts.get('transcription', {})
+                prompt_override = transcription_opts.get('prompt')
+                
+                if prompt_override:
+                    logging.info(f"Task {doc_id} found prompt override: {prompt_override}")
+                    sys.argv.extend(["--prompt", prompt_override])
+                    
+            except Exception as e:
+                logging.error(f"Failed to parse options: {e}")
         
         try:
             logging.info(f"TASK START: Processing {doc.filename} (ID: {doc.id})")
@@ -91,6 +115,10 @@ def process_document_task(self, doc_id: int, file_path: str, model: str):
 
             # Thumbnail generated at upload
 
+
+            # Cleanup
+            # if temp_config_path and os.path.exists(temp_config_path):
+            #     os.remove(temp_config_path)
 
             # Post-Process XML: Uniquify IDs if part of a container
             if doc.parent_id:

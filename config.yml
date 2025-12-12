@@ -32,13 +32,12 @@ transcription:
       provider: "gemini"
       model: "gemini-3-pro-preview"
       prompt: |
-        You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the 
-        supplied image exactly as written. Output only the transcribed text, with no commentary, no preamble, 
-        no markdown, and no generated text after the transcription. Preserve all original spelling, punctuation, 
-        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization
-        you should perform is to modernize obsolete charactes (example, print "s" not "ſ". Output begins 
-        immediately with the first character of the transcription and ends immediately after the last character 
-        of transcription.
+        You are a literal transcription engine for 19th-century handwritten 
+        manuscripts. Extract text from the supplied image exactly as written. 
+        Preserve all original spelling, punctuation, capitalization, and line 
+        breaks. Do not modernize, interpret, or expand abbreviations. The only 
+        modernization you should perform is to modernize obsolete characters 
+        (example, print "s" not "ſ").
       cost_config:
         input_token_cost: 2.0
         output_token_cost: 12.0
@@ -52,12 +51,12 @@ transcription:
       provider: "gemini"
       model: "gemini-2.5-pro"
       prompt: |
-        You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the 
-        supplied image exactly as written. Output only the transcribed text, with no commentary, no preamble, 
-        no markdown, and no generated text after the transcription. Preserve all original spelling, punctuation, 
-        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. Output begins 
-        immediately with the first character of the transcription and ends immediately after the last character 
-        of transcription.
+        You are a literal transcription engine for 19th-century handwritten 
+        manuscripts. Extract text from the supplied image exactly as written. 
+        Preserve all original spelling, punctuation, capitalization, and line 
+        breaks. Do not modernize, interpret, or expand abbreviations. The only 
+        modernization you should perform is to modernize obsolete characters 
+        (example, print "s" not "ſ").
       cost_config:
         input_token_cost: 2.0
         output_token_cost: 12.0
@@ -71,12 +70,12 @@ transcription:
       provider: "gemini"
       model: "gemini-2.5-flash"
       prompt: |
-        You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the 
-        supplied image exactly as written. Output only the transcribed text, with no commentary, no preamble, 
-        no markdown, and no generated text after the transcription. Preserve all original spelling, punctuation, 
-        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. Output begins 
-        immediately with the first character of the transcription and ends immediately after the last character 
-        of transcription.
+        You are a literal transcription engine for 19th-century handwritten 
+        manuscripts. Extract text from the supplied image exactly as written. 
+        Preserve all original spelling, punctuation, capitalization, and line 
+        breaks. Do not modernize, interpret, or expand abbreviations. The only 
+        modernization you should perform is to modernize obsolete characters 
+        (example, print "s" not "ſ").
       cost_config:
         input_token_cost: 0.3
         output_token_cost: 2.5
@@ -88,12 +87,12 @@ transcription:
       provider: "gemini"
       model: "gemini-2.5-flash-lite"
       prompt: |
-        You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the 
-        supplied image exactly as written. Output only the transcribed text, with no commentary, no preamble, 
-        no markdown, and no generated text after the transcription. Preserve all original spelling, punctuation, 
-        capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. Output begins 
-        immediately with the first character of the transcription and ends immediately after the last character 
-        of transcription.
+        You are a literal transcription engine for 19th-century handwritten 
+        manuscripts. Extract text from the supplied image exactly as written. 
+        Preserve all original spelling, punctuation, capitalization, and line 
+        breaks. Do not modernize, interpret, or expand abbreviations. The only 
+        modernization you should perform is to modernize obsolete characters 
+        (example, print "s" not "ſ").
       cost_config:
         input_token_cost: 0.1
         output_token_cost: 0.4

@@ -42,6 +42,7 @@ const ProfileScreen = () => {
     const [adminLoading, setAdminLoading] = useState(false);
     const [healthData, setHealthData] = useState(null);
     const [logs, setLogs] = useState([]);
+    const [configContent, setConfigContent] = useState('');
 
     // Invites State
     const [registrationMode, setRegistrationMode] = useState('open'); // 'open' | 'invite'
@@ -85,6 +86,7 @@ const ProfileScreen = () => {
             if (adminSubTab === 'users') fetchUsersList();
             if (adminSubTab === 'availability') { fetchSettings(); fetchInvites(); }
             if (adminSubTab === 'health') fetchHealth();
+            if (adminSubTab === 'config') fetchConfig();
             if (adminSubTab === 'logs') fetchLogs();
         }
     }, [activeTab, adminSubTab, user.is_admin]);
@@ -212,6 +214,46 @@ const ProfileScreen = () => {
                 window.dispatchEvent(new Event('auth:unauthorized'));
             }
         } catch (error) { console.error("Error fetching invites", error); }
+    };
+
+    // Config
+    const fetchConfig = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/admin/config/yml', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setConfigContent(data.content);
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
+            } else {
+                showModal("Error", "Failed to fetch config", "danger");
+            }
+        } catch (error) { console.error("Error fetching config", error); }
+    };
+
+    const handleSaveConfig = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/admin/config/yml', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ content: configContent })
+            });
+
+            if (response.ok) {
+                showModal("Success", "Configuration updated successfully", "success");
+            } else if (response.status === 401) {
+                window.dispatchEvent(new Event('auth:unauthorized'));
+            } else {
+                const err = await response.json();
+                showModal("Error", err.detail || "Failed to update config", "danger");
+            }
+        } catch (error) {
+            showModal("Error", "Network error saving config", "danger");
+        }
     };
 
     // --- Actions ---
@@ -512,7 +554,7 @@ const ProfileScreen = () => {
                         {/* Sub Tabs */}
                         <div className="flex justify-center mb-6">
                             <div className="bg-gray-200 p-1 rounded-lg inline-flex space-x-1">
-                                {['users', 'availability', 'health', 'logs'].map(tab => (
+                                {['users', 'availability', 'health', 'config', 'logs'].map(tab => (
                                     <button
                                         key={tab}
                                         onClick={() => setAdminSubTab(tab)}
@@ -680,6 +722,30 @@ const ProfileScreen = () => {
                                         </table>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Config */}
+                        {adminSubTab === 'config' && (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-lg font-medium text-gray-700">System Configuration (config.yml)</h3>
+                                    <div className="flex space-x-2">
+                                        <button onClick={fetchConfig} className="text-gray-500 hover:text-gray-700 text-sm">Refresh</button>
+                                        <button onClick={handleSaveConfig} className="flex items-center space-x-1 px-4 py-2 bg-[#5B84B1] text-white rounded hover:bg-[#4A6D94]">
+                                            <Save size={16} /> <span>Save Config</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <textarea
+                                    value={configContent}
+                                    onChange={(e) => setConfigContent(e.target.value)}
+                                    className="w-full h-96 p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                    spellCheck="false"
+                                />
+                                <div className="text-xs text-gray-500">
+                                    Note: Changes may require a server restart to take full effect depending on the setting.
+                                </div>
                             </div>
                         )}
 

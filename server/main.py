@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 import zipfile
+import yaml
 from io import BytesIO
 
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
@@ -420,6 +421,7 @@ def list_documents(
 def upload_document(
     file: UploadFile = File(...),
     model: str = "gemini-pro-3", # Default to valid model key
+    options: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -457,7 +459,9 @@ def upload_document(
     
     # Trigger Celery Task
     from server.tasks import process_document_task
-    process_document_task.delay(doc.id, file_path, model)
+    # Trigger Celery Task
+    from server.tasks import process_document_task
+    process_document_task.delay(doc.id, file_path, model, options)
     
     return doc
 
@@ -466,6 +470,7 @@ def upload_batch(
     files: List[UploadFile] = File(...),
     model: str = Form("gemini"),
     group_filename: Optional[str] = Form(None),
+    options: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -562,7 +567,7 @@ def upload_batch(
         db.refresh(doc)
         
         # Trigger Task
-        process_document_task.delay(doc.id, file_path, model)
+        process_document_task.delay(doc.id, file_path, model, options)
         
         # For LST generation:
         # Browser loads LST via index.php?l=...
@@ -1116,15 +1121,46 @@ def create_invite(invite: InviteCreate, current_user: User = Depends(get_current
     db.refresh(new_invite)
     return new_invite
 
-@app.delete("/api/admin/invites/{invite_id}")
-def delete_invite(invite_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    invite = db.query(Invitation).filter(Invitation.id == invite_id).first()
-    if not invite:
-        raise HTTPException(status_code=404, detail="Invitation not found")
-        
     db.delete(invite)
     db.commit()
     return {"message": "Invitation deleted"}
+
+# --- Config Management ---
+
+class ConfigUpdate(BaseModel):
+    content: str
+
+@app.get("/api/admin/config/yml")
+def get_config_yml(current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    config_path = "/app/config.yml"
+    try:
+        with open(config_path, "r") as f:
+            content = f.read()
+        return {"content": content}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="config.yml not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/config/yml")
+def update_config_yml(config: ConfigUpdate, current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    config_path = "/app/config.yml"
+    
+    # Validate YAML
+    try:
+        yaml.safe_load(config.content)
+    except yaml.YAMLError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid YAML: {e}")
+        
+    try:
+        with open(config_path, "w") as f:
+            f.write(config.content)
+        return {"message": "Configuration updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

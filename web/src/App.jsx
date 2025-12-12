@@ -5,7 +5,7 @@ import RegisterScreen from './components/RegisterScreen';
 import Header from './components/Header';
 import DashboardScreen from './components/DashboardScreen';
 import ProfileScreen from './components/ProfileScreen';
-import NewDocumentScreen from './components/NewDocumentScreen';
+import AdvancedUploadScreen from './components/AdvancedUploadScreen';
 import PageEditorScreen from './components/PageEditorScreen';
 import ConfirmationModal from './components/ConfirmationModal';
 
@@ -97,7 +97,7 @@ function App() {
       <main className="pb-10">
         {currentView === 'dashboard' && <DashboardScreen setView={setCurrentView} setEditorDocId={setEditorDocId} />}
         {currentView === 'profile' && <ProfileScreen setView={setCurrentView} />}
-        {currentView === 'new' && <NewDocumentScreen setView={setCurrentView} />}
+        {currentView === 'new' && <AdvancedUploadScreen setView={setCurrentView} />}
         {currentView === 'page-editor' && <PageEditorScreen docId={editorDocId} setView={setCurrentView} />}
       </main>
 

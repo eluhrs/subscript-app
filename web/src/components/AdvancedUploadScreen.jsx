@@ -1,28 +1,21 @@
-import React, { useState } from 'react';
-import { UploadCloud, MessageSquare, ChevronDown, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UploadCloud, MessageSquare, ChevronDown, SlidersHorizontal, RotateCcw, FilePlus, CircleHelp } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
-// Fallback icon to avoid version conflicts
-const CircleHelp = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <circle cx="12" cy="12" r="10" />
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-        <path d="M12 17h.01" />
-    </svg>
-);
-
-const NewDocumentScreen = ({ setView }) => {
-    const [selectedModel, setSelectedModel] = useState('gemini-pro-3');
+const AdvancedUploadScreen = ({ setView }) => {
+    // Basic Upload State
     const [files, setFiles] = useState([]); // Array of { file: File, preview: string, id: string }
     const [pdfFilename, setPdfFilename] = useState('');
     const [uploading, setUploading] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
-    // Options State
+    // Options State (Sticky)
     const [showOptions, setShowOptions] = useState(false);
-    const [systemPrompt, setSystemPrompt] = useState('');
-    const [activeHelpSection, setActiveHelpSection] = useState(null);
+
+    // Sticky Settings Initialization
+    const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('subscript_model') || 'gemini-pro-3');
+    const [temperature, setTemperature] = useState(() => parseFloat(localStorage.getItem('subscript_temp') || '0.8'));
+    const [systemPrompt, setSystemPrompt] = useState(() => localStorage.getItem('subscript_prompt') || '');
 
     // Modal State
     const [modalConfig, setModalConfig] = useState({
@@ -34,11 +27,33 @@ const NewDocumentScreen = ({ setView }) => {
     });
 
     // Cleanup previews on unmount
-    React.useEffect(() => {
+    useEffect(() => {
         return () => {
             files.forEach(f => URL.revokeObjectURL(f.preview));
         };
     }, []);
+
+    // Save Sticky Settings
+    useEffect(() => {
+        localStorage.setItem('subscript_model', selectedModel);
+    }, [selectedModel]);
+
+    useEffect(() => {
+        localStorage.setItem('subscript_temp', temperature.toString());
+    }, [temperature]);
+
+    useEffect(() => {
+        localStorage.setItem('subscript_prompt', systemPrompt);
+    }, [systemPrompt]);
+
+    const handleResetDefaults = () => {
+        setSelectedModel('gemini-pro-3');
+        setTemperature(0.8);
+        setSystemPrompt('');
+        localStorage.removeItem('subscript_model');
+        localStorage.removeItem('subscript_temp');
+        localStorage.removeItem('subscript_prompt');
+    };
 
     const processFiles = (newFiles) => {
         const processed = Array.from(newFiles).map(file => ({
@@ -114,6 +129,15 @@ const NewDocumentScreen = ({ setView }) => {
                 formData.append('model', selectedModel);
                 formData.append('group_filename', pdfFilename);
 
+                // Construct options JSON
+                const options = {
+                    transcription: {
+                        prompt: systemPrompt.trim() ? systemPrompt : undefined,
+                        temperature: temperature
+                    }
+                };
+                formData.append('options', JSON.stringify(options));
+
                 const response = await fetch('/api/upload-batch', {
                     method: 'POST',
                     headers: {
@@ -154,6 +178,15 @@ const NewDocumentScreen = ({ setView }) => {
             const formData = new FormData();
             formData.append('file', item.file);
             formData.append('model', selectedModel);
+
+            // Construct options JSON
+            const options = {
+                transcription: {
+                    prompt: systemPrompt.trim() ? systemPrompt : undefined,
+                    temperature: temperature
+                }
+            };
+            formData.append('options', JSON.stringify(options));
 
             try {
                 const response = await fetch('/api/upload', {
@@ -213,13 +246,44 @@ const NewDocumentScreen = ({ setView }) => {
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background-color: #6b7280; /* gray-500 */
                 }
+                
+                input[type=range] {
+                    -webkit-appearance: none;
+                    width: 100%;
+                    background: transparent;
+                }
+                input[type=range]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    height: 16px;
+                    width: 16px;
+                    border-radius: 50%;
+                    background: #5B84B1;
+                    cursor: pointer;
+                    margin-top: -6px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                }
+                input[type=range]::-webkit-slider-runnable-track {
+                    width: 100%;
+                    height: 4px;
+                    cursor: pointer;
+                    background: #E5E7EB;
+                    border-radius: 2px;
+                }
+
+                /* Styles for Custom Tooltip Logic */
+                .tooltip-trigger:hover + .custom-tooltip,
+                .custom-tooltip:hover {
+                    opacity: 1;
+                    visibility: visible;
+                }
             `}</style>
+
             <h2 className="text-3xl font-bold text-[#3A5A80] mb-6">New Document</h2>
 
             <div className="bg-[#EDEDEB] shadow-xl rounded-xl p-6 border border-gray-500">
                 {/* Drag and Drop Area */}
                 <div
-                    className="border-4 border-dashed border-[#5B84B1] rounded-xl bg-white hover:border-[#3A5A80] transition duration-300 relative overflow-hidden"
+                    className="border-4 border-dashed border-[#5B84B1] rounded-xl bg-white hover:border-[#3A5A80] transition duration-300 relative overflow-hidden mb-6"
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                 >
@@ -303,92 +367,148 @@ const NewDocumentScreen = ({ setView }) => {
                     )}
                 </div>
 
-                {/* Model Selection and PDF Filename */}
-                <div className="pt-4 border-t border-gray-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Transcription Model</label>
-                            <select
-                                value={selectedModel}
-                                onChange={(e) => setSelectedModel(e.target.value)}
-                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border"
-                            >
-                                <option value="gemini-pro-3">Gemini 3.0 Pro</option>
-                                <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
-                                <option value="gemini-flash-2.5">Gemini 2.5 Flash</option>
-                                <option value="gemini-flash-lite-2.5">Gemini 2.5 Flash Lite</option>
-                                <option value="openai-gpt-4o">OpenAI GPT-4o</option>
-                                <option value="claude-sonnet-4.5">Claude 3.5 Sonnet</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Optionally merge all images into a single PDF</label>
+                {/* Main Controls Row: Options + Filename */}
+                <div className="flex items-center gap-4 mb-2">
+
+                    {/* Options Toggle Button */}
+                    <button
+                        onClick={() => setShowOptions(!showOptions)}
+                        className="flex items-center gap-2 px-3 py-2 bg-[#f3f4f6] border border-gray-300 rounded-lg hover:bg-white hover:border-gray-400 transition shadow-sm text-gray-700 hover:text-[#3A5A80] hover:shadow-md"
+                    >
+                        <SlidersHorizontal className="h-4 w-4" />
+                        <span className="text-xs font-semibold uppercase tracking-wide">Options</span>
+                        <ChevronDown className={`h-3 w-3 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Filename Input */}
+                    <div className="flex items-center gap-2 flex-grow">
+                        <label className="text-sm font-bold text-gray-600 whitespace-nowrap">Filename:</label>
+                        <div className="relative flex-grow">
                             <input
                                 type="text"
-                                placeholder="e.g. my_book.pdf"
                                 value={pdfFilename}
                                 onChange={(e) => setPdfFilename(e.target.value)}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-400 rounded-md border px-3 py-2"
+                                placeholder="Optionally merge multiple images into a single PDF file"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B84B1] focus:border-[#5B84B1] outline-none text-sm shadow-sm placeholder-gray-400"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Advanced Settings Toggle */}
-                <div className="bg-white rounded-lg border border-gray-300 overflow-hidden shadow-sm mt-6">
-                    <button onClick={() => setShowOptions(!showOptions)} className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition text-left">
-                        <div className="flex items-center gap-2">
-                            <SlidersHorizontal className="h-4 w-4 text-[#3A5A80]" />
-                            <span className="font-semibold text-gray-700 text-sm">Advanced Options</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
-                        </div>
-                    </button>
+                {/* Advanced Options Panel */}
+                <div className={`transform transition-all duration-300 ease-in-out ${showOptions ? 'opacity-100 max-h-[500px]' : 'opacity-0 max-h-0 hidden'}`}>
+                    <div className="bg-gray-100 rounded-lg border border-gray-300 shadow-inner p-4 mt-2 relative">
 
-                    {/* Options Panel */}
-                    {showOptions && (
-                        <div className="border-t border-gray-200 bg-white p-4">
-                            <div className="mb-4">
-                                <div className="flex items-center justify-between mb-2 border-b border-gray-200 pb-1">
-                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                        <MessageSquare className="h-3 w-3" /> System Prompt
-                                    </h4>
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={() => setActiveHelpSection(activeHelpSection === 'prompt' ? null : 'prompt')} className="text-gray-400 hover:text-[#5B84B1] transition">
-                                            <CircleHelp className="h-3 w-3" />
-                                        </button>
+                        {/* Reset Defaults */}
+                        <button
+                            onClick={handleResetDefaults}
+                            className="absolute top-2 right-5 text-[10px] text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 z-10 font-bold bg-gray-100 px-2 rounded"
+                        >
+                            <RotateCcw className="h-3 w-3" /> Reset Defaults
+                        </button>
+
+                        <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg mt-8 bg-[#E5E7EB]">
+                            <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Model & Behavior Settings</legend>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+                                {/* Model Selection */}
+                                <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                            Model
+                                        </label>
+
+                                        <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                        <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                            <div>
+                                                Selects the underlying AI engine. <strong>Pro</strong> models generally provide higher accuracy for difficult handwriting or complex layouts, while <strong>Flash</strong> models are faster and more cost-effective.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <select
+                                        value={selectedModel}
+                                        onChange={(e) => setSelectedModel(e.target.value)}
+                                        className="block w-full pl-2 pr-8 py-2 text-xs border-gray-300 rounded border focus:ring-[#5B84B1] focus:border-[#5B84B1] relative z-0"
+                                    >
+                                        <option value="gemini-pro-3">Gemini 3.0 Pro</option>
+                                        <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
+                                        <option value="gemini-flash-2.5">Gemini 2.5 Flash</option>
+                                        <option value="gemini-flash-lite-2.5">Gemini 2.5 Flash Lite</option>
+                                        <option value="openai-gpt-4o">OpenAI GPT-4o</option>
+                                        <option value="claude-sonnet-4.5">Claude 3.5 Sonnet</option>
+                                    </select>
+                                </div>
+
+                                {/* Temperature */}
+                                <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                            Temperature
+                                        </label>
+
+                                        <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                        <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                            <div>
+                                                Controls the model's creativity (0.0 to 1.0). <strong>Lower values (around 0.2)</strong> are recommended for strict, literal transcription. Higher values increase variability but may lead to hallucinations or inaccuracies.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-3 relative z-0">
+                                        <span className="text-[10px] text-gray-500 font-mono w-4">0</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.1"
+                                            value={temperature}
+                                            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                            className="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{temperature}</span>
                                     </div>
                                 </div>
-                                {activeHelpSection === 'prompt' && (
-                                    <div className="bg-[#F0F4F8] text-[#3A5A80] text-[10px] p-2 rounded mb-2 border border-[#DAE1E7]">
-                                        The system enforces JSON output for layout preservation. Use this prompt to modify transcription <em>style</em> (e.g., 'Modernize spelling') but not output format.
+                            </div>
+
+                            {/* System Prompt */}
+                            <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                        System Prompt
+                                    </label>
+
+                                    <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                    <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex flex-col justify-center z-10 opacity-0 invisible transition-all duration-200">
+                                        <div className="mb-1">
+                                            Emends the default transcription instructions. Use this to enforce specific formatting rules (e.g., 'Convert all dates to ISO format' or 'Modernize spelling').
+                                        </div>
+                                        <div className="font-bold text-red-500">
+                                            Important: Do not instruct the model to ignore JSON formatting, as the application relies on structured output to render the page.
+                                        </div>
                                     </div>
-                                )}
-                                <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-xs font-medium text-gray-700">Custom Instructions</label>
-                                    <button onClick={() => setSystemPrompt('')} className="text-xs text-red-500 hover:text-red-700 hover:underline flex items-center gap-1">
-                                        <RotateCcw className="h-3 w-3" /> Clear
-                                    </button>
                                 </div>
+
                                 <textarea
-                                    rows="4"
+                                    rows="3"
+                                    placeholder="Enter custom system instructions..."
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
-                                    placeholder="Enter custom system instructions..."
-                                    className="w-full p-3 border border-gray-300 rounded text-[10px] font-mono focus:ring-1 focus:ring-[#5B84B1] outline-none leading-relaxed"
+                                    className="w-full p-2 border border-gray-300 rounded text-[10px] font-mono focus:ring-1 focus:ring-[#5B84B1] outline-none leading-relaxed transition resize-none relative z-0"
                                     spellCheck="false"
                                 />
                             </div>
-                        </div>
-                    )}
+                        </fieldset>
+                    </div>
                 </div>
 
                 {/* Action Button */}
                 <button
                     onClick={handleBeginTranscribing}
                     disabled={uploading}
-                    className="w-full flex justify-center py-3 px-4 border border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-white bg-[#5B84B1] hover:bg-[#4A6D94] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out mt-6 disabled:opacity-50"
+                    className="w-full flex justify-center py-3 px-4 border border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-white bg-[#5B84B1] mt-6 hover:bg-[#4A6D94] hover:shadow-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {uploading
                         ? `Uploading ${uploadProgress.current}/${uploadProgress.total}...`
@@ -410,4 +530,4 @@ const NewDocumentScreen = ({ setView }) => {
     );
 };
 
-export default NewDocumentScreen;
+export default AdvancedUploadScreen;
