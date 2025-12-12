@@ -7,7 +7,7 @@ from server.celery_app import celery_app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from server.main import Document, DATABASE_URL, USER_DOCS_DIR
-from server.utils import sanitize_email, sanitize_filename
+from server.utils import sanitize_email, sanitize_filename, create_thumbnail
 import io
 import contextlib
 
@@ -99,7 +99,12 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
 
-            # Thumbnail generated at upload
+            # Thumbnail generated at upload, but check if it exists (subscript might have cleaned dir?)
+            thumb_path = os.path.join(output_dir, f"{base_name}-thumb.jpg")
+            if not os.path.exists(thumb_path):
+                logging.warning(f"Thumbnail missing for {doc.filename}, regenerating...")
+                create_thumbnail(file_path, thumb_path)
+
             logging.info(f"Task Complete: {doc.filename}")
         except SystemExit as e:
             if e.code != 0:
@@ -186,7 +191,127 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
         db.close()
 
 @celery_app.task(bind=True)
-def rebuild_pdf_task(self, doc_id: int, file_path: str):
+def process_batch_task(self, parent_id: int, file_paths: list, model: str, options: str = None):
+    db = SessionLocal()
+    parent = db.query(Document).filter(Document.id == parent_id).first()
+    if not parent:
+        logging.error(f"Parent Document {parent_id} not found")
+        return
+
+    # Set status for parent and children
+    parent.status = "processing"
+    children = db.query(Document).filter(Document.parent_id == parent.id).all()
+    for child in children:
+        child.status = "processing"
+    db.commit()
+
+    try:
+        from subscript.__main__ import main as run_subscript_pipeline
+        
+        original_argv = sys.argv
+        
+        # Determine output setup
+        clean_email = sanitize_email(parent.owner.email)
+        user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+        if parent.directory_name:
+            parent_dir = os.path.join(user_dir, parent.directory_name)
+        else:
+            parent_dir = user_dir
+
+        output_pdf_path = os.path.join(parent_dir, parent.filename)
+        # Note: In batch mode, individual files might be in subdirs or flat.
+        # But looking at inputs `file_paths`, they are absolute.
+        # subscript output logic: if --output is not set, it uses input dir?
+        # But inputs might be in different dirs? 
+        # Actually, for batch upload, they are all in `documents/email/group_dir/`.
+        # So setting --output to that group_dir works.
+        
+        output_dir = parent_dir 
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Construct Command
+        # subscript [SEG] [MODEL] file1 file2 ... --combine parent.pdf --output [dir]
+        sys.argv = [
+            "subscript",
+            "historical-manuscript",
+            model
+        ] + file_paths + [
+            "--combine", output_pdf_path,
+            "--output", output_dir
+        ]
+
+        # Handle Options (Prompt etc)
+        if options:
+            try:
+                opts = json.loads(options)
+                transcription_opts = opts.get('transcription', {})
+                prompt_override = transcription_opts.get('prompt')
+                if prompt_override:
+                    sys.argv.extend(["--prompt", prompt_override])
+            except: pass
+
+        logging.info(f"BATCH TASK START: Parent {parent.filename} (ID: {parent.id})")
+        logging.info(f"Command: {' '.join(sys.argv)}")
+
+        f_out = io.StringIO()
+        with contextlib.redirect_stdout(f_out), contextlib.redirect_stderr(f_out):
+            run_subscript_pipeline()
+        
+        logging.info(f"BATCH OUTPUT:\n{f_out.getvalue()}")
+
+        # Update Statuses
+        parent.status = "completed"
+        parent.output_pdf_path = output_pdf_path
+        parent.output_txt_path = os.path.splitext(output_pdf_path)[0] + ".txt"
+        
+        # Post-process Children (Uniquify XML IDs)
+        for child in children:
+            child.status = "completed"
+            
+            # Reconstruct expected XML path
+            # Assuming file was processed in place or to output_dir
+            # For grouped upload, logic put them in `parent_dir`.
+            
+            # Use child filename to find xml
+            base_name = os.path.splitext(child.filename)[0]
+            xml_path = os.path.join(output_dir, f"{base_name}.xml")
+            child.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
+            
+            if os.path.exists(xml_path):
+                 try:
+                    with open(xml_path, "r") as f:
+                        content = f.read()
+                    
+                    page_prefix = f"p{child.page_order}_"
+                    
+                    def replace_id(match):
+                        prefix = match.group(1)
+                        val = match.group(2)
+                        suffix = match.group(3)
+                        if val.startswith("p"): return match.group(0)
+                        return f'{prefix}{page_prefix}{val}{suffix}'
+                        
+                    content = re.sub(r'(id=["\'])(r\d+)(["\'])', replace_id, content)
+                    content = re.sub(r'(id=["\'])(l\d+)(["\'])', replace_id, content)
+                    
+                    with open(xml_path, "w") as f:
+                        f.write(content)
+                 except Exception as e:
+                    logging.error(f"Failed to uniquify IDs for {child.filename}: {e}")
+
+    except Exception as e:
+        db.rollback()
+        logging.error(f"Batch processing failed: {e}")
+        parent.status = "error"
+        parent.error_message = str(e)
+        parent.error_message = str(e)
+        for child in children:
+            child.status = "error"
+            child.error_message = "Batch processing failed"
+    finally:
+        sys.argv = original_argv
+        db.commit()
+        db.close()
     db = SessionLocal()
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
@@ -337,6 +462,49 @@ def merge_document_task(self, parent_id: int):
         logging.error(f"Merge failed: {e}")
         parent.status = "error"
         parent.error_message = str(e)
+    finally:
+        sys.argv = original_argv
+        db.commit()
+        db.close()
+
+@celery_app.task(bind=True)
+def rebuild_pdf_task(self, doc_id: int, file_path: str):
+    db = SessionLocal()
+    doc = db.query(Document).filter(Document.id == doc_id).first()
+    if not doc:
+        logging.error(f"Document {doc_id} not found")
+        return
+    
+    doc.status = "updating_pdf" 
+    db.commit()
+    
+    try:
+        from subscript.__main__ import main as run_subscript_pipeline
+
+        original_argv = sys.argv
+        output_dir = os.path.dirname(file_path)
+            
+        sys.argv = [
+            "subscript",
+            file_path,
+            "--onlypdf",
+            "--output", output_dir
+        ]
+        
+        try:
+            run_subscript_pipeline()
+            doc.status = "completed"
+            doc.last_modified = datetime.utcnow()
+        except SystemExit as e:
+            if e.code != 0:
+                raise Exception(f"Subscript exited with code {e.code}")
+            doc.status = "completed"
+            doc.last_modified = datetime.utcnow()
+            
+    except Exception as e:
+        logging.error(f"PDF Rebuild failed: {e}")
+        doc.status = "error"
+        doc.error_message = str(e)
     finally:
         sys.argv = original_argv
         db.commit()

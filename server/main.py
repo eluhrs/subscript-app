@@ -532,9 +532,11 @@ def upload_batch(
 
     # 2. Process Files
     # Trigger import
-    from server.tasks import process_document_task
+    from server.tasks import process_document_task, process_batch_task
 
     children_xmls = [] # relative paths for LST
+    file_path_list = [] # Accumulate paths for batch processing
+    created_docs_info = [] # Store (doc_id, file_path) for flat processing
 
     for i, file in enumerate(files):
         clean_filename = sanitize_filename(file.filename)
@@ -566,57 +568,53 @@ def upload_batch(
         db.commit()
         db.refresh(doc)
         
-        # Trigger Task
-        process_document_task.delay(doc.id, file_path, model, options)
-        
+        # Accumulate info
+        file_path_list.append(file_path)
+        created_docs_info.append((doc.id, file_path))
+
         # For LST generation:
-        # Browser loads LST via index.php?l=...
-        # LST content is prepended with "../data/" by index.php
-        # So we need "email/group_dir/filename.xml" --> "../data/email/group_dir/filename.xml"
         if parent_doc:
              base_name = os.path.splitext(clean_filename)[0]
-             # Must be relative to USER_DOCS_DIR (mapped to data/) or whatever logic we decide.
-             # index.php logic: prepends "../data/" to each line.
-             # USER_DOCS_DIR is mounted to "../data/" (effectively).
-             # So we want distinct path from data root.
-             # "email/group_dir_name/file.xml"
              children_xmls.append(os.path.join(clean_email, dir_name, f"{base_name}.xml"))
 
-    # 3. Finalize Parent (.lst and merging)
+    # 3. Finalize
     if parent_doc:
-        # LST goes INSIDE the hashed directory?
-        # Request: "refactor to put filename.lst ... within their respective directories"
-        # So LST should be at `USER_DOCS_DIR/email/group_dir/Group.lst`
+        # LST Generation
         lst_base = os.path.splitext(clean_group_name)[0] + ".lst"
-        
-        # Path inside the group directory
         lst_path_abs = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name, lst_base)
         
         with open(lst_path_abs, "w") as f:
             f.write("\n".join(children_xmls) + "\n")
             
-        # Create Parent Thumbnail (Copy from first child)
+        # Parent Thumbnail
         if len(files) > 0:
             first_index = 0
-            # Get first child's storage
             c_storage, c_dir = upload_target_map[first_index]
             c_filename = sanitize_filename(files[first_index].filename)
             c_base = os.path.splitext(c_filename)[0]
             c_thumb = os.path.join(c_storage, f"{c_base}-thumb.jpg")
             
             p_base = os.path.splitext(clean_group_name)[0]
-            # Parent thumb lives in group dir (same as LST)
             p_thumb = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name, f"{p_base}-thumb.jpg")
             
-            if os.path.exists(c_thumb):
+            if os.path.exists(c_thumb) and os.path.abspath(c_thumb) != os.path.abspath(p_thumb):
                 shutil.copy2(c_thumb, p_thumb)
                 logger.info(f"Created parent thumbnail at {p_thumb}")
             
-        parent_doc.status = "processing" 
+        parent_doc.status = "queued" 
         db.commit()
-        return parent_doc
         
-    return doc
+        # Trigger Optimized Batch Task
+        process_batch_task.delay(parent_doc.id, file_path_list, model, options)
+        
+        return parent_doc
+    else:
+        # Flat upload -> Individual Tasks
+        for doc_id, f_path in created_docs_info:
+             process_document_task.delay(doc_id, f_path, model, options)
+             
+        # Return last doc (existing behavior)
+        return doc
 
 @app.get("/api/documents/{doc_id}", response_model=DocumentResponse)
 def get_document(
@@ -863,11 +861,26 @@ def get_thumbnail(
     
     if os.path.exists(thumb_path):
         return FileResponse(thumb_path)
-    elif os.path.exists(debug_path):
-        return FileResponse(debug_path)
-    else:
-        # Do not serve original file as thumbnail (too large)
-        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    
+    # If missing, try to generate from debug (preferred) or original
+    # This prevents loading huge debug images in the dashboard
+    source_candidate = debug_path if os.path.exists(debug_path) else None
+    
+    # If no debug path, use original file path (which might not be calculated relative to doc_dir if it has full path in DB?)
+    # Re-calculate original file path to be safe:
+    if not source_candidate:
+         original_path = os.path.join(doc_dir, doc.filename)
+         if os.path.exists(original_path):
+             source_candidate = original_path
+             
+    if source_candidate and os.path.exists(source_candidate):
+        logger.info(f"Thumbnail missing for doc {doc.id}, attempting to regenerate from {source_candidate}")
+        from server.utils import create_thumbnail
+        if create_thumbnail(source_candidate, thumb_path):
+             return FileResponse(thumb_path)
+             
+    # If we get here, failure
+    raise HTTPException(status_code=404, detail="Thumbnail not found and could not be generated")
 
 # --- Share Functionality ---
 

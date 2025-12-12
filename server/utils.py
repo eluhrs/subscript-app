@@ -52,5 +52,6 @@ def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300))
             img.save(thumb_path, "JPEG", quality=80)
             return True
     except Exception as e:
-        print(f"Error generating thumbnail for {image_path}: {e}")
+        import logging
+        logging.error(f"Error generating thumbnail for {image_path}: {e}")
         return False
