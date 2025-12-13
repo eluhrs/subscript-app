@@ -19,8 +19,9 @@ const AdvancedUploadScreen = ({ setView }) => {
         return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
     };
 
-    // State for Dynamic Config
-    const [modelOptions, setModelOptions] = useState([]); // Array of { id, name, default_prompt, default_temperature }
+    // State for Dynamic Config (Phase 27 & 28)
+    const [modelOptions, setModelOptions] = useState([]); // Transcription Models
+    const [segOptions, setSegOptions] = useState([]); // Segmentation Models
 
     // Init with sticky or default
     const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('subscript_model') || 'gemini-pro-3');
@@ -29,6 +30,21 @@ const AdvancedUploadScreen = ({ setView }) => {
         return saved ? parseFloat(saved) : 0.8;
     });
     const [systemPrompt, setSystemPrompt] = useState(() => localStorage.getItem('subscript_prompt') || '');
+
+    // Phase 28: Segmentation & Preprocessing State
+    const [segmentationModel, setSegmentationModel] = useState(() => localStorage.getItem('subscript_seg') || 'historical-manuscript');
+
+    // Preprocessing State (Sticky)
+    const [preprocessing, setPreprocessing] = useState(() => {
+        const saved = localStorage.getItem('subscript_preproc');
+        return saved ? JSON.parse(saved) : {
+            resize_image: "large",
+            contrast: 1.0,
+            binarize: false,
+            invert: false,
+            debug_image: true
+        };
+    });
 
     // Initialization: Fetch Defaults from Config
     useEffect(() => {
@@ -39,7 +55,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                 if (data.available_models && data.available_models.length > 0) {
                     setModelOptions(data.available_models);
 
-                    // 2. Resolve Initial Selection
+                    // 2. Resolve Initial Selection (Transcription)
                     const stickyModel = localStorage.getItem('subscript_model');
                     const serverDefault = data.default_model;
 
@@ -65,6 +81,22 @@ const AdvancedUploadScreen = ({ setView }) => {
                         }
                     }
                 }
+
+                // Phase 28: Segmentation & Preprocessing Defaults
+                if (data.segmentation_models) setSegOptions(data.segmentation_models);
+
+                // If no sticky segmentation, use config default
+                if (!localStorage.getItem('subscript_seg') && data.default_segmentation_model) {
+                    setSegmentationModel(data.default_segmentation_model);
+                }
+
+                // If no sticky preprocessing, use config default
+                if (data.preprocessing && !localStorage.getItem('subscript_preproc')) {
+                    setPreprocessing(prev => ({
+                        ...prev,
+                        ...data.preprocessing
+                    }));
+                }
             })
             .catch(err => console.error("Failed to fetch system config", err));
     }, []);
@@ -77,6 +109,14 @@ const AdvancedUploadScreen = ({ setView }) => {
     useEffect(() => {
         localStorage.setItem('subscript_temp', temperature.toString());
     }, [temperature]);
+
+    useEffect(() => {
+        if (segmentationModel) localStorage.setItem('subscript_seg', segmentationModel);
+    }, [segmentationModel]);
+
+    useEffect(() => {
+        localStorage.setItem('subscript_preproc', JSON.stringify(preprocessing));
+    }, [preprocessing]);
 
     // Sync Logic: When Model Changes
     const handleModelChange = (e) => {
@@ -135,9 +175,11 @@ const AdvancedUploadScreen = ({ setView }) => {
         localStorage.removeItem('subscript_model');
         localStorage.removeItem('subscript_temp');
         localStorage.removeItem('subscript_prompt');
+        localStorage.removeItem('subscript_seg');
+        localStorage.removeItem('subscript_preproc');
 
         // Re-fetch default config to ensure we match server exactly
-        fetch('/api/system/config')
+        fetch('/api/system/config', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
                 const defModelId = data.default_model;
@@ -153,8 +195,35 @@ const AdvancedUploadScreen = ({ setView }) => {
                     setTemperature(0.8);
                     setSystemPrompt('');
                 }
+
+                // Reset Segmentation
+                if (data.default_segmentation_model) setSegmentationModel(data.default_segmentation_model);
+
+                // Reset Preprocessing (Safe Merge)
+                const safeDefaults = {
+                    resize_image: "large",
+                    contrast: 1.0,
+                    binarize: false,
+                    invert: false,
+                    debug_image: true
+                };
+
+                setPreprocessing({
+                    ...safeDefaults,
+                    ...(data.preprocessing || {})
+                });
+
+                showModal("Settings Restored", "All advanced options have been reset to server defaults.", "success");
             })
-            .catch(err => console.error("Failed to reset defaults", err));
+            .catch(err => {
+                console.error("Failed to reset defaults", err);
+                showModal("Reset Failed", "Could not fetch default configuration from server.", "error");
+            });
+    };
+
+    // Helper for Preprocessing Changes
+    const updatePreprocessing = (key, value) => {
+        setPreprocessing(prev => ({ ...prev, [key]: value }));
     };
 
     const processFiles = (newFiles) => {
@@ -234,9 +303,11 @@ const AdvancedUploadScreen = ({ setView }) => {
                 // Construct options JSON
                 const options = {
                     transcription: {
-                        prompt: systemPrompt.trim() ? systemPrompt : undefined,
+                        prompt: systemPrompt,
                         temperature: temperature
-                    }
+                    },
+                    segmentation_model: segmentationModel,
+                    preprocessing: preprocessing
                 };
                 formData.append('options', JSON.stringify(options));
 
@@ -284,9 +355,11 @@ const AdvancedUploadScreen = ({ setView }) => {
             // Construct options JSON
             const options = {
                 transcription: {
-                    prompt: systemPrompt.trim() ? systemPrompt : undefined,
+                    prompt: systemPrompt,
                     temperature: temperature
-                }
+                },
+                segmentation_model: segmentationModel,
+                preprocessing: preprocessing
             };
             formData.append('options', JSON.stringify(options));
 
@@ -368,7 +441,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                     width: 100%;
                     height: 4px;
                     cursor: pointer;
-                    background: #E5E7EB;
+                    background: #9CA3AF;
                     border-radius: 2px;
                 }
 
@@ -498,14 +571,14 @@ const AdvancedUploadScreen = ({ setView }) => {
                 </div>
 
                 {/* Advanced Options Panel */}
-                <div className={`transform transition-all duration-300 ease-in-out ${showOptions ? 'opacity-100 max-h-[500px]' : 'opacity-0 max-h-0 hidden'}`}>
+                <div className={`transform transition-all duration-300 ease-in-out ${showOptions ? 'opacity-100 max-h-[1200px]' : 'opacity-0 max-h-0 hidden'}`}>
                     <div className="bg-gray-100 rounded-lg border border-gray-300 shadow-inner p-4 mt-2 relative">
 
                         {/* Reset Defaults with Tooltip */}
-                        <div className="absolute top-[5px] right-5 z-10 flex items-center gap-1">
+                        <div className="absolute top-[5px] right-5 z-50 flex items-center gap-1">
                             <button
                                 onClick={handleResetDefaults}
-                                className="text-[10px] text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 font-bold bg-gray-100 px-2 rounded"
+                                className="text-[10px] text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 font-bold bg-gray-100 px-2 rounded cursor-pointer"
                             >
                                 <RotateCcw className="h-3 w-3" /> Reset Defaults
                             </button>
@@ -519,7 +592,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                         </div>
 
                         <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg mt-0 bg-[#E5E7EB]">
-                            <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Model & Behavior Settings</legend>
+                            <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider relative -top-[8px]">Model & Behavior Settings</legend>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
@@ -618,6 +691,166 @@ const AdvancedUploadScreen = ({ setView }) => {
                                 />
                             </div>
                         </fieldset>
+
+                        {/* Phase 28: Split Row for Image & Layout */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+
+                            {/* Image Preprocessor Settings */}
+                            <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg bg-[#E5E7EB]">
+                                <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider relative -top-[8px]">Image Preprocessor Settings</legend>
+                                <div className="space-y-4">
+                                    {/* Resize */}
+                                    <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                                Resize Image
+                                            </label>
+
+                                            <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                            <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                                <div>
+                                                    Downscales large images to improve processing speed and reduce token usage. Recommended for high-resolution scans.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <select
+                                            value={preprocessing.resize_image}
+                                            onChange={(e) => updatePreprocessing('resize_image', e.target.value)}
+                                            className="block w-full text-xs bg-white border border-gray-300 text-gray-800 rounded focus:ring-[#5B84B1] focus:border-[#5B84B1] p-2 relative z-0"
+                                        >
+                                            <option value="large">Large (Max 3000px)</option>
+                                            <option value="medium">Medium (Max 2000px)</option>
+                                            <option value="small">Small (Max 1000px)</option>
+                                            <option value="false">Original Size</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Contrast */}
+                                    <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                                Contrast
+                                            </label>
+
+                                            <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                            <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                                <div>
+                                                    Adjusts image contrast. Higher values (1.5+) can help make faint handwriting stand out against the background.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-3 relative z-0">
+                                            <span className="text-[10px] text-gray-500 font-mono w-4">0.5</span>
+                                            <input
+                                                type="range"
+                                                min="0.5"
+                                                max="2.0"
+                                                step="0.1"
+                                                value={preprocessing.contrast}
+                                                onChange={(e) => updatePreprocessing('contrast', parseFloat(e.target.value))}
+                                                className="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                                style={{ background: '#e5e7eb' }}
+                                            />
+                                            <style>{`
+                                                input[type=range]::-webkit-slider-runnable-track {
+                                                    background: #9CA3AF !important; 
+                                                }
+                                            `}</style>
+                                            <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{preprocessing.contrast.toFixed(1)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Monochrome Conversion */}
+                                    <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                                Monochrome Conversion
+                                            </label>
+
+                                            <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                            <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                                <div>
+                                                    <b>Binarize:</b> Convert to pure black and white.<br />
+                                                    <b>Invert:</b> Flip colors (for negative images).
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-4 justify-center relative z-0 mt-3">
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={preprocessing.binarize}
+                                                    onChange={(e) => updatePreprocessing('binarize', e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="relative w-9 h-5 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <span className="ms-3 text-xs font-medium text-gray-700">Binarize</span>
+                                            </label>
+
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={preprocessing.invert}
+                                                    onChange={(e) => updatePreprocessing('invert', e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="relative w-9 h-5 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <span className="ms-3 text-xs font-medium text-gray-700">Invert</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            {/* Layout Analysis Model */}
+                            <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg bg-[#E5E7EB]">
+                                <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider relative -top-[8px]">Layout Analysis Model</legend>
+                                <div className="space-y-4">
+                                    {/* Segmentation Model Dropdown */}
+                                    <div className="bg-white border border-gray-300 rounded p-4 shadow-sm relative group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                                Segmentation Model
+                                            </label>
+
+                                            <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help z-20 relative" />
+
+                                            <div className="custom-tooltip absolute top-0 left-0 w-full h-full bg-white bg-opacity-95 backdrop-blur-sm p-4 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 flex items-center z-10 opacity-0 invisible transition-all duration-200">
+                                                <div>
+                                                    Selects the model used to identify page regions (text blocks, images, tables). Currently, <strong>historical-manuscript</strong> is optimized for most archival documents.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <select
+                                            value={segmentationModel}
+                                            onChange={(e) => setSegmentationModel(e.target.value)}
+                                            className="block w-full bg-white border border-gray-300 text-xs text-gray-800 rounded focus:ring-blue-500 focus:border-blue-500 p-2 relative z-0"
+                                        >
+                                            {/* Available Options */}
+                                            {segOptions.map((modelId) => (
+                                                <option key={modelId} value={modelId}>
+                                                    {modelId}
+                                                </option>
+                                            ))}
+                                            {segOptions.length === 0 && <option value="historical-manuscript">historical-manuscript</option>}
+
+                                            {/* Pending Options */}
+                                            <optgroup label="Not yet available" disabled>
+                                                <option>illuminated-manuscript</option>
+                                                <option>modern-manuscript</option>
+                                                <option>historical-printed-works</option>
+                                                <option>modern-printed-works</option>
+                                                <option>columnar-materials</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
                     </div>
                 </div>
 

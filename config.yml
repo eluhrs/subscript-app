@@ -16,7 +16,7 @@ segmentation:
 
 # --- Transcription ---
 transcription:
-  default_model: "claude-sonnet-4.5"
+  default_model: "gemini-pro-3"
   
   # Image Preprocessing Settings
   preprocessing:
@@ -32,7 +32,7 @@ transcription:
       provider: "gemini"
       model: "gemini-3-pro-preview"
       prompt: |
-        Gemini Pro 3, temp 0.1: You are a literal transcription engine for 19th-century handwritten 
+        You are a literal transcription engine for 19th-century handwritten 
         manuscripts. Extract text from the supplied image exactly as written. 
         Preserve all original spelling, punctuation, capitalization, and line 
         breaks. Do not modernize, interpret, or expand abbreviations. The only 
@@ -42,7 +42,7 @@ transcription:
         input_token_cost: 2.0
         output_token_cost: 12.0
       API_passthrough: # provide model-specific settings here
-        temperature: 0.1
+        temperature: 0.2
         max_output_tokens: 65535
         top_p: 0.95
         top_k: 64
@@ -51,7 +51,7 @@ transcription:
       provider: "gemini"
       model: "gemini-2.5-pro"
       prompt: |
-        Gemini Pro 2.5, temp 0.2: You are a literal transcription engine for 19th-century handwritten 
+        You are a literal transcription engine for 19th-century handwritten 
         manuscripts. Extract text from the supplied image exactly as written. 
         Preserve all original spelling, punctuation, capitalization, and line 
         breaks. Do not modernize, interpret, or expand abbreviations. The only 
@@ -70,7 +70,7 @@ transcription:
       provider: "gemini"
       model: "gemini-2.5-flash"
       prompt: |
-        Gemini Pro 2.5 flash, temp 0.3: You are a literal transcription engine for 19th-century handwritten 
+        You are a literal transcription engine for 19th-century handwritten 
         manuscripts. Extract text from the supplied image exactly as written. 
         Preserve all original spelling, punctuation, capitalization, and line 
         breaks. Do not modernize, interpret, or expand abbreviations. The only 
@@ -80,14 +80,14 @@ transcription:
         input_token_cost: 0.3
         output_token_cost: 2.5
       API_passthrough: # provide model-specific settings here
-        temperature: 0.3
+        temperature: 0.2
         max_output_tokens: 8192
 
     gemini-flash-lite-2.5:
       provider: "gemini"
       model: "gemini-2.5-flash-lite"
       prompt: |
-        Gemini Pro 2.5 flash lite, temp 0.4: You are a literal transcription engine for 19th-century handwritten 
+        You are a literal transcription engine for 19th-century handwritten 
         manuscripts. Extract text from the supplied image exactly as written. 
         Preserve all original spelling, punctuation, capitalization, and line 
         breaks. Do not modernize, interpret, or expand abbreviations. The only 
@@ -97,27 +97,27 @@ transcription:
         input_token_cost: 0.1
         output_token_cost: 0.4
       API_passthrough: # provide model-specific settings here
-        temperature: 0.4
+        temperature: 0.2
         max_output_tokens: 8192
 
     openai-gpt-4o:
       provider: "openai"
       model: "gpt-4o"
-      prompt: "gpt-4o, temp 0.5: Transcribe this handwritten text exactly as written."
+      prompt: "Transcribe this handwritten text exactly as written."
       cost_config:
         input_token_cost: 2.5
         output_token_cost: 10.0
       API_passthrough: # provide model-specific settings here
-        temperature: 0.5
+        temperature: 0.0
         max_output_tokens: 4096
 
     claude-sonnet-4.5:
       provider: "anthropic"
       model: "claude-sonnet-4-5-20250929"      
-      prompt: "sonnet 4.5, temp, 0.6: Transcribe this handwritten text exactly as written."
+      prompt: "Transcribe this handwritten text exactly as written."
       cost_config:
         input_token_cost: 3.0
         output_token_cost: 15.0
       API_passthrough: # provide model-specific settings here
-        temperature: 0.6
+        temperature: 0.0
         max_output_tokens: 4096

@@ -47,39 +47,49 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
         os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         
-        # Mock sys.argv for the pipeline
-        # Usage: subscript [SEGMENTATION] [MODEL] INPUT [OPTIONS]
-        sys.argv = [
-            "subscript",
-            "historical-manuscript", # Explicit default segmentation
-            model,
-            file_path,
-            "--output", output_dir
-        ]
+        # Parse Options
+        prompt_override = None
+        temperature_override = None
+        segmentation_model = "historical-manuscript" # Default
+        preprocessing_opts = {}
 
-        # Handle Options Overrides (e.g. Prompt)
-        temp_config_path = None
-        logging.info(f"Task {doc_id} received options raw: {options}")
-        
         if options:
             try:
                 opts = json.loads(options)
                 logging.info(f"Task {doc_id} parsed options: {opts}")
                 
+                # Transcription overrides
                 transcription_opts = opts.get('transcription', {})
                 prompt_override = transcription_opts.get('prompt')
+                temperature_override = transcription_opts.get('temperature')
                 
-                if prompt_override:
-                    logging.info(f"Task {doc_id} found prompt override: {prompt_override}")
-                    sys.argv.extend(["--prompt", prompt_override])
+                # Segmentation Override
+                if 'segmentation_model' in opts:
+                    segmentation_model = opts['segmentation_model']
                 
-                temp_override = transcription_opts.get('temperature')
-                if temp_override is not None:
-                     logging.info(f"Task {doc_id} found temp override: {temp_override}")
-                     sys.argv.extend(["--temperature", str(temp_override)])
+                # Preprocessing Overrides
+                preprocessing_opts = opts.get('preprocessing', {})
                     
             except Exception as e:
                 logging.error(f"Failed to parse options: {e}")
+
+        # Construct Command
+        sys.argv = [
+            "subscript",
+            segmentation_model, # Dynamic Segmentation Model
+            model,
+            file_path,
+            "--output", output_dir
+        ]
+        
+        # Apply Parsing Logic
+        if prompt_override:
+            logging.info(f"Task {doc_id} found prompt override: {prompt_override}")
+            sys.argv.extend(["--prompt", prompt_override])
+
+        if temperature_override is not None:
+             logging.info(f"Task {doc_id} found temp override: {temperature_override}")
+             sys.argv.extend(["--temperature", str(temperature_override)])
         
         try:
             logging.info(f"TASK START: Processing {doc.filename} (ID: {doc.id})")

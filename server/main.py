@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Union
 import zipfile
 import yaml
 from io import BytesIO
@@ -217,9 +217,14 @@ class ModelConfig(BaseModel):
 
 class SystemConfigResponse(BaseModel):
     registration_mode: str
-    default_model: str = "gemini-pro-3"
-    default_temperature: float = 0.0
+    default_model: Optional[str] = None
+    default_temperature: Optional[float] = None
     available_models: List[ModelConfig] = []
+    
+    # New Fields for Phase 28
+    default_segmentation_model: Optional[str] = None
+    segmentation_models: List[str] = []
+    preprocessing: Optional[Dict[str, Any]] = {}
 
 class InviteCreate(BaseModel):
     email: Optional[EmailStr] = None
@@ -1084,8 +1089,8 @@ def get_system_config(db: Session = Depends(get_db)):
 
     # 2. Transcription Defaults (YAML)
     default_model = "gemini-pro-3"
-    default_temp = 0.0
-    available_models = []
+    default_temperature = 0.0
+    models_list = [] # Renamed from available_models to match diff
 
     config_path = "/app/config.yml"
     try:
@@ -1110,7 +1115,7 @@ def get_system_config(db: Session = Depends(get_db)):
                 # User's config.yml has 'model' field as the backend-name.
                 # Let's use the key (model_id) as the display name for now, or prettify it.
                 
-                available_models.append(ModelConfig(
+                models_list.append(ModelConfig( # Changed to models_list
                     id=model_id,
                     name=model_id, # Display key as name (e.g. gemini-pro-3)
                     default_prompt=prompt,
@@ -1119,19 +1124,33 @@ def get_system_config(db: Session = Depends(get_db)):
         
         # Lookup default temp again from the robust list or fallback
         # Find default model in list
-        def_mod_obj = next((m for m in available_models if m.id == default_model), None)
+        # Lookup default temp again from the robust list or fallback
+        # Find default model in list
+        def_mod_obj = next((m for m in models_list if m.id == default_model), None)
         if def_mod_obj:
-            default_temp = def_mod_obj.default_temperature
+            default_temperature = def_mod_obj.default_temperature
 
         
     except Exception as e:
         logger.error(f"Failed to load defaults from config.yml: {e}")
 
+    # Phase 28: Segmentation & Preprocessing
+    seg_config = config.get("segmentation", {})
+    default_seg = seg_config.get("default_segmentation", "historical-manuscript")
+    seg_models_dict = seg_config.get("models", {})
+    seg_model_keys = list(seg_models_dict.keys()) if seg_models_dict else []
+
+    # Preprocessing is at ROOT level in config.yml (Phase 28 Correction)
+    preprocessing = config.get("preprocessing", {})
+
     return {
-        "registration_mode": reg_mode,
+        "registration_mode": mode_setting.value if mode_setting else "open",
         "default_model": default_model,
-        "default_temperature": float(default_temp),
-        "available_models": available_models
+        "default_temperature": default_temperature,
+        "available_models": models_list,
+        "default_segmentation_model": default_seg,
+        "segmentation_models": seg_model_keys,
+        "preprocessing": preprocessing
     }
 
 @app.get("/api/admin/settings", response_model=SystemConfigResponse)
