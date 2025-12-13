@@ -209,8 +209,17 @@ class DocumentResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class ModelConfig(BaseModel):
+    id: str
+    name: str  # Can be same as ID or pretty name
+    default_prompt: str = ""
+    default_temperature: float = 0.0
+
 class SystemConfigResponse(BaseModel):
     registration_mode: str
+    default_model: str = "gemini-pro-3"
+    default_temperature: float = 0.0
+    available_models: List[ModelConfig] = []
 
 class InviteCreate(BaseModel):
     email: Optional[EmailStr] = None
@@ -1069,8 +1078,61 @@ def admin_logs(lines: int = 50, current_user: User = Depends(get_current_user)):
 
 @app.get("/api/system/config", response_model=SystemConfigResponse)
 def get_system_config(db: Session = Depends(get_db)):
+    # 1. Registration Mode (DB)
     mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
-    return {"registration_mode": mode_setting.value if mode_setting else "open"}
+    reg_mode = mode_setting.value if mode_setting else "open"
+
+    # 2. Transcription Defaults (YAML)
+    default_model = "gemini-pro-3"
+    default_temp = 0.0
+    available_models = []
+
+    config_path = "/app/config.yml"
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+            
+        transcription = config.get("transcription", {})
+        default_model = transcription.get("default_model", "gemini-pro-3")
+        
+        # Parse all models
+        models_config = transcription.get("models", {})
+        if models_config:
+            for model_id, m_data in models_config.items():
+                api_pass = m_data.get("API_passthrough", {})
+                temp = api_pass.get("temperature", 0.0)
+                prompt = m_data.get("prompt", "")
+                
+                # Check for pretty name or use ID
+                name = m_data.get("model", model_id) # e.g. "gemini-1.5-pro"
+                # Actually, let's use the ID as the name in the dropdown usually, 
+                # or we can capitalize it. For now, use ID as name unless 'provider' logic suggests otherwise.
+                # User's config.yml has 'model' field as the backend-name.
+                # Let's use the key (model_id) as the display name for now, or prettify it.
+                
+                available_models.append(ModelConfig(
+                    id=model_id,
+                    name=model_id, # Display key as name (e.g. gemini-pro-3)
+                    default_prompt=prompt,
+                    default_temperature=float(temp)
+                ))
+        
+        # Lookup default temp again from the robust list or fallback
+        # Find default model in list
+        def_mod_obj = next((m for m in available_models if m.id == default_model), None)
+        if def_mod_obj:
+            default_temp = def_mod_obj.default_temperature
+
+        
+    except Exception as e:
+        logger.error(f"Failed to load defaults from config.yml: {e}")
+
+    return {
+        "registration_mode": reg_mode,
+        "default_model": default_model,
+        "default_temperature": float(default_temp),
+        "available_models": available_models
+    }
 
 @app.get("/api/admin/settings", response_model=SystemConfigResponse)
 def get_admin_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

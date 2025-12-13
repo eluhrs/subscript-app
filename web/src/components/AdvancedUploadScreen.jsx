@@ -12,10 +12,101 @@ const AdvancedUploadScreen = ({ setView }) => {
     // Options State (Sticky)
     const [showOptions, setShowOptions] = useState(false);
 
-    // Sticky Settings Initialization
+    // Helper to clean prompt text (strip config newlines)
+    const cleanPrompt = (text) => {
+        if (!text) return '';
+        // Replace newlines with space, then collapse multiple spaces to single
+        return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+    };
+
+    // State for Dynamic Config
+    const [modelOptions, setModelOptions] = useState([]); // Array of { id, name, default_prompt, default_temperature }
+
+    // Init with sticky or default
     const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('subscript_model') || 'gemini-pro-3');
-    const [temperature, setTemperature] = useState(() => parseFloat(localStorage.getItem('subscript_temp') || '0.8'));
+    const [temperature, setTemperature] = useState(() => {
+        const saved = localStorage.getItem('subscript_temp');
+        return saved ? parseFloat(saved) : 0.8;
+    });
     const [systemPrompt, setSystemPrompt] = useState(() => localStorage.getItem('subscript_prompt') || '');
+
+    // Initialization: Fetch Defaults from Config
+    useEffect(() => {
+        fetch('/api/system/config')
+            .then(res => res.json())
+            .then(data => {
+                // 1. Set Model Options
+                if (data.available_models && data.available_models.length > 0) {
+                    setModelOptions(data.available_models);
+
+                    // 2. Resolve Initial Selection
+                    const stickyModel = localStorage.getItem('subscript_model');
+                    const serverDefault = data.default_model;
+
+                    // Check if sticky model is valid (exists in available_models)
+                    const isStickyValid = stickyModel && data.available_models.some(m => m.id === stickyModel);
+
+                    // Determine which model to use
+                    const targetModelId = isStickyValid ? stickyModel : serverDefault;
+
+                    // If sticky was invalid or missing, update state to server default
+                    if (!isStickyValid && targetModelId) {
+                        setSelectedModel(targetModelId);
+                    }
+
+                    // 3. Resolve Temp/Prompt only if we forced a switch (no sticky)
+                    if (!isStickyValid) {
+                        const defMod = data.available_models.find(m => m.id === targetModelId);
+                        if (defMod) {
+                            setTemperature(defMod.default_temperature);
+                            setSystemPrompt(cleanPrompt(defMod.default_prompt));
+                        } else if (data.default_temperature !== undefined) {
+                            setTemperature(data.default_temperature);
+                        }
+                    }
+                }
+            })
+            .catch(err => console.error("Failed to fetch system config", err));
+    }, []);
+
+    // Sticky Save
+    useEffect(() => {
+        if (selectedModel) localStorage.setItem('subscript_model', selectedModel);
+    }, [selectedModel]);
+
+    useEffect(() => {
+        localStorage.setItem('subscript_temp', temperature.toString());
+    }, [temperature]);
+
+    // Sync Logic: When Model Changes
+    const handleModelChange = (e) => {
+        const newModelId = e.target.value;
+        const oldModelId = selectedModel;
+
+        setSelectedModel(newModelId);
+
+        // Find the full config objects
+        const newModelConfig = modelOptions.find(m => m.id === newModelId);
+        const oldModelConfig = modelOptions.find(m => m.id === oldModelId);
+
+        if (newModelConfig) {
+            // 1. Update Temperature to new default
+            setTemperature(newModelConfig.default_temperature);
+
+            // 2. Smart Prompt Update
+            // Rule: Update prompt if it was empty OR if it matched the OLD model's default
+            // This preserves user edits if they wrote something custom.
+            const currentPrompt = systemPrompt;
+            const oldDefault = oldModelConfig ? cleanPrompt(oldModelConfig.default_prompt) : '';
+
+            // Compare CLEAN version of current prompt to CLEAN version of old default
+            // If they match (ignoring whitespace differences caused by editing), verify strict equality?
+            // Actually, cleanest way: if currentPrompt (trimmed) == oldDefault (cleaned), assume safe to switch.
+            if (!currentPrompt || currentPrompt.trim() === oldDefault) {
+                setSystemPrompt(cleanPrompt(newModelConfig.default_prompt));
+            }
+        }
+    };
 
     // Modal State
     const [modalConfig, setModalConfig] = useState({
@@ -34,25 +125,36 @@ const AdvancedUploadScreen = ({ setView }) => {
     }, []);
 
     // Save Sticky Settings
-    useEffect(() => {
-        localStorage.setItem('subscript_model', selectedModel);
-    }, [selectedModel]);
-
-    useEffect(() => {
-        localStorage.setItem('subscript_temp', temperature.toString());
-    }, [temperature]);
+    // Sticky Save Removed
 
     useEffect(() => {
         localStorage.setItem('subscript_prompt', systemPrompt);
     }, [systemPrompt]);
 
     const handleResetDefaults = () => {
-        setSelectedModel('gemini-pro-3');
-        setTemperature(0.8);
-        setSystemPrompt('');
         localStorage.removeItem('subscript_model');
         localStorage.removeItem('subscript_temp');
         localStorage.removeItem('subscript_prompt');
+
+        // Re-fetch default config to ensure we match server exactly
+        fetch('/api/system/config')
+            .then(res => res.json())
+            .then(data => {
+                const defModelId = data.default_model;
+                setSelectedModel(defModelId);
+
+                const defMod = (data.available_models || []).find(m => m.id === defModelId);
+
+                if (defMod) {
+                    setTemperature(defMod.default_temperature);
+                    setSystemPrompt(cleanPrompt(defMod.default_prompt));
+                } else {
+                    // Fallback
+                    setTemperature(0.8);
+                    setSystemPrompt('');
+                }
+            })
+            .catch(err => console.error("Failed to reset defaults", err));
     };
 
     const processFiles = (newFiles) => {
@@ -399,15 +501,24 @@ const AdvancedUploadScreen = ({ setView }) => {
                 <div className={`transform transition-all duration-300 ease-in-out ${showOptions ? 'opacity-100 max-h-[500px]' : 'opacity-0 max-h-0 hidden'}`}>
                     <div className="bg-gray-100 rounded-lg border border-gray-300 shadow-inner p-4 mt-2 relative">
 
-                        {/* Reset Defaults */}
-                        <button
-                            onClick={handleResetDefaults}
-                            className="absolute top-2 right-5 text-[10px] text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 z-10 font-bold bg-gray-100 px-2 rounded"
-                        >
-                            <RotateCcw className="h-3 w-3" /> Reset Defaults
-                        </button>
+                        {/* Reset Defaults with Tooltip */}
+                        <div className="absolute top-[5px] right-5 z-10 flex items-center gap-1">
+                            <button
+                                onClick={handleResetDefaults}
+                                className="text-[10px] text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 font-bold bg-gray-100 px-2 rounded"
+                            >
+                                <RotateCcw className="h-3 w-3" /> Reset Defaults
+                            </button>
 
-                        <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg mt-8 bg-[#E5E7EB]">
+                            <div className="relative group">
+                                <CircleHelp className="tooltip-trigger h-3 w-3 text-gray-400 hover:text-[#5B84B1] cursor-help" />
+                                <div className="custom-tooltip absolute top-0 right-0 w-48 bg-white bg-opacity-95 backdrop-blur-sm p-2 rounded border border-blue-100 shadow-lg text-[10px] text-gray-700 z-20 opacity-0 invisible transition-all duration-200 mt-4 mr-[-10px]">
+                                    Subscript remembers all changes until Reset Defaults is clicked.
+                                </div>
+                            </div>
+                        </div>
+
+                        <fieldset style={{ padding: '1.25rem' }} className="border border-gray-300 rounded-lg mt-0 bg-[#E5E7EB]">
                             <legend className="px-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Model & Behavior Settings</legend>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -429,15 +540,21 @@ const AdvancedUploadScreen = ({ setView }) => {
                                     </div>
                                     <select
                                         value={selectedModel}
-                                        onChange={(e) => setSelectedModel(e.target.value)}
+                                        onChange={handleModelChange}
                                         className="block w-full pl-2 pr-8 py-2 text-xs border-gray-300 rounded border focus:ring-[#5B84B1] focus:border-[#5B84B1] relative z-0"
                                     >
-                                        <option value="gemini-pro-3">Gemini 3.0 Pro</option>
-                                        <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
-                                        <option value="gemini-flash-2.5">Gemini 2.5 Flash</option>
-                                        <option value="gemini-flash-lite-2.5">Gemini 2.5 Flash Lite</option>
-                                        <option value="openai-gpt-4o">OpenAI GPT-4o</option>
-                                        <option value="claude-sonnet-4.5">Claude 3.5 Sonnet</option>
+                                        {modelOptions.map((model) => (
+                                            <option key={model.id} value={model.id}>
+                                                {model.name}
+                                            </option>
+                                        ))}
+                                        {/* Fallback if list empty */}
+                                        {modelOptions.length === 0 && (
+                                            <>
+                                                <option value="gemini-pro-3">Gemini 3.0 Pro</option>
+                                                <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
+                                            </>
+                                        )}
                                     </select>
                                 </div>
 
@@ -492,7 +609,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                 </div>
 
                                 <textarea
-                                    rows="3"
+                                    rows="5"
                                     placeholder="Enter custom system instructions..."
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}

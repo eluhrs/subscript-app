@@ -72,6 +72,11 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
                 if prompt_override:
                     logging.info(f"Task {doc_id} found prompt override: {prompt_override}")
                     sys.argv.extend(["--prompt", prompt_override])
+                
+                temp_override = transcription_opts.get('temperature')
+                if temp_override is not None:
+                     logging.info(f"Task {doc_id} found temp override: {temp_override}")
+                     sys.argv.extend(["--temperature", str(temp_override)])
                     
             except Exception as e:
                 logging.error(f"Failed to parse options: {e}")
@@ -243,6 +248,10 @@ def process_batch_task(self, parent_id: int, file_paths: list, model: str, optio
                 prompt_override = transcription_opts.get('prompt')
                 if prompt_override:
                     sys.argv.extend(["--prompt", prompt_override])
+                    
+                temp_override = transcription_opts.get('temperature')
+                if temp_override is not None:
+                     sys.argv.extend(["--temperature", str(temp_override)])
             except: pass
 
         logging.info(f"BATCH TASK START: Parent {parent.filename} (ID: {parent.id})")
