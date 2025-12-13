@@ -207,7 +207,7 @@ const AdvancedUploadScreen = ({ setView }) => {
             .then(res => {
                 if (res.ok) {
                     loadPreferences();
-                    showModal("Defaults Restored", "Your preferences have been reset to system defaults.", "success");
+                    // success modal removed per user request
                 } else {
                     showModal("Error", "Failed to reset defaults.", "danger");
                 }
