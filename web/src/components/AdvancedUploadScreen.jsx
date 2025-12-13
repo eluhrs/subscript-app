@@ -32,8 +32,14 @@ const AdvancedUploadScreen = ({ setView }) => {
 
     const [preprocessing, setPreprocessing] = useState(null);
 
-    // Phase 29: Per-Model Overrides (Map of model_id -> { temp, prompt })
+    // Phase 29: Per-Model Overrides (Map of model_id -> { temp, prompt, seg, preproc })
     const [modelOverrides, setModelOverrides] = useState({});
+
+    // Global Defaults (Fallback for new models)
+    const [globalDefaults, setGlobalDefaults] = useState({
+        seg: null,
+        preproc: null
+    });
 
     // Initialization: Fetch Merged Preferences from Server
     const loadPreferences = () => {
@@ -52,6 +58,12 @@ const AdvancedUploadScreen = ({ setView }) => {
                 // 1. Set Options Meta
                 if (data.available_models) setModelOptions(data.available_models);
                 if (data.segmentation_models) setSegOptions(data.segmentation_models);
+
+                // Store Global Defaults (from config.yml)
+                setGlobalDefaults({
+                    seg: data.default_segmentation_model,
+                    preproc: data.preprocessing
+                });
 
                 // 2. Set Active Preferences (Backend has already merged defaults + user overrides!)
                 if (data.preferences) {
@@ -131,7 +143,9 @@ const AdvancedUploadScreen = ({ setView }) => {
             if (oldModelId && temperature !== null && systemPrompt !== null) {
                 updatedOverrides[oldModelId] = {
                     temp: temperature,
-                    prompt: systemPrompt
+                    prompt: systemPrompt,
+                    seg: segmentationModel,
+                    preproc: preprocessing
                 };
             }
 
@@ -142,10 +156,15 @@ const AdvancedUploadScreen = ({ setView }) => {
                 // RESTORE saved preferences for this model
                 setTemperature(savedOverride.temp);
                 setSystemPrompt(savedOverride.prompt);
+                setSegmentationModel(savedOverride.seg);
+                setPreprocessing(savedOverride.preproc);
             } else {
                 // LOAD DEFAULTS for this model (First time switching to it)
                 setTemperature(newModelConfig.default_temperature);
                 setSystemPrompt(cleanPrompt(newModelConfig.default_prompt));
+                // Fallback to global defaults for non-model-specific settings
+                setSegmentationModel(globalDefaults.seg);
+                setPreprocessing(globalDefaults.preproc);
             }
 
             // Update state map
