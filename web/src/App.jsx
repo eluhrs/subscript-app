@@ -47,14 +47,64 @@ function App() {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
+  // Track user activity
+  const lastActive = React.useRef(Date.now());
+
+  useEffect(() => {
+    const updateActivity = () => {
+      lastActive.current = Date.now();
+    };
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+    };
+  }, []);
+
+  const handleTokenRefresh = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        setShowSessionWarning(false);
+        // Check again after refresh to clear states if needed
+        checkTokenExpiration(data.access_token);
+      } else {
+        handleLogout();
+      }
+    } catch (error) {
+      console.error("Refresh failed", error);
+      handleLogout();
+    }
+  };
+
   const checkTokenExpiration = (token) => {
     try {
       const decoded = jwtDecode(token);
       const currentTime = Date.now() / 1000;
       const timeLeft = decoded.exp - currentTime;
+      const idleTimeSeconds = (Date.now() - lastActive.current) / 1000;
 
-      // Warn if less than 2 minutes remaining (120 seconds)
-      // But don't show if already expired (the auth event listener will handle that)
+      // Auto-refresh if active and token is getting old (less than 5 mins left)
+      if (timeLeft < 300 && timeLeft > 0 && idleTimeSeconds < 120) {
+        handleTokenRefresh();
+        return;
+      }
+
+      // Warn if idle and less than 2 minutes remaining (120 seconds)
       if (timeLeft < 120 && timeLeft > 0) {
         setShowSessionWarning(true);
       }
@@ -104,7 +154,7 @@ function App() {
       {/* Session Warning Modal */}
       <ConfirmationModal
         isOpen={showSessionWarning}
-        onClose={() => setShowSessionWarning(false)}
+        onClose={() => handleTokenRefresh()}
         title="Session Expiring"
         message="Your session will expire in less than 2 minutes. Please save your work."
         singleButton={true}

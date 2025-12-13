@@ -4,6 +4,13 @@ import { RefreshCcw } from 'lucide-react';
 const LoginScreen = ({ setIsAuthenticated, setView }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // Callback ref to focus input on mount
+    const emailInputRef = React.useCallback(node => {
+        if (node) {
+            node.focus();
+        }
+    }, []);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [registrationMode, setRegistrationMode] = useState('open');
@@ -76,8 +83,13 @@ const LoginScreen = ({ setIsAuthenticated, setView }) => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email Address</label>
                         <input
+                            id="login-email"
+                            name="username"
                             type="email"
+                            ref={emailInputRef}
                             value={email}
+                            autoFocus
+                            autoComplete="username"
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             className="mt-1 block w-full px-4 py-2 bg-white border border-gray-400 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
