@@ -181,6 +181,8 @@ const AdvancedUploadScreen = ({ setView }) => {
         onClose: () => { }
     });
 
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+
     // Cleanup previews on unmount
     useEffect(() => {
         return () => {
@@ -191,26 +193,30 @@ const AdvancedUploadScreen = ({ setView }) => {
 
 
     const handleResetDefaults = () => {
-        if (confirm("Are you sure you want to reset all advanced settings to system defaults?")) {
-            const token = localStorage.getItem('token');
-            // New Phase 29: Call reset API
-            fetch('/api/preferences/reset', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
+        setShowResetConfirm(true);
+    };
+
+    const confirmReset = () => {
+        const token = localStorage.getItem('token');
+        fetch('/api/preferences/reset', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(res => {
+                if (res.ok) {
+                    loadPreferences();
+                    showModal("Defaults Restored", "Your preferences have been reset to system defaults.", "success");
+                } else {
+                    showModal("Error", "Failed to reset defaults.", "danger");
                 }
             })
-                .then(res => res.json())
-                .then(data => {
-                    // Reload fresh defaults from server
-                    loadPreferences();
-                    showModal("Settings Restored", "All advanced options have been reset to server defaults.", "success");
-                })
-                .catch(err => {
-                    console.error("Reset failed", err);
-                    showModal("Reset Failed", "Could not reset configuration.", "error");
-                });
-        }
+            .catch(err => {
+                console.error(err);
+                showModal("Error", "Failed to reset defaults.", "danger");
+            });
+        setShowResetConfirm(false);
     };
     // Helper for Preprocessing Changes
     const updatePreprocessing = (key, value) => {
@@ -855,15 +861,27 @@ const AdvancedUploadScreen = ({ setView }) => {
                 </button>
             </div>
 
+            {/* Confirmation Modal for Reset */}
+            <ConfirmationModal
+                isOpen={showResetConfirm}
+                title="Reset to Defaults?"
+                message="Are you sure you want to reset all advanced settings (Models, Prompts, Temperature, etc.) to the system defaults? This cannot be undone."
+                onConfirm={confirmReset}
+                onCancel={() => setShowResetConfirm(false)}
+            />
+
             {/* Reusable Modal */}
             <ConfirmationModal
                 isOpen={modalConfig.isOpen}
-                onClose={modalConfig.onClose}
                 title={modalConfig.title}
                 message={modalConfig.message}
                 type={modalConfig.type}
-                singleButton={true}
-                confirmText="OK"
+                onConfirm={() => {
+                    modalConfig.onClose();
+                    setModalConfig(prev => ({ ...prev, isOpen: false }));
+                }}
+                onCancel={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                singleButton={true} // Alert mode
             />
         </div>
     );

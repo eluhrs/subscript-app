@@ -13,6 +13,8 @@ RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+
+
 # Copy Server Code (Exclude local src/subscript hacks)
 COPY server /app/server
 COPY config.yml /app/config.yml

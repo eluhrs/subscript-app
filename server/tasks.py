@@ -89,7 +89,23 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
 
         if temperature_override is not None:
              logging.info(f"Task {doc_id} found temp override: {temperature_override}")
-             sys.argv.extend(["--temperature", str(temperature_override)])
+        if temperature_override is not None:
+             logging.info(f"Task {doc_id} found temp override: {temperature_override}")
+             sys.argv.extend(["--temp", str(temperature_override)])
+             
+        # Apply Preprocessing Options
+        if preprocessing_opts:
+            if preprocessing_opts.get('resize_image') and preprocessing_opts['resize_image'] != 'false':
+                sys.argv.extend(["--resize", preprocessing_opts['resize_image']])
+                
+            if preprocessing_opts.get('contrast') is not None:
+                sys.argv.extend(["--contrast", str(preprocessing_opts['contrast'])])
+                
+            if preprocessing_opts.get('binarize'):
+                sys.argv.append("--binarize")
+                
+            if preprocessing_opts.get('invert'):
+                sys.argv.append("--invert")
         
         try:
             logging.info(f"TASK START: Processing {doc.filename} (ID: {doc.id})")
@@ -261,7 +277,18 @@ def process_batch_task(self, parent_id: int, file_paths: list, model: str, optio
                     
                 temp_override = transcription_opts.get('temperature')
                 if temp_override is not None:
-                     sys.argv.extend(["--temperature", str(temp_override)])
+                     sys.argv.extend(["--temp", str(temp_override)])
+                     
+                # Preprocessing
+                preproc = opts.get('preprocessing', {})
+                if preproc.get('resize_image') and preproc['resize_image'] != 'false':
+                    sys.argv.extend(["--resize", preproc['resize_image']])
+                if preproc.get('contrast') is not None:
+                    sys.argv.extend(["--contrast", str(preproc['contrast'])])
+                if preproc.get('binarize'):
+                    sys.argv.append("--binarize")
+                if preproc.get('invert'):
+                    sys.argv.append("--invert")
             except: pass
 
         logging.info(f"BATCH TASK START: Parent {parent.filename} (ID: {parent.id})")

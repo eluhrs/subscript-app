@@ -471,7 +471,7 @@ def list_documents(
 @app.post("/api/upload", response_model=DocumentResponse)
 def upload_document(
     file: UploadFile = File(...),
-    model: str = "gemini-pro-3", # Default to valid model key
+    model: str = Form("gemini-pro-3"), # Default to valid model key
     options: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -523,7 +523,7 @@ def upload_document(
 @app.post("/api/upload-batch", response_model=DocumentResponse)
 def upload_batch(
     files: List[UploadFile] = File(...),
-    model: str = Form("gemini"),
+    model: str = Form("gemini-pro-3"),
     group_filename: Optional[str] = Form(None),
     options: Optional[str] = Form(None),
     db: Session = Depends(get_db),
