@@ -7,7 +7,7 @@ from server.celery_app import celery_app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from server.main import Document, DATABASE_URL, USER_DOCS_DIR
-from server.utils import sanitize_email, sanitize_filename, create_thumbnail
+from server.utils import sanitize_email, sanitize_filename
 import io
 import contextlib
 
@@ -99,13 +99,8 @@ def process_document_task(self, doc_id: int, file_path: str, model: str, options
             doc.output_txt_path = os.path.join(output_dir, f"{base_name}.txt")
             doc.output_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
 
-            # Thumbnail generated at upload, but check if it exists (subscript might have cleaned dir?)
-            thumb_path = os.path.join(output_dir, f"{base_name}-thumb.jpg")
-            if not os.path.exists(thumb_path):
-                logging.warning(f"Thumbnail missing for {doc.filename}, regenerating...")
-                create_thumbnail(file_path, thumb_path)
+            # Thumbnail generation removed (System simplified)
 
-            logging.info(f"Task Complete: {doc.filename}")
         except SystemExit as e:
             if e.code != 0:
                 raise Exception(f"Subscript exited with code {e.code}")
@@ -308,52 +303,6 @@ def process_batch_task(self, parent_id: int, file_paths: list, model: str, optio
         for child in children:
             child.status = "error"
             child.error_message = "Batch processing failed"
-    finally:
-        sys.argv = original_argv
-        db.commit()
-        db.close()
-    db = SessionLocal()
-    doc = db.query(Document).filter(Document.id == doc_id).first()
-    if not doc:
-        logging.error(f"Document {doc_id} not found")
-        return
-    
-    # Store previous status in case of failure? 
-    # For now, let's just set it to 'processing' or a custom status if supported.
-    # The user requested "Updating PDF" as the dashboard message. 
-    # If the dashboard just shows the doc.status string, we can set it to "updating_pdf".
-    doc.status = "updating_pdf" 
-    db.commit()
-    
-    try:
-        from subscript.__main__ import main as run_subscript_pipeline
-
-        original_argv = sys.argv
-        output_dir = os.path.dirname(file_path)
-            
-        # Mock sys.argv for the pipeline
-        # subscript input.jpg --onlypdf --output output_dir
-        sys.argv = [
-            "subscript",
-            file_path,
-            "--onlypdf",
-            "--output", output_dir
-        ]
-        
-        try:
-            run_subscript_pipeline()
-            doc.status = "completed"
-            doc.last_modified = datetime.utcnow()
-        except SystemExit as e:
-            if e.code != 0:
-                raise Exception(f"Subscript exited with code {e.code}")
-            doc.status = "completed"
-            doc.last_modified = datetime.utcnow()
-            
-    except Exception as e:
-        logging.error(f"PDF Rebuild failed: {e}")
-        doc.status = "error"
-        doc.error_message = str(e)
     finally:
         sys.argv = original_argv
         db.commit()

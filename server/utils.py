@@ -38,10 +38,11 @@ def sanitize_email(email: str) -> str:
     s = re.sub(r'[^a-zA-Z0-9._@-]', '_', email)
     return s
 
-def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300)):
+def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300)) -> bool:
     """
     Generate a thumbnail for the given image path.
     Saves it to thumb_path.
+    Returns True if successful, False otherwise.
     """
     try:
         from PIL import Image
@@ -55,3 +56,5 @@ def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300))
         import logging
         logging.error(f"Error generating thumbnail for {image_path}: {e}")
         return False
+
+

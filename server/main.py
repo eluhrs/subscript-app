@@ -10,7 +10,7 @@ import zipfile
 import yaml
 from io import BytesIO
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +19,7 @@ from starlette.requests import Request
 
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.orm import sessionmaker, Session, relationship, backref
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -49,7 +49,7 @@ logger.info(f"SYSTEM: Server module initialized at {datetime.now()}")
 
 # --- Configuration ---
 USER_DOCS_DIR = "/app/documents"
-DATABASE_URL = "sqlite:////app/subscript.db"
+DATABASE_URL = "sqlite:////app/server/subscript.db"
 SECRET_KEY = "your-secret-key-change-this-in-production" # TODO: Load from env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -97,8 +97,7 @@ class Document(Base):
     parent_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
     share_token = Column(String, unique=True, index=True, nullable=True)
     children = relationship("Document", 
-                            backref="parent", 
-                            remote_side=[id],
+                            backref=backref("parent", remote_side=[id]), 
                             order_by="Document.page_order")
 
 class SystemSettings(Base):
@@ -395,25 +394,28 @@ def list_documents(
         # Check for optional files to populate response flags
         # Note: These are not DB columns, so we set them on the object instances
         # which Pydantic will serialize.
-        xml_path = os.path.join(doc_dir, f"{base_name}.xml")
-        thumb_path = os.path.join(doc_dir, f"{base_name}-thumb.jpg")
-        debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
-        
-        doc.has_xml = os.path.exists(xml_path)
-        # Keep has_debug for backward compatibility or debug download
-        doc.has_debug = os.path.exists(debug_path)
-        
-        if os.path.exists(thumb_path):
-            # Point to API which requires token
-            # Add cache busting
-            ts = int(os.path.getmtime(thumb_path))
-            doc.thumbnail_url = f"/api/thumbnail/{doc.id}?v={ts}"
-        elif os.path.exists(debug_path):
+        if os.path.exists(os.path.join(doc_dir, f"{base_name}-debug.jpg")):
              # Fallback
+             debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
              ts = int(os.path.getmtime(debug_path))
-             doc.thumbnail_url = f"/api/thumbnail/{doc.id}?v={ts}"
+             # Removed thumbnail logic
+             doc.thumbnail_url = None
         else:
             doc.thumbnail_url = None
+
+        # New Dynamic Thumbnail Logic
+        # For parent documents (merged), use the thumbnail of the first page (child with lowest page_order)
+        if doc.parent_id is None and doc.children and len(doc.children) > 0:
+             # It is a parent. Children are loaded eagerly? 
+             # SQLAlchemy relationship `children` is available.
+             # We want the child with lowest page_order.
+             sorted_children = sorted(doc.children, key=lambda c: c.page_order)
+             first_child = sorted_children[0]
+             # Dynamic URL to first child
+             doc.thumbnail_url = f"/api/thumbnail/{first_child.id}"
+        elif doc.thumbnail_url is None:
+             # Standard self-reference
+             doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
 
     return docs
 
@@ -444,6 +446,10 @@ def upload_document(
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+        
+    # Synchronous Thumbnail Generation
+    thumb_path = os.path.join(storage_dir, f"{base_name}-thumb.jpg")
+    create_thumbnail(file_path, thumb_path)
         
     doc = Document(
         filename=clean_filename, 
@@ -547,13 +553,9 @@ def upload_batch(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # Generate Thumbnail Immediately
-        try:
-            thumb_path = os.path.join(storage_dir, f"{os.path.splitext(clean_filename)[0]}-thumb.jpg")
-            create_thumbnail(file_path, thumb_path)
-        except Exception as e:
-            logger.error(f"Thumbnail generation failed for {clean_filename}: {e}")
-            # Continue without thumbnail
+        # Synchronous Thumbnail Generation
+        thumb_path = os.path.join(storage_dir, f"{os.path.splitext(clean_filename)[0]}-thumb.jpg")
+        create_thumbnail(file_path, thumb_path)
             
         # Create Document Record
         doc = Document(
@@ -586,20 +588,7 @@ def upload_batch(
         with open(lst_path_abs, "w") as f:
             f.write("\n".join(children_xmls) + "\n")
             
-        # Parent Thumbnail
-        if len(files) > 0:
-            first_index = 0
-            c_storage, c_dir = upload_target_map[first_index]
-            c_filename = sanitize_filename(files[first_index].filename)
-            c_base = os.path.splitext(c_filename)[0]
-            c_thumb = os.path.join(c_storage, f"{c_base}-thumb.jpg")
-            
-            p_base = os.path.splitext(clean_group_name)[0]
-            p_thumb = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name, f"{p_base}-thumb.jpg")
-            
-            if os.path.exists(c_thumb) and os.path.abspath(c_thumb) != os.path.abspath(p_thumb):
-                shutil.copy2(c_thumb, p_thumb)
-                logger.info(f"Created parent thumbnail at {p_thumb}")
+
             
         parent_doc.status = "queued" 
         db.commit()
@@ -723,8 +712,7 @@ def delete_document(
                 f"{base_name}.xml",
                 f"{base_name}.txt",
                 f"{base_name}.pdf",
-                f"{base_name}-debug.jpg",
-                f"{base_name}-thumb.jpg"
+                f"{base_name}-debug.jpg"
             ]
             
             for f in possible_files:
@@ -824,11 +812,13 @@ def download_document(
 
 @app.get("/api/thumbnail/{doc_id}")
 def get_thumbnail(
-    doc_id: int,
-    token: str,
+    doc_id: int, 
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
-    # Manually validate token since it's a query param for <img> tag
+    if not token:
+        raise HTTPException(status_code=401, detail="Token required")
+        
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -845,7 +835,6 @@ def get_thumbnail(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    # Serve thumbnail or debug image
     clean_email = sanitize_email(user.email)
     user_dir = os.path.join(USER_DOCS_DIR, clean_email)
     
@@ -855,32 +844,13 @@ def get_thumbnail(
          doc_dir = user_dir
          
     base_name = os.path.splitext(doc.filename)[0]
-    
     thumb_path = os.path.join(doc_dir, f"{base_name}-thumb.jpg")
-    debug_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
     
     if os.path.exists(thumb_path):
         return FileResponse(thumb_path)
     
-    # If missing, try to generate from debug (preferred) or original
-    # This prevents loading huge debug images in the dashboard
-    source_candidate = debug_path if os.path.exists(debug_path) else None
-    
-    # If no debug path, use original file path (which might not be calculated relative to doc_dir if it has full path in DB?)
-    # Re-calculate original file path to be safe:
-    if not source_candidate:
-         original_path = os.path.join(doc_dir, doc.filename)
-         if os.path.exists(original_path):
-             source_candidate = original_path
-             
-    if source_candidate and os.path.exists(source_candidate):
-        logger.info(f"Thumbnail missing for doc {doc.id}, attempting to regenerate from {source_candidate}")
-        from server.utils import create_thumbnail
-        if create_thumbnail(source_candidate, thumb_path):
-             return FileResponse(thumb_path)
-             
-    # If we get here, failure
-    raise HTTPException(status_code=404, detail="Thumbnail not found and could not be generated")
+    # 404 if missing (Frontend will handle fallback)
+    raise HTTPException(status_code=404, detail="Thumbnail not found")
 
 # --- Share Functionality ---
 

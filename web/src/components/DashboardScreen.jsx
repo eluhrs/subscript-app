@@ -189,18 +189,23 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                 <div className="flex-1 flex items-center gap-4 min-w-0">
                                     {/* Thumbnail */}
                                     <div className="w-12 flex-shrink-0">
-                                        <div className="w-10 h-14 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer"
+                                        <div className="w-10 h-14 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer flex items-center justify-center"
                                             onClick={() => handleFileAction(doc.id, 'pdf', 'view')}>
                                             {doc.thumbnail_url ? (
                                                 <img
                                                     src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
-                                                    alt="Thumbnail"
+                                                    alt="Thumb"
                                                     className="w-full h-full object-cover"
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x56/eee/999?text=IMG"; }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'flex';
+                                                    }}
                                                 />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-[10px] text-gray-400">...</div>
-                                            )}
+                                            ) : null}
+                                            {/* Fallback (Hidden by default if thumb exists, shown on error) */}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-white" style={{ display: doc.thumbnail_url ? 'none' : 'flex' }}>
+                                                <span className="text-[10px] font-bold text-gray-400">PDF</span>
+                                            </div>
                                         </div>
                                     </div>
 
