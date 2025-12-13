@@ -76,8 +76,8 @@ const AdvancedUploadScreen = ({ setView }) => {
 
                     setPreprocessing(p.subscript_preproc);
 
-                    // Load Overrides
-                    if (p.model_overrides) setModelOverrides(p.model_overrides);
+                    // Load Overrides (or clear if missing/reset)
+                    setModelOverrides(p.model_overrides || {});
                 }
                 setIsLoaded(true);
             })
