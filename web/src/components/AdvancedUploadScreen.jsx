@@ -19,104 +19,98 @@ const AdvancedUploadScreen = ({ setView }) => {
         return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
     };
 
-    // State for Dynamic Config (Phase 27 & 28)
+    // State for Dynamic Config (Phase 27 & 28 & 29)
+    const [isLoaded, setIsLoaded] = useState(false);
     const [modelOptions, setModelOptions] = useState([]); // Transcription Models
     const [segOptions, setSegOptions] = useState([]); // Segmentation Models
 
-    // Init with sticky or default
-    const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('subscript_model') || 'gemini-pro-3');
-    const [temperature, setTemperature] = useState(() => {
-        const saved = localStorage.getItem('subscript_temp');
-        return saved ? parseFloat(saved) : 0.8;
-    });
-    const [systemPrompt, setSystemPrompt] = useState(() => localStorage.getItem('subscript_prompt') || '');
+    // User Preferences (Init as null until loaded from API)
+    const [selectedModel, setSelectedModel] = useState(null);
+    const [temperature, setTemperature] = useState(null);
+    const [systemPrompt, setSystemPrompt] = useState(null);
+    const [segmentationModel, setSegmentationModel] = useState(null);
 
-    // Phase 28: Segmentation & Preprocessing State
-    const [segmentationModel, setSegmentationModel] = useState(() => localStorage.getItem('subscript_seg') || 'historical-manuscript');
+    const [preprocessing, setPreprocessing] = useState(null);
 
-    // Preprocessing State (Sticky)
-    const [preprocessing, setPreprocessing] = useState(() => {
-        const saved = localStorage.getItem('subscript_preproc');
-        return saved ? JSON.parse(saved) : {
-            resize_image: "large",
-            contrast: 1.0,
-            binarize: false,
-            invert: false,
-            debug_image: true
-        };
-    });
+    // Phase 29: Per-Model Overrides (Map of model_id -> { temp, prompt })
+    const [modelOverrides, setModelOverrides] = useState({});
 
-    // Initialization: Fetch Defaults from Config
-    useEffect(() => {
-        fetch('/api/system/config')
-            .then(res => res.json())
+    // Initialization: Fetch Merged Preferences from Server
+    const loadPreferences = () => {
+        const token = localStorage.getItem('token');
+        setIsLoaded(false);
+        fetch('/api/preferences', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch preferences");
+                return res.json();
+            })
             .then(data => {
-                // 1. Set Model Options
-                if (data.available_models && data.available_models.length > 0) {
-                    setModelOptions(data.available_models);
-
-                    // 2. Resolve Initial Selection (Transcription)
-                    const stickyModel = localStorage.getItem('subscript_model');
-                    const serverDefault = data.default_model;
-
-                    // Check if sticky model is valid (exists in available_models)
-                    const isStickyValid = stickyModel && data.available_models.some(m => m.id === stickyModel);
-
-                    // Determine which model to use
-                    const targetModelId = isStickyValid ? stickyModel : serverDefault;
-
-                    // If sticky was invalid or missing, update state to server default
-                    if (!isStickyValid && targetModelId) {
-                        setSelectedModel(targetModelId);
-                    }
-
-                    // 3. Resolve Temp/Prompt only if we forced a switch (no sticky)
-                    if (!isStickyValid) {
-                        const defMod = data.available_models.find(m => m.id === targetModelId);
-                        if (defMod) {
-                            setTemperature(defMod.default_temperature);
-                            setSystemPrompt(cleanPrompt(defMod.default_prompt));
-                        } else if (data.default_temperature !== undefined) {
-                            setTemperature(data.default_temperature);
-                        }
-                    }
-                }
-
-                // Phase 28: Segmentation & Preprocessing Defaults
+                // 1. Set Options Meta
+                if (data.available_models) setModelOptions(data.available_models);
                 if (data.segmentation_models) setSegOptions(data.segmentation_models);
 
-                // If no sticky segmentation, use config default
-                if (!localStorage.getItem('subscript_seg') && data.default_segmentation_model) {
-                    setSegmentationModel(data.default_segmentation_model);
-                }
+                // 2. Set Active Preferences (Backend has already merged defaults + user overrides!)
+                if (data.preferences) {
+                    const p = data.preferences;
+                    setSelectedModel(p.subscript_model);
+                    setTemperature(p.subscript_temp);
+                    // Use cleanPrompt here to ensure initial state is clean (no newlines)
+                    setSystemPrompt(cleanPrompt(p.subscript_prompt));
+                    setSegmentationModel(p.subscript_seg);
 
-                // If no sticky preprocessing, use config default
-                if (data.preprocessing && !localStorage.getItem('subscript_preproc')) {
-                    setPreprocessing(prev => ({
-                        ...prev,
-                        ...data.preprocessing
-                    }));
+                    setPreprocessing(p.subscript_preproc);
+
+                    // Load Overrides
+                    if (p.model_overrides) setModelOverrides(p.model_overrides);
                 }
+                setIsLoaded(true);
             })
-            .catch(err => console.error("Failed to fetch system config", err));
+            .catch(err => console.error("Failed to fetch preferences", err));
+    };
+
+    useEffect(() => {
+        loadPreferences();
     }, []);
 
-    // Sticky Save
+    // Debounced Save (Phase 29)
     useEffect(() => {
-        if (selectedModel) localStorage.setItem('subscript_model', selectedModel);
-    }, [selectedModel]);
+        if (!isLoaded) return;
 
-    useEffect(() => {
-        localStorage.setItem('subscript_temp', temperature.toString());
-    }, [temperature]);
+        const timer = setTimeout(() => {
+            const payload = {
+                preferences: {
+                    subscript_model: selectedModel,
+                    // Force float for robust DB storage, handle partial inputs
+                    subscript_temp: temperature !== null ? parseFloat(temperature) : 0.0,
+                    subscript_prompt: systemPrompt,
+                    subscript_seg: segmentationModel,
+                    subscript_prompt: systemPrompt,
+                    subscript_seg: segmentationModel,
+                    subscript_preproc: preprocessing,
+                    model_overrides: modelOverrides
+                }
+            };
 
-    useEffect(() => {
-        if (segmentationModel) localStorage.setItem('subscript_seg', segmentationModel);
-    }, [segmentationModel]);
+            const token = localStorage.getItem('token');
+            fetch('/api/preferences', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Failed to save preferences", err));
 
-    useEffect(() => {
-        localStorage.setItem('subscript_preproc', JSON.stringify(preprocessing));
-    }, [preprocessing]);
+        }, 1000); // Debounce 1s
+
+        return () => clearTimeout(timer);
+    }, [selectedModel, temperature, systemPrompt, segmentationModel, preprocessing, modelOverrides, isLoaded]);
+
+
 
     // Sync Logic: When Model Changes
     const handleModelChange = (e) => {
@@ -130,21 +124,32 @@ const AdvancedUploadScreen = ({ setView }) => {
         const oldModelConfig = modelOptions.find(m => m.id === oldModelId);
 
         if (newModelConfig) {
-            // 1. Update Temperature to new default
-            setTemperature(newModelConfig.default_temperature);
+            // 1. Save current settings to Override Map for the OLD model (if valid)
+            const updatedOverrides = { ...modelOverrides };
 
-            // 2. Smart Prompt Update
-            // Rule: Update prompt if it was empty OR if it matched the OLD model's default
-            // This preserves user edits if they wrote something custom.
-            const currentPrompt = systemPrompt;
-            const oldDefault = oldModelConfig ? cleanPrompt(oldModelConfig.default_prompt) : '';
+            // Only save if oldModelId was valid and we have data
+            if (oldModelId && temperature !== null && systemPrompt !== null) {
+                updatedOverrides[oldModelId] = {
+                    temp: temperature,
+                    prompt: systemPrompt
+                };
+            }
 
-            // Compare CLEAN version of current prompt to CLEAN version of old default
-            // If they match (ignoring whitespace differences caused by editing), verify strict equality?
-            // Actually, cleanest way: if currentPrompt (trimmed) == oldDefault (cleaned), assume safe to switch.
-            if (!currentPrompt || currentPrompt.trim() === oldDefault) {
+            // 2. Check if we have an override for the NEW model
+            const savedOverride = updatedOverrides[newModelId];
+
+            if (savedOverride) {
+                // RESTORE saved preferences for this model
+                setTemperature(savedOverride.temp);
+                setSystemPrompt(savedOverride.prompt);
+            } else {
+                // LOAD DEFAULTS for this model (First time switching to it)
+                setTemperature(newModelConfig.default_temperature);
                 setSystemPrompt(cleanPrompt(newModelConfig.default_prompt));
             }
+
+            // Update state map
+            setModelOverrides(updatedOverrides);
         }
     };
 
@@ -164,63 +169,30 @@ const AdvancedUploadScreen = ({ setView }) => {
         };
     }, []);
 
-    // Save Sticky Settings
-    // Sticky Save Removed
 
-    useEffect(() => {
-        localStorage.setItem('subscript_prompt', systemPrompt);
-    }, [systemPrompt]);
 
     const handleResetDefaults = () => {
-        localStorage.removeItem('subscript_model');
-        localStorage.removeItem('subscript_temp');
-        localStorage.removeItem('subscript_prompt');
-        localStorage.removeItem('subscript_seg');
-        localStorage.removeItem('subscript_preproc');
-
-        // Re-fetch default config to ensure we match server exactly
-        fetch('/api/system/config', { cache: 'no-store' })
-            .then(res => res.json())
-            .then(data => {
-                const defModelId = data.default_model;
-                setSelectedModel(defModelId);
-
-                const defMod = (data.available_models || []).find(m => m.id === defModelId);
-
-                if (defMod) {
-                    setTemperature(defMod.default_temperature);
-                    setSystemPrompt(cleanPrompt(defMod.default_prompt));
-                } else {
-                    // Fallback
-                    setTemperature(0.8);
-                    setSystemPrompt('');
+        if (confirm("Are you sure you want to reset all advanced settings to system defaults?")) {
+            const token = localStorage.getItem('token');
+            // New Phase 29: Call reset API
+            fetch('/api/preferences/reset', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-
-                // Reset Segmentation
-                if (data.default_segmentation_model) setSegmentationModel(data.default_segmentation_model);
-
-                // Reset Preprocessing (Safe Merge)
-                const safeDefaults = {
-                    resize_image: "large",
-                    contrast: 1.0,
-                    binarize: false,
-                    invert: false,
-                    debug_image: true
-                };
-
-                setPreprocessing({
-                    ...safeDefaults,
-                    ...(data.preprocessing || {})
-                });
-
-                showModal("Settings Restored", "All advanced options have been reset to server defaults.", "success");
             })
-            .catch(err => {
-                console.error("Failed to reset defaults", err);
-                showModal("Reset Failed", "Could not fetch default configuration from server.", "error");
-            });
+                .then(res => res.json())
+                .then(data => {
+                    // Reload fresh defaults from server
+                    loadPreferences();
+                    showModal("Settings Restored", "All advanced options have been reset to server defaults.", "success");
+                })
+                .catch(err => {
+                    console.error("Reset failed", err);
+                    showModal("Reset Failed", "Could not reset configuration.", "error");
+                });
+        }
     };
-
     // Helper for Preprocessing Changes
     const updatePreprocessing = (key, value) => {
         setPreprocessing(prev => ({ ...prev, [key]: value }));
@@ -612,21 +584,19 @@ const AdvancedUploadScreen = ({ setView }) => {
                                         </div>
                                     </div>
                                     <select
-                                        value={selectedModel}
+                                        value={modelOptions.length > 0 ? selectedModel : ""}
                                         onChange={handleModelChange}
-                                        className="block w-full pl-2 pr-8 py-2 text-xs border-gray-300 rounded border focus:ring-[#5B84B1] focus:border-[#5B84B1] relative z-0"
+                                        disabled={modelOptions.length === 0}
+                                        className="block w-full pl-2 pr-8 py-2 text-xs border-gray-300 rounded border focus:ring-[#5B84B1] focus:border-[#5B84B1] relative z-0 disabled:bg-gray-100 disabled:text-gray-400"
                                     >
-                                        {modelOptions.map((model) => (
-                                            <option key={model.id} value={model.id}>
-                                                {model.name}
-                                            </option>
-                                        ))}
-                                        {/* Fallback if list empty */}
-                                        {modelOptions.length === 0 && (
-                                            <>
-                                                <option value="gemini-pro-3">Gemini 3.0 Pro</option>
-                                                <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
-                                            </>
+                                        {modelOptions.length > 0 ? (
+                                            modelOptions.map((model) => (
+                                                <option key={model.id} value={model.id}>
+                                                    {model.name}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option>Loading available models...</option>
                                         )}
                                     </select>
                                 </div>
@@ -653,11 +623,11 @@ const AdvancedUploadScreen = ({ setView }) => {
                                             min="0"
                                             max="1"
                                             step="0.1"
-                                            value={temperature}
+                                            value={temperature ?? 0.8}
                                             onChange={(e) => setTemperature(parseFloat(e.target.value))}
                                             className="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                         />
-                                        <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{temperature}</span>
+                                        <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{temperature ?? 0.8}</span>
                                     </div>
                                 </div>
                             </div>
@@ -684,7 +654,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                 <textarea
                                     rows="5"
                                     placeholder="Enter custom system instructions..."
-                                    value={systemPrompt}
+                                    value={systemPrompt || ""}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
                                     className="w-full p-2 border border-gray-300 rounded text-[10px] font-mono focus:ring-1 focus:ring-[#5B84B1] outline-none leading-relaxed transition resize-none relative z-0"
                                     spellCheck="false"
@@ -715,7 +685,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                             </div>
                                         </div>
                                         <select
-                                            value={preprocessing.resize_image}
+                                            value={preprocessing?.resize_image ?? "large"}
                                             onChange={(e) => updatePreprocessing('resize_image', e.target.value)}
                                             className="block w-full text-xs bg-white border border-gray-300 text-gray-800 rounded focus:ring-[#5B84B1] focus:border-[#5B84B1] p-2 relative z-0"
                                         >
@@ -748,7 +718,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                                 min="0.5"
                                                 max="2.0"
                                                 step="0.1"
-                                                value={preprocessing.contrast}
+                                                value={preprocessing?.contrast ?? 1.0}
                                                 onChange={(e) => updatePreprocessing('contrast', parseFloat(e.target.value))}
                                                 className="flex-grow h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                                 style={{ background: '#e5e7eb' }}
@@ -758,7 +728,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                                     background: #9CA3AF !important; 
                                                 }
                                             `}</style>
-                                            <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{preprocessing.contrast.toFixed(1)}</span>
+                                            <span className="text-[10px] text-gray-500 font-mono w-6 text-right">{(preprocessing?.contrast ?? 1.0).toFixed(1)}</span>
                                         </div>
                                     </div>
 
@@ -783,7 +753,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                             <label className="inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
-                                                    checked={preprocessing.binarize}
+                                                    checked={preprocessing?.binarize ?? false}
                                                     onChange={(e) => updatePreprocessing('binarize', e.target.checked)}
                                                     className="sr-only peer"
                                                 />
@@ -794,7 +764,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                             <label className="inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
-                                                    checked={preprocessing.invert}
+                                                    checked={preprocessing?.invert ?? false}
                                                     onChange={(e) => updatePreprocessing('invert', e.target.checked)}
                                                     className="sr-only peer"
                                                 />
@@ -826,7 +796,7 @@ const AdvancedUploadScreen = ({ setView }) => {
                                             </div>
                                         </div>
                                         <select
-                                            value={segmentationModel}
+                                            value={segmentationModel ?? "historical-manuscript"}
                                             onChange={(e) => setSegmentationModel(e.target.value)}
                                             className="block w-full bg-white border border-gray-300 text-xs text-gray-800 rounded focus:ring-blue-500 focus:border-blue-500 p-2 relative z-0"
                                         >

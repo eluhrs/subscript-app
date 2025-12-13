@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship, backref
 from pydantic import BaseModel, EmailStr
@@ -113,7 +113,14 @@ class Invitation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_used = Column(Boolean, default=False)
     created_by_id = Column(Integer, ForeignKey("users.id"))
+    created_by_id = Column(Integer, ForeignKey("users.id"))
     # No need for back-relationship on User for now
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    preferences = Column(JSON, default={})
+    user = relationship("User", backref=backref("preference", uselist=False))
 
 Base.metadata.create_all(bind=engine)
 
@@ -125,6 +132,17 @@ with engine.connect() as conn:
     except Exception:
         print("Migrating DB: Adding is_admin column to users table")
         conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+
+    # Phase 29: Ensure user_preferences table exists
+    try:
+        conn.execute(text("SELECT user_id FROM user_preferences LIMIT 1"))
+    except Exception:
+        print("Migrating DB: Creating user_preferences table")
+        # Use SQLAlchemy metadata to create only this table if missing? 
+        # Easier to just let create_all handle it, but for existing DBs we might need manual CREATE.
+        # However, Base.metadata.create_all(bind=engine) above should handle new tables automatically.
+        # This block is mainly for column alterations. Since create_all handles new tables, no action needed here.
+        pass
 
 def get_db():
     db = SessionLocal()
@@ -240,6 +258,12 @@ class InviteResponse(BaseModel):
 
 class SettingsUpdate(BaseModel):
     registration_mode: str
+
+class SettingsUpdate(BaseModel):
+    registration_mode: str
+
+class UserPreferenceUpdate(BaseModel):
+    preferences: Dict[str, Any]
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -1081,8 +1105,7 @@ def admin_logs(lines: int = 50, current_user: User = Depends(get_current_user)):
 
 # --- System / Invitation Endpoints ---
 
-@app.get("/api/system/config", response_model=SystemConfigResponse)
-def get_system_config(db: Session = Depends(get_db)):
+def load_system_config_logic(db: Session) -> Dict[str, Any]:
     # 1. Registration Mode (DB)
     mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
     reg_mode = mode_setting.value if mode_setting else "open"
@@ -1090,9 +1113,13 @@ def get_system_config(db: Session = Depends(get_db)):
     # 2. Transcription Defaults (YAML)
     default_model = "gemini-pro-3"
     default_temperature = 0.0
-    models_list = [] # Renamed from available_models to match diff
+    models_list = [] 
 
     config_path = "/app/config.yml"
+    models_config = {} # Define early scope
+    transcription = {}
+    preprocessing = {}
+    
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
@@ -1109,21 +1136,15 @@ def get_system_config(db: Session = Depends(get_db)):
                 prompt = m_data.get("prompt", "")
                 
                 # Check for pretty name or use ID
-                name = m_data.get("model", model_id) # e.g. "gemini-1.5-pro"
-                # Actually, let's use the ID as the name in the dropdown usually, 
-                # or we can capitalize it. For now, use ID as name unless 'provider' logic suggests otherwise.
-                # User's config.yml has 'model' field as the backend-name.
-                # Let's use the key (model_id) as the display name for now, or prettify it.
+                name = m_data.get("model", model_id) 
                 
-                models_list.append(ModelConfig( # Changed to models_list
+                models_list.append(ModelConfig( 
                     id=model_id,
-                    name=model_id, # Display key as name (e.g. gemini-pro-3)
+                    name=model_id, 
                     default_prompt=prompt,
                     default_temperature=float(temp)
                 ))
         
-        # Lookup default temp again from the robust list or fallback
-        # Find default model in list
         # Lookup default temp again from the robust list or fallback
         # Find default model in list
         def_mod_obj = next((m for m in models_list if m.id == default_model), None)
@@ -1144,14 +1165,24 @@ def get_system_config(db: Session = Depends(get_db)):
     preprocessing = config.get("preprocessing", {})
 
     return {
-        "registration_mode": mode_setting.value if mode_setting else "open",
+        "registration_mode": reg_mode,
         "default_model": default_model,
         "default_temperature": default_temperature,
         "available_models": models_list,
         "default_segmentation_model": default_seg,
         "segmentation_models": seg_model_keys,
-        "preprocessing": preprocessing
+        "preprocessing": preprocessing,
+        # Raw helpers for robust merge later (not part of response model but useful)
+        "_models_config": models_config 
     }
+
+@app.get("/api/system/config", response_model=SystemConfigResponse)
+def get_system_config(db: Session = Depends(get_db)):
+    data = load_system_config_logic(db)
+    # Remove internal keys
+    if "_models_config" in data:
+        del data["_models_config"]
+    return data
 
 @app.get("/api/admin/settings", response_model=SystemConfigResponse)
 def get_admin_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -1159,6 +1190,106 @@ def get_admin_settings(current_user: User = Depends(get_current_user), db: Sessi
         raise HTTPException(status_code=403, detail="Not authorized")
     mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
     return {"registration_mode": mode_setting.value if mode_setting else "open"}
+
+
+# --- Phase 29: User Preferences Endpoints ---
+
+@app.get("/api/preferences", response_model=Dict[str, Any])
+def get_user_preferences(
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """
+    Returns the merged configuration:
+    1. Loads current System Config (defaults from config.yml)
+    2. Loads UserPreference from DB
+    3. Merges DB prefs over System defaults
+    """
+    # 1. Get System Defaults
+    system_data = load_system_config_logic(db)
+    
+    # Construct Default State Object (matching what UI expects)
+    # The UI mainly cares about: selectedModel, temperature, systemPrompt, segmentationModel, preprocessing
+    
+    # Default Model
+    def_model_id = system_data["default_model"]
+    def_temp = system_data["default_temperature"]
+    def_prompt = ""
+    # Find prompt for default model
+    for m in system_data["available_models"]:
+        if m.id == def_model_id:
+            def_prompt = m.default_prompt
+            break
+
+    default_state = {
+        "subscript_model": def_model_id,
+        "subscript_temp": def_temp,
+        "subscript_prompt": def_prompt,
+        "subscript_seg": system_data["default_segmentation_model"],
+        "subscript_preproc": system_data["preprocessing"]
+    }
+
+    # 2. Get User Preferences
+    user_pref = db.query(UserPreference).filter(UserPreference.user_id == current_user.id).first()
+    user_overrides = user_pref.preferences if user_pref else {}
+
+    # 3. Merge User Overrides
+    merged_prefs = {**default_state, **user_overrides}
+    
+    # 4. Return EVERYTHING (Metadata + Merged Prefs)
+    # We include available_models etc. so frontend doesn't need a 2nd call
+    response_data = {
+        **system_data, # Includes available_models, segmentation_models, etc.
+        "preferences": merged_prefs # The active user selections
+    }
+    
+    # Remove internal keys if any
+    if "_models_config" in response_data:
+        del response_data["_models_config"]
+        
+    return response_data
+
+@app.put("/api/preferences")
+def update_user_preferences(
+    pref_update: UserPreferenceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Updates the user's preferences.
+    This expects a partial or full dictionary of settings to save.
+    We will merge these into the existing DB record.
+    """
+    user_pref = db.query(UserPreference).filter(UserPreference.user_id == current_user.id).first()
+    
+    if not user_pref:
+        user_pref = UserPreference(user_id=current_user.id, preferences={})
+        db.add(user_pref)
+    
+    # Merge new updates into existing DB JSON
+    current_prefs = dict(user_pref.preferences) if user_pref.preferences else {}
+    updated_prefs = {**current_prefs, **pref_update.preferences}
+    
+    user_pref.preferences = updated_prefs
+    db.commit()
+    
+    return {"status": "success", "preferences": updated_prefs}
+
+@app.post("/api/preferences/reset")
+def reset_user_preferences(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Resets user preferences by deleting the DB record.
+    Future GET calls will return system defaults.
+    """
+    user_pref = db.query(UserPreference).filter(UserPreference.user_id == current_user.id).first()
+    if user_pref:
+        db.delete(user_pref)
+        db.commit()
+    
+    return {"status": "reset_complete"}
 
 @app.put("/api/admin/settings", response_model=SystemConfigResponse)
 def update_admin_settings(settings: SettingsUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
