@@ -109,7 +109,7 @@ $(window).on('load', function () {
     loadedFile = fileList[fileNum - 1];
     prevNum = fileNum;
     var timestamp = new Date().getTime();
-    var loadUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + loadedFile + '?t=' + timestamp;
+    var loadUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + loadedFile + '?v=' + timestamp;
     console.log('DEBUG: Loading URL:', loadUrl);
 
     pageCanvas.loadXmlPage(undefined, loadUrl);

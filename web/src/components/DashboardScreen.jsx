@@ -151,14 +151,14 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                     url += `&filename=${encodeURIComponent(overrideFilename)}`;
                 } else {
                     // Cache buster if no filename override (standard view)
-                    url += `&t=${new Date().getTime()}`;
+                    url += `&v=${new Date().getTime()}`;
                 }
                 window.open(url, '_blank');
                 return;
             }
 
             // Standard Download Logic (Blob)
-            const response = await fetch(`/api/download/${docId}/${type}?t=${new Date().getTime()}`, {
+            const response = await fetch(`/api/download/${docId}/${type}?v=${new Date().getTime()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
