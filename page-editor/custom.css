@@ -124,7 +124,7 @@ g.selected polygon {
 .TextLine polygon,
 .TextLine polyline,
 .TextLine path {
-    stroke-opacity: 0.2 !important;
+    stroke-opacity: 0.5 !important;
     /* Even subtler */
     /* If they are blue by default, this makes them faint blue */
 }
@@ -136,6 +136,40 @@ g.selected polygon {
     stroke-opacity: 0.8 !important;
     /* Restore opacity on hover */
     stroke-width: 2px !important;
+}
+
+/* ANTI-FLASH: Hide polygons by default until JS adds .ready to SVG */
+/* 1. Target the Group itself */
+#xpg svg:not(.ready) .TextLine {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.2s ease-in;
+}
+
+/* 2. Target children explicitly to override specificity of .selected red styles */
+#xpg svg:not(.ready) .TextLine polygon,
+#xpg svg:not(.ready) .TextLine polyline,
+#xpg svg:not(.ready) .TextLine path {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    stroke-opacity: 0 !important;
+    /* Double safety */
+    fill-opacity: 0 !important;
+    /* Triple safety */
+}
+
+/* READY STATE */
+#xpg svg.ready .TextLine {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: opacity 0.2s ease-in;
+}
+
+#xpg svg.ready .TextLine polygon,
+#xpg svg.ready .TextLine polyline,
+#xpg svg.ready .TextLine path {
+    visibility: visible !important;
+    /* Let normal opacity rules takes over */
 }
 
 /* Override any other visibility rules for #textedit */

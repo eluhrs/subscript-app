@@ -240,6 +240,13 @@ $(document).ready(function () {
 
             console.log("Found " + lines.length + " lines. Building editor...");
 
+            // REVEAL CONTENT: Add .ready class to SVG to fade in polygons (anti-flash)
+            // Delay by 500ms and FORCE CLEANUP of any residual "selected" classes.
+            setTimeout(function () {
+                $('#xpg svg .selected, #xpg svg .highlight').removeClass('selected highlight');
+                $('#xpg svg').addClass('ready');
+            }, 500);
+
             lines.each(function (index) {
                 var lineId = $(this).attr('id');
                 // Extract plain text content, ignoring SVG tags like <tspan>

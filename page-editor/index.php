@@ -112,7 +112,7 @@ if (getenv('CSS') !== false) {
   <?= $script ?>
   <script type="text/javascript" src="../js/web-app.js?v=<?= filemtime('../js/web-app.js') ?>"></script>
   <?= $provided_js_files ?>
-  <link rel="stylesheet" href="../css/custom.css" />
+  <link rel="stylesheet" href="../css/custom.css?v=<?= filemtime('../css/custom.css') ?>" />
 </head>
 
 <body>
