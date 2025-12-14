@@ -171,23 +171,48 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_user_from_token_str(token: str, db: Session):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    print(f"DEBUG: Validating token: {token[:10]}...")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
+        print(f"DEBUG: Token payload email: {email}")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"DEBUG: JWT Error: {e}")
         raise credentials_exception
     user = db.query(User).filter(User.email == email).first()
     if user is None:
+        print(f"DEBUG: User not found for email {email}")
         raise credentials_exception
+    print(f"DEBUG: User validated: {user.id}")
     return user
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    return get_user_from_token_str(token, db)
+
+async def get_current_user_flexible(
+    request: Request,
+    token: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    # 1. Try Query Param
+    if token:
+         return get_user_from_token_str(token, db)
+    
+    # 2. Try Header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+         token_str = auth_header.split(" ")[1]
+         return get_user_from_token_str(token_str, db)
+         
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 # --- Pydantic Models ---
 class UserCreate(BaseModel):
@@ -399,12 +424,14 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    print(f"DEBUG: Listing docs for user {current_user.id}")
     # Dynamically update last_modified based on file system
     # Filter out child documents (only show parents and loose files)
     docs = db.query(Document).filter(
         Document.owner_id == current_user.id,
         Document.parent_id == None
     ).all()
+    print(f"DEBUG: Found {len(docs)} docs")
 
     for doc in docs:
         clean_email = sanitize_email(current_user.email)
@@ -881,8 +908,9 @@ from fastapi.responses import FileResponse
 def download_document(
     doc_id: int,
     file_type: str,
+    filename: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_flexible)
 ):
     doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
     if not doc:
@@ -902,19 +930,19 @@ def download_document(
     if file_type == "pdf":
         file_path = os.path.join(doc_dir, f"{base_name}.pdf")
         media_type = "application/pdf"
-        download_filename = f"{base_name}.pdf"
+        download_filename = filename if filename else f"{base_name}.pdf"
     elif file_type == "txt":
         file_path = os.path.join(doc_dir, f"{base_name}.txt")
         media_type = "text/plain"
-        download_filename = f"{base_name}.txt"
+        download_filename = filename if filename else f"{base_name}.txt"
     elif file_type == "xml":
         file_path = os.path.join(doc_dir, f"{base_name}.xml")
         media_type = "application/xml"
-        download_filename = f"{base_name}.xml"
+        download_filename = filename if filename else f"{base_name}.xml"
     elif file_type == "debug" or file_type == "map":
         file_path = os.path.join(doc_dir, f"{base_name}-debug.jpg")
         media_type = "image/jpeg"
-        download_filename = f"{base_name}-debug.jpg"
+        download_filename = filename if filename else f"{base_name}-debug.jpg"
     elif file_type == "zip":
         # Create ZIP on the fly
         memory_file = BytesIO()
@@ -948,7 +976,7 @@ def download_document(
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
         
-    return FileResponse(file_path, media_type=media_type, filename=download_filename)
+    return FileResponse(file_path, media_type=media_type, filename=download_filename, content_disposition_type="inline")
 
 @app.get("/api/thumbnail/{doc_id}")
 def get_thumbnail(

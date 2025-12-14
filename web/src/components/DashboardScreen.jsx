@@ -131,46 +131,57 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
         setView('page-editor');
     };
 
-    const handleFileAction = async (docId, type, action) => {
+    const handleFileAction = async (docId, type, action, overrideFilename = null) => {
         try {
             const token = localStorage.getItem('token');
+
+            if (action === 'view') {
+                // Open directly in new tab with auth token and filename override
+                // This ensures "Save As" works correctly with the custom name
+                let url = `/api/download/${docId}/${type}?token=${token}`;
+                if (overrideFilename) {
+                    url += `&filename=${encodeURIComponent(overrideFilename)}`;
+                } else {
+                    // Cache buster if no filename override (standard view)
+                    url += `&t=${new Date().getTime()}`;
+                }
+                window.open(url, '_blank');
+                return;
+            }
+
+            // Standard Download Logic (Blob)
             const response = await fetch(`/api/download/${docId}/${type}?t=${new Date().getTime()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
-                // For 'view', we want to open in new tab if browser supports it
-                if (action === 'view') {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                const blob = await response.blob();
+
+                // Construct filename if not provided
+                let filename = `document_${docId}.${type}`;
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (filenameMatch && filenameMatch.length === 2)
+                        filename = filenameMatch[1];
                 } else {
-                    // For download, we rely on the backend Content-Disposition header
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-
-                    // Extract filename from header if present
-                    const contentDisposition = response.headers.get('Content-Disposition');
-                    let filename = `document_${docId}.${type}`;
-                    if (contentDisposition) {
-                        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-                        if (filenameMatch && filenameMatch.length === 2)
-                            filename = filenameMatch[1];
-                    } else {
-                        // Fallback logic
-                        if (type === 'debug') filename = `debug-${docId}.jpg`;
-                        if (type === 'zip') filename = `assets-${docId}.zip`;
-                    }
-
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                    if (type === 'debug') filename = `debug-${docId}.jpg`;
+                    if (type === 'zip') filename = `assets-${docId}.zip`;
                 }
+
+                // Override if provided (though mostly used for View now)
+                if (overrideFilename) filename = overrideFilename;
+
+                // Download
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+
             } else if (response.status === 401) {
                 window.dispatchEvent(new Event('auth:unauthorized'));
             } else {
@@ -321,7 +332,13 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                     {/* Thumbnail */}
                                     <div className="w-12 flex-shrink-0">
                                         <div className="w-10 h-14 bg-white rounded border border-gray-500 shadow-sm overflow-hidden relative cursor-pointer flex items-center justify-center"
-                                            onClick={() => handleFileAction(doc.id, 'pdf', 'view')}>
+                                            onClick={() => {
+                                                const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                const now = new Date();
+                                                const timestamp = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                const tsFilename = `${cleanName}-${timestamp}.pdf`;
+                                                handleFileAction(doc.id, 'pdf', 'view', tsFilename);
+                                            }}>
                                             {doc.thumbnail_url ? (
                                                 <img
                                                     src={`${doc.thumbnail_url}${doc.thumbnail_url.includes('?') ? '&' : '?'}token=${localStorage.getItem('token')}`}
@@ -342,9 +359,28 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
 
                                     {/* Text Info */}
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm md:text-base font-semibold text-gray-900 truncate" title={doc.filename}>
+                                        <button
+                                            onClick={() => {
+                                                const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                const now = new Date();
+                                                const timestamp = now.toISOString().replace(/[-:T]/g, "").slice(0, 14); // yyyymmddhhmmss
+                                                const tsFilename = `${cleanName}-${timestamp}.pdf`;
+
+                                                // We pass this filename but handleFileAction currently auto-detects from header. 
+                                                // To support the custom name for VIEW, we need handleFileAction to accept an override.
+                                                // But since we can't easily force tab title, we'll just open the PDF. 
+                                                // However, "using {filename}..." usually means if they Save As, it works.
+                                                // Let's modify handleFileAction to accept overrideFilename.
+
+                                                // BUT waiting for handleFileAction change above.
+                                                // We will temporarily just trigger the view.
+                                                handleFileAction(doc.id, 'pdf', 'view', tsFilename);
+                                            }}
+                                            className="text-sm md:text-base font-semibold text-gray-900 truncate hover:text-[#5B84B1] hover:underline text-left inline-block max-w-full"
+                                            title="Click to view PDF"
+                                        >
                                             {doc.filename.replace(/\.[^/.]+$/, "") + ".pdf"}
-                                        </h4>
+                                        </button>
                                         <div className="flex items-center gap-1 md:gap-3 text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
                                             <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-[10px] md:text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
                                             <span className="hidden md:block w-1 h-1 rounded-full bg-gray-400"></span>
@@ -397,8 +433,18 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                         <span className="text-sm font-medium text-gray-700">MAP</span>
                                                     </div>
                                                     <div className="flex gap-1">
-                                                        <button onClick={() => handleFileAction(doc.id, 'debug', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                        <button onClick={() => handleFileAction(doc.id, 'debug', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'debug', 'view', `${cleanName}-debug-${ts}.jpg`);
+                                                        }} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'debug', 'download', `${cleanName}-debug-${ts}.jpg`);
+                                                        }} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
                                                     </div>
                                                 </div>
                                                 {/* TXT */}
@@ -408,8 +454,18 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                         <span className="text-sm font-medium text-gray-700">TXT</span>
                                                     </div>
                                                     <div className="flex gap-1">
-                                                        <button onClick={() => handleFileAction(doc.id, 'txt', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                        <button onClick={() => handleFileAction(doc.id, 'txt', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'txt', 'view', `${cleanName}-${ts}.txt`);
+                                                        }} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'txt', 'download', `${cleanName}-${ts}.txt`);
+                                                        }} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
                                                     </div>
                                                 </div>
                                                 {/* XML */}
@@ -419,8 +475,18 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                         <span className="text-sm font-medium text-gray-700">XML</span>
                                                     </div>
                                                     <div className="flex gap-1">
-                                                        <button onClick={() => handleFileAction(doc.id, 'xml', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
-                                                        <button onClick={() => handleFileAction(doc.id, 'xml', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'xml', 'view', `${cleanName}-${ts}.xml`);
+                                                        }} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"><Eye size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'xml', 'download', `${cleanName}-${ts}.xml`);
+                                                        }} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded"><Download size={14} /></button>
                                                     </div>
                                                 </div>
                                                 {/* PDF */}
@@ -430,8 +496,18 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                         <span className="text-sm font-medium text-gray-700">PDF</span>
                                                     </div>
                                                     <div className="flex gap-1">
-                                                        <button onClick={() => handleFileAction(doc.id, 'pdf', 'view')} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="View"><Eye size={14} /></button>
-                                                        <button onClick={() => handleFileAction(doc.id, 'pdf', 'download')} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded" title="Download"><Download size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'pdf', 'view', `${cleanName}-${ts}.pdf`);
+                                                        }} className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="View"><Eye size={14} /></button>
+                                                        <button onClick={() => {
+                                                            const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                            const now = new Date();
+                                                            const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                            handleFileAction(doc.id, 'pdf', 'download', `${cleanName}-${ts}.pdf`);
+                                                        }} className="p-1.5 hover:bg-gray-200 text-gray-600 rounded" title="Download"><Download size={14} /></button>
                                                     </div>
                                                 </div>
 
@@ -439,7 +515,12 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
 
                                                 {/* Download All */}
                                                 <button
-                                                    onClick={() => handleFileAction(doc.id, 'zip', 'download')}
+                                                    onClick={() => {
+                                                        const cleanName = doc.filename.replace(/\.[^/.]+$/, "");
+                                                        const now = new Date();
+                                                        const ts = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+                                                        handleFileAction(doc.id, 'zip', 'download', `${cleanName}-${ts}.zip`);
+                                                    }}
                                                     className="w-full block p-2 text-center text-xs font-bold text-white bg-[#3A5A80] hover:bg-[#2A4A70] rounded shadow-sm transition"
                                                 >
                                                     Download All Assets (ZIP)
