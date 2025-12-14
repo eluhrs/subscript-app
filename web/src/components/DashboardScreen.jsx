@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Pencil, Trash2, Share2, FolderOpen, FileText, Code, AlignLeft, Map, Eye, Download, Archive, MoreVertical } from 'lucide-react';
+import { Pencil, Trash2, Share2, FolderOpen, FileText, Code, AlignLeft, Map, Eye, Download, Archive, MoreVertical, Settings2 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 const DashboardScreen = ({ setView, setEditorDocId }) => {
@@ -8,6 +8,11 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
     // Track which row has its "Files" menu open
     const [activeMenuDocId, setActiveMenuDocId] = useState(null);
     const menuRef = useRef(null);
+    const bulkMenuRef = useRef(null);
+
+    // Bulk Actions State
+    const [showBulkDropdown, setShowBulkDropdown] = useState(false);
+    const [selectedIds, setSelectedIds] = useState(new Set());
 
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -29,10 +34,78 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setActiveMenuDocId(null);
             }
+            if (bulkMenuRef.current && !bulkMenuRef.current.contains(event.target) && !document.getElementById('actionsHeaderBtn').contains(event.target)) {
+                setShowBulkDropdown(false);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === documents.length && documents.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            const allIds = new Set(documents.map(d => d.id));
+            setSelectedIds(allIds);
+        }
+    };
+
+    const toggleSelect = (id) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleBulkDownload = async (type) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/download/bulk', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    doc_ids: Array.from(selectedIds),
+                    type: type
+                })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Format: subscript-{type}-files-yyyymmddhhmmss.zip
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hour = String(now.getHours()).padStart(2, '0');
+                const minute = String(now.getMinutes()).padStart(2, '0');
+                const second = String(now.getSeconds()).padStart(2, '0');
+                const timestamp = `${year}${month}${day}${hour}${minute}${second}`;
+
+                a.download = `subscript-${type}-files-${timestamp}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                setShowBulkDropdown(false);
+                setSelectedIds(new Set());
+            } else {
+                alert("Bulk download failed.");
+            }
+        } catch (error) {
+            console.error("Bulk download error", error);
+        }
+    };
 
     const fetchDocuments = async () => {
         try {
@@ -173,7 +246,65 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 {/* Header */}
                 <div className="flex items-center px-4 py-3 bg-[#D4D4D2] border-b border-gray-400 text-sm font-bold text-gray-800 rounded-t-xl">
                     <div className="flex-1">Document Information</div>
-                    <div className="w-auto">Actions</div>
+                    {/* Bulk Actions Button */}
+                    <div className="w-auto relative mr-2">
+                        <button
+                            id="actionsHeaderBtn"
+                            onClick={(e) => { e.stopPropagation(); setShowBulkDropdown(!showBulkDropdown); }}
+                            className={`flex items-center gap-1 font-bold transition-colors focus:outline-none px-3 py-1.5 -mr-2 rounded border ${showBulkDropdown
+                                ? 'border-[#5B84B1] bg-[#5B84B1] text-white hover:bg-[#4A6D94] hover:border-[#4A6D94]'
+                                : 'border-gray-400 bg-[#D4D4D2] text-gray-800 hover:bg-[#5B84B1] hover:text-white hover:border-[#5B84B1]'
+                                }`}
+                        >
+                            <span>Bulk Actions</span>
+                            <Settings2 size={16} className="ml-1" />
+                        </button>
+
+                        {/* Bulk Dropdown */}
+                        {showBulkDropdown && (
+                            <div ref={bulkMenuRef} className="absolute right-[36px] top-full mt-2 w-[270px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                {/* Speech Bubble Arrow */}
+                                <div className="absolute -top-1.5 right-4 w-3 h-3 bg-white border-t border-l border-gray-200 transform rotate-45 z-50"></div>
+
+                                {/* Content Wrapper for Rounding */}
+                                <div className="overflow-hidden rounded-lg">
+                                    {/* Select All Header */}
+                                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 relative z-10">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={toggleSelectAll}
+                                                className={`flex-1 py-1.5 text-xs font-medium rounded shadow-sm transition border ${documents.length > 0 && selectedIds.size === documents.length
+                                                        ? 'border-[#5B84B1] bg-[#5B84B1] text-white hover:bg-[#4A6D94]'
+                                                        : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700'
+                                                    }`}
+                                            >
+                                                {documents.length > 0 && selectedIds.size === documents.length ? "Deselect All" : "Select All"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Download Options */}
+                                    <div className="py-1 relative z-10 bg-white">
+                                        {[
+                                            { type: 'map', label: 'Download selected MAP files', icon: Map, color: 'text-purple-500' },
+                                            { type: 'txt', label: 'Download selected TXT files', icon: AlignLeft, color: 'text-gray-500' },
+                                            { type: 'xml', label: 'Download selected XML files', icon: Code, color: 'text-orange-500' },
+                                            { type: 'pdf', label: 'Download selected PDF files', icon: FileText, color: 'text-red-500' },
+                                            { type: 'zip', label: 'Download selected ZIP files', icon: Archive, color: 'text-[#5B84B1]' }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.type}
+                                                onClick={() => handleBulkDownload(opt.type)}
+                                                disabled={selectedIds.size === 0}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${opt.type === 'zip' ? 'font-semibold text-gray-700' : 'text-gray-700'}`}
+                                            >
+                                                <opt.icon size={16} className={opt.color} /> {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Rows */}
@@ -317,12 +448,26 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                         )}
                                     </div>
 
+
+
                                     <div className="w-px h-6 bg-gray-300"></div>
 
                                     <button onClick={() => handleDeleteClick(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-red-50 text-red-600 rounded transition" title="Delete">
                                         <Trash2 size={16} className="mb-0.5" />
                                         <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Del</span>
                                     </button>
+
+                                    <div className="w-px h-6 bg-gray-300"></div>
+
+                                    {/* Checkbox Column */}
+                                    <div className="w-8 flex items-center justify-center" style={{ marginRight: '4px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(doc.id)}
+                                            onChange={() => toggleSelect(doc.id)}
+                                            className="w-5 h-5 rounded border-gray-300 cursor-pointer hover:scale-110 transition-transform accent-[#5B84B1]"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </React.Fragment>

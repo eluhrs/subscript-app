@@ -12,6 +12,7 @@ const RegisterScreen = ({ setView }) => {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
+        const t = params.get('token');
         if (t) {
             setToken(t);
             // Clean URL: remove query params but keep the path

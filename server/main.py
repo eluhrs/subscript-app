@@ -784,6 +784,97 @@ def delete_document(
     db.commit()
     return None
 
+class BulkDownloadRequest(BaseModel):
+    doc_ids: List[int]
+    type: str # 'map', 'txt', 'xml', 'pdf', 'zip'
+
+@app.post("/api/download/bulk")
+def download_bulk(
+    request: BulkDownloadRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not request.doc_ids:
+        raise HTTPException(status_code=400, detail="No documents selected")
+
+    # Fetch all docs at once to validate ownership
+    docs = db.query(Document).filter(
+        Document.id.in_(request.doc_ids), 
+        Document.owner_id == current_user.id
+    ).all()
+    
+    if len(docs) != len(set(request.doc_ids)):
+        # Some docs missing or not owned by user
+        # For bulk actions, we usually just process what we can find, but let's be strict or lenient?
+        # Lenient: Just zip what matches.
+        pass
+
+    if not docs:
+        raise HTTPException(status_code=404, detail="No valid documents found")
+
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        
+        clean_email = sanitize_email(current_user.email)
+        user_base_dir = os.path.join(USER_DOCS_DIR, clean_email)
+
+        for doc in docs:
+            # Resolve Doc Directory
+            if doc.directory_name:
+                doc_dir = os.path.join(user_base_dir, doc.directory_name)
+            else:
+                doc_dir = user_base_dir
+            
+            base_name = os.path.splitext(doc.filename)[0]
+            
+            # Determine files to add
+            files_to_add = [] # List of (abs_path, zip_path)
+
+            if request.type == 'zip':
+                # Create a nested ZIP for this doc's assets
+                # We reuse the logic from download_document by manually zipping here
+                doc_assets_buffer = BytesIO()
+                with zipfile.ZipFile(doc_assets_buffer, 'w', zipfile.ZIP_DEFLATED) as nested_zf:
+                    # PDF
+                    p = os.path.join(doc_dir, f"{base_name}.pdf")
+                    if os.path.exists(p): nested_zf.write(p, f"{base_name}.pdf")
+                    # XML
+                    p = os.path.join(doc_dir, f"{base_name}.xml")
+                    if os.path.exists(p): nested_zf.write(p, f"{base_name}.xml")
+                    # TXT
+                    p = os.path.join(doc_dir, f"{base_name}.txt")
+                    if os.path.exists(p): nested_zf.write(p, f"{base_name}.txt")
+                    # Debug
+                    p = os.path.join(doc_dir, f"{base_name}-debug.jpg")
+                    if os.path.exists(p): nested_zf.write(p, f"{base_name}-debug.jpg")
+                
+                # Write the nested zip to the master zip
+                # We need to write the bytes
+                zf.writestr(f"{base_name}-assets.zip", doc_assets_buffer.getvalue())
+
+            else:
+                # specific types
+                if request.type == 'pdf':
+                    files_to_add.append((os.path.join(doc_dir, f"{base_name}.pdf"), f"{base_name}.pdf"))
+                elif request.type == 'xml':
+                    files_to_add.append((os.path.join(doc_dir, f"{base_name}.xml"), f"{base_name}.xml"))
+                elif request.type == 'txt':
+                    files_to_add.append((os.path.join(doc_dir, f"{base_name}.txt"), f"{base_name}.txt"))
+                elif request.type == 'map':
+                    files_to_add.append((os.path.join(doc_dir, f"{base_name}-debug.jpg"), f"{base_name}-debug.jpg"))
+            
+                for src, dst in files_to_add:
+                    if os.path.exists(src):
+                        zf.write(src, dst)
+    
+    memory_file.seek(0)
+    filename = f"bulk_download_{request.type}.zip"
+    return StreamingResponse(
+        memory_file, 
+        media_type="application/zip", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 from fastapi.responses import FileResponse
 
 @app.get("/api/download/{doc_id}/{file_type}")

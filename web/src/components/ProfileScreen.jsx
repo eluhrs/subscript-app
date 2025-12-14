@@ -48,6 +48,7 @@ const ProfileScreen = () => {
     const [registrationMode, setRegistrationMode] = useState('open'); // 'open' | 'invite'
     const [invites, setInvites] = useState([]);
     const [newInviteEmail, setNewInviteEmail] = useState('');
+    const [copiedInviteId, setCopiedInviteId] = useState(null); // Track which invite link was just copied
 
     // Edit User State
     const [editingUser, setEditingUser] = useState(null); // { id, full_name, email, is_locked, password (optional) }
@@ -476,9 +477,10 @@ const ProfileScreen = () => {
         } catch (e) { showModal("Error", "Network error", "danger"); }
     };
 
-    const copyToClipboard = (text) => {
+    const copyToClipboard = (text, id) => {
         navigator.clipboard.writeText(text);
-        // Could show a temporary tooltip, but for now silent toast?
+        setCopiedInviteId(id);
+        setTimeout(() => setCopiedInviteId(null), 2000); // Reset after 2 seconds
     };
 
     const showModal = (title, message, type = 'info') => {
@@ -697,13 +699,18 @@ const ProfileScreen = () => {
                                                         </td>
                                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                                                             {!invite.is_used && (
-                                                                <button
-                                                                    onClick={() => copyToClipboard(`${window.location.origin}/register?token=${invite.token}`)}
-                                                                    className="text-blue-600 hover:text-blue-800"
-                                                                    title="Copy Link"
-                                                                >
-                                                                    <Link size={16} />
-                                                                </button>
+                                                                <div className="relative group">
+                                                                    <button
+                                                                        onClick={() => copyToClipboard(`${window.location.origin}/register?token=${invite.token}`, invite.id)}
+                                                                        className={`${copiedInviteId === invite.id ? 'text-green-600' : 'text-blue-600 hover:text-blue-800'}`}
+                                                                    >
+                                                                        {copiedInviteId === invite.id ? <Check size={16} /> : <Copy size={16} />}
+                                                                    </button>
+                                                                    {/* Custom fast tooltip */}
+                                                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-800 text-white text-xs py-1 px-2 rounded shadow-lg whitespace-nowrap z-50">
+                                                                        {copiedInviteId === invite.id ? 'Copied!' : 'Copy Link'}
+                                                                    </div>
+                                                                </div>
                                                             )}
                                                             <button
                                                                 onClick={() => handleDeleteInvite(invite.id)}
