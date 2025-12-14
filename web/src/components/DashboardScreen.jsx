@@ -274,8 +274,8 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                             <button
                                                 onClick={toggleSelectAll}
                                                 className={`flex-1 py-1.5 text-xs font-medium rounded shadow-sm transition border ${documents.length > 0 && selectedIds.size === documents.length
-                                                        ? 'border-[#5B84B1] bg-[#5B84B1] text-white hover:bg-[#4A6D94]'
-                                                        : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700'
+                                                    ? 'border-[#5B84B1] bg-[#5B84B1] text-white hover:bg-[#4A6D94]'
+                                                    : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700'
                                                     }`}
                                             >
                                                 {documents.length > 0 && selectedIds.size === documents.length ? "Deselect All" : "Select All"}
@@ -343,7 +343,7 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                     {/* Text Info */}
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm md:text-base font-semibold text-gray-900 truncate" title={doc.filename}>
-                                            {doc.filename}
+                                            {doc.filename.replace(/\.[^/.]+$/, "") + ".pdf"}
                                         </h4>
                                         <div className="flex items-center gap-1 md:gap-3 text-xs md:text-sm text-gray-500 mt-0.5 font-medium">
                                             <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-[10px] md:text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
