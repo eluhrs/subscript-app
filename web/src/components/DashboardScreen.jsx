@@ -17,6 +17,7 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [docToDelete, setDocToDelete] = useState(null);
+    const [isBulkDelete, setIsBulkDelete] = useState(false);
 
     // Share Modal State
     const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -59,6 +60,13 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
             newSelected.add(id);
         }
         setSelectedIds(newSelected);
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedIds.size === 0) return;
+        setIsBulkDelete(true);
+        setDeleteModalOpen(true);
+        setShowBulkDropdown(false);
     };
 
     const handleBulkDownload = async (type) => {
@@ -196,29 +204,60 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
     // Open Modal
     const handleDeleteClick = (doc) => {
         setDocToDelete(doc);
+        setIsBulkDelete(false);
         setDeleteModalOpen(true);
     };
 
     const confirmDelete = async () => {
-        if (!docToDelete) return;
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`/api/documents/${docToDelete.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                fetchDocuments();
-            } else if (response.status === 401) {
-                window.dispatchEvent(new Event('auth:unauthorized'));
-            } else {
-                alert("Delete failed.");
+        const token = localStorage.getItem('token');
+
+        // Single Delete
+        if (!isBulkDelete && docToDelete) {
+            try {
+                const response = await fetch(`/api/documents/${docToDelete.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    fetchDocuments();
+                } else if (response.status === 401) {
+                    window.dispatchEvent(new Event('auth:unauthorized'));
+                } else {
+                    alert("Delete failed."); // Could trigger modal here too if needed
+                }
+            } catch (error) {
+                console.error("Delete error", error);
+            } finally {
+                setDeleteModalOpen(false);
+                setDocToDelete(null);
             }
-        } catch (error) {
-            console.error("Delete error", error);
-        } finally {
-            setDeleteModalOpen(false);
-            setDocToDelete(null);
+            return;
+        }
+
+        // Bulk Delete
+        if (isBulkDelete && selectedIds.size > 0) {
+            try {
+                let successCount = 0;
+                for (const id of Array.from(selectedIds)) {
+                    try {
+                        const response = await fetch(`/api/documents/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) successCount++;
+                    } catch (e) { console.error(e); }
+                }
+
+                if (successCount > 0) {
+                    fetchDocuments();
+                    setSelectedIds(new Set());
+                }
+            } catch (error) {
+                console.error("Bulk delete error", error);
+            } finally {
+                setDeleteModalOpen(false);
+                setIsBulkDelete(false);
+            }
         }
     };
 
@@ -306,11 +345,22 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                 key={opt.type}
                                                 onClick={() => handleBulkDownload(opt.type)}
                                                 disabled={selectedIds.size === 0}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${opt.type === 'zip' ? 'font-semibold text-gray-700' : 'text-gray-700'}`}
+                                                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <opt.icon size={16} className={opt.color} /> {opt.label}
                                             </button>
                                         ))}
+
+                                        <div className="border-t border-gray-100 my-1"></div>
+
+                                        <button
+                                            onClick={handleBulkDelete}
+                                            disabled={selectedIds.size === 0}
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={16} />
+                                            <span>Delete selected files</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -579,15 +629,17 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                     )}
                 </div>
             </div>
-
+            {/* Delete Modal */}
             <ConfirmationModal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
-                title="Delete Document"
-                message={`Are you sure you want to delete "${docToDelete?.filename}"?\n\nThis action cannot be undone.`}
-                confirmText="Delete"
-                cancelText="Cancel"
+                title={isBulkDelete ? "Delete Files?" : "Delete Document?"}
+                message={isBulkDelete
+                    ? `Are you sure you want to delete ${selectedIds.size} file${selectedIds.size > 1 ? 's' : ''}? This cannot be undone.`
+                    : `Are you sure you want to delete "${docToDelete?.filename}"? This cannot be undone.`
+                }
+                confirmText={isBulkDelete ? "Delete All" : "Delete"}
                 type="danger"
             />
 

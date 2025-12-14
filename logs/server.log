@@ -8833,3 +8833,555 @@ Cost:   $0.0076
 
 
 2025-12-14 02:59:29,498 - INFO - Task server.tasks.process_document_task[08e7b6ee-f651-464e-b21e-74bd9388b4e7] succeeded in 55.719996567000635s: None
+2025-12-14 03:11:56,476 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-01.jpg
+2025-12-14 03:11:56,505 - INFO - Task server.tasks.process_document_task[ba1f88eb-6c69-4335-b55a-f81057a04e45] received
+2025-12-14 03:11:56,541 - INFO - Task 1 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:11:56,543 - INFO - Task 1 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:11:56,543 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:11:56,544 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:11:56,546 - INFO - TASK START: Processing north-01.jpg (ID: 1)
+2025-12-14 03:11:56,546 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg --output /app/documents/eluhrs@gmail.com/north-01-3cf441b9 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:11:56,546 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-02.jpg
+2025-12-14 03:11:56,548 - INFO - Task server.tasks.process_document_task[79ff4e06-3bc6-4857-8d9f-20f34c8138de] received
+2025-12-14 03:11:56,568 - INFO - Running from: /app
+2025-12-14 03:11:56,568 - INFO - Using config: /app/config.yml
+2025-12-14 03:11:56,569 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-01-3cf441b9
+2025-12-14 03:11:56,569 - INFO - ----------------------------------------
+2025-12-14 03:11:56,573 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:11:56,577 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:11:56,578 - INFO - ============================================================
+2025-12-14 03:11:56,578 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:11:56,579 - INFO - ============================================================
+2025-12-14 03:11:56,579 - INFO - Target Input:       1 files
+2025-12-14 03:11:56,580 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-01-3cf441b9
+2025-12-14 03:11:56,580 - INFO - ----------------------------------------
+2025-12-14 03:11:56,580 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:11:56,581 - INFO - ----------------------------------------
+2025-12-14 03:11:56,581 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:11:56,581 - INFO -   Provider:         gemini
+2025-12-14 03:11:56,582 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:11:56,582 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:11:56,583 - INFO -   Temperature:      0.2
+2025-12-14 03:11:56,583 - INFO - ----------------------------------------
+2025-12-14 03:11:56,583 - INFO - Preprocessing Settings:
+2025-12-14 03:11:56,583 - INFO -   debug_image: True
+2025-12-14 03:11:56,584 - INFO -   resize_image: large
+2025-12-14 03:11:56,584 - INFO -   contrast: 1.0
+2025-12-14 03:11:56,584 - INFO -   binarize: False
+2025-12-14 03:11:56,584 - INFO -   invert: False
+2025-12-14 03:11:56,585 - INFO - ============================================================
+2025-12-14 03:11:56,585 - INFO - Processing 1 files...
+2025-12-14 03:11:56,585 - INFO - Processing /app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg...
+2025-12-14 03:11:56,586 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg with Kraken...
+2025-12-14 03:11:56,585 - INFO - Task 2 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:11:56,587 - INFO - Task 2 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:11:56,588 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:11:56,588 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:11:56,588 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:11:56,591 - INFO - TASK START: Processing north-02.jpg (ID: 2)
+2025-12-14 03:11:56,591 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg --output /app/documents/eluhrs@gmail.com/north-02-0c05b544 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:11:56,609 - INFO - Running from: /app
+2025-12-14 03:11:56,609 - INFO - Using config: /app/config.yml
+2025-12-14 03:11:56,610 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-02-0c05b544
+2025-12-14 03:11:56,610 - INFO - ----------------------------------------
+2025-12-14 03:11:56,613 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:11:56,613 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:11:56,613 - INFO - ============================================================
+2025-12-14 03:11:56,614 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:11:56,615 - INFO - ============================================================
+2025-12-14 03:11:56,615 - INFO - Target Input:       1 files
+2025-12-14 03:11:56,616 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-02-0c05b544
+2025-12-14 03:11:56,617 - INFO - ----------------------------------------
+2025-12-14 03:11:56,617 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:11:56,617 - INFO - ----------------------------------------
+2025-12-14 03:11:56,617 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:11:56,618 - INFO -   Provider:         gemini
+2025-12-14 03:11:56,618 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:11:56,618 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:11:56,618 - INFO -   Temperature:      0.2
+2025-12-14 03:11:56,619 - INFO - ----------------------------------------
+2025-12-14 03:11:56,619 - INFO - Preprocessing Settings:
+2025-12-14 03:11:56,619 - INFO -   debug_image: True
+2025-12-14 03:11:56,619 - INFO -   resize_image: large
+2025-12-14 03:11:56,619 - INFO -   contrast: 1.0
+2025-12-14 03:11:56,619 - INFO -   binarize: False
+2025-12-14 03:11:56,620 - INFO -   invert: False
+2025-12-14 03:11:56,620 - INFO - ============================================================
+2025-12-14 03:11:56,620 - INFO - Processing 1 files...
+2025-12-14 03:11:56,620 - INFO - Processing /app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg...
+2025-12-14 03:11:56,621 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg with Kraken...
+2025-12-14 03:11:56,623 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:11:56,666 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded rock01.jpg
+2025-12-14 03:11:56,668 - INFO - Task server.tasks.process_document_task[6647dec9-53ca-4b9e-a449-ce217e956cb6] received
+2025-12-14 03:11:56,713 - INFO - Task 3 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:11:56,717 - INFO - Task 3 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:11:56,719 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:11:56,720 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:11:56,724 - INFO - TASK START: Processing rock01.jpg (ID: 3)
+2025-12-14 03:11:56,725 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg --output /app/documents/eluhrs@gmail.com/rock01-9fb69ba8 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:11:56,743 - INFO - Running from: /app
+2025-12-14 03:11:56,744 - INFO - Using config: /app/config.yml
+2025-12-14 03:11:56,746 - INFO - Output directory: /app/documents/eluhrs@gmail.com/rock01-9fb69ba8
+2025-12-14 03:11:56,749 - INFO - ----------------------------------------
+2025-12-14 03:11:56,754 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:11:56,754 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:11:56,758 - INFO - ============================================================
+2025-12-14 03:11:56,760 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:11:56,762 - INFO - ============================================================
+2025-12-14 03:11:56,763 - INFO - Target Input:       1 files
+2025-12-14 03:11:56,764 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/rock01-9fb69ba8
+2025-12-14 03:11:56,765 - INFO - ----------------------------------------
+2025-12-14 03:11:56,765 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:11:56,766 - INFO - ----------------------------------------
+2025-12-14 03:11:56,767 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:11:56,768 - INFO -   Provider:         gemini
+2025-12-14 03:11:56,769 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:11:56,771 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:11:56,772 - INFO -   Temperature:      0.2
+2025-12-14 03:11:56,772 - INFO - ----------------------------------------
+2025-12-14 03:11:56,773 - INFO - Preprocessing Settings:
+2025-12-14 03:11:56,775 - INFO -   debug_image: True
+2025-12-14 03:11:56,776 - INFO -   resize_image: large
+2025-12-14 03:11:56,776 - INFO -   contrast: 1.0
+2025-12-14 03:11:56,777 - INFO -   binarize: False
+2025-12-14 03:11:56,779 - INFO -   invert: False
+2025-12-14 03:11:56,779 - INFO - ============================================================
+2025-12-14 03:11:56,780 - INFO - Processing 1 files...
+2025-12-14 03:11:56,781 - INFO - Processing /app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg...
+2025-12-14 03:11:56,782 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg with Kraken...
+2025-12-14 03:11:56,787 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:11:57,413 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg
+2025-12-14 03:11:57,464 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg
+2025-12-14 03:11:57,556 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg
+2025-12-14 03:12:15,028 - INFO - Vectorizing regions
+2025-12-14 03:12:15,074 - INFO - Vectorizing regions
+2025-12-14 03:12:15,238 - INFO - Vectorizing regions
+2025-12-14 03:12:15,382 - INFO - Vectorizing regions
+2025-12-14 03:12:15,585 - INFO - Vectorizing baselines
+2025-12-14 03:12:15,660 - INFO - Vectorizing baselines
+2025-12-14 03:12:15,745 - INFO - Vectorizing regions
+2025-12-14 03:12:16,027 - INFO - Vectorizing regions
+2025-12-14 03:12:16,224 - INFO - Vectorizing baselines
+2025-12-14 03:12:24,646 - INFO - Compute reading order on 15 lines in lr direction
+2025-12-14 03:12:24,647 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:24,647 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:24,648 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:24,648 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:12:24,648 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:24,650 - INFO - Found 16 lines.
+2025-12-14 03:12:24,651 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg'
+2025-12-14 03:12:24,654 - INFO - SUBSCRIPT OUTPUT for 2:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-0c05b544/north-02.jpg'
+
+2025-12-14 03:12:24,654 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-02-0c05b544 not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:24,663 - INFO - Task server.tasks.process_document_task[79ff4e06-3bc6-4857-8d9f-20f34c8138de] succeeded in 28.107139470987022s: None
+2025-12-14 03:12:24,873 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-14 03:12:24,874 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:24,875 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:24,875 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:24,877 - INFO - Found 18 lines.
+2025-12-14 03:12:24,877 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg'
+2025-12-14 03:12:24,879 - INFO - SUBSCRIPT OUTPUT for 1:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-3cf441b9/north-01.jpg'
+
+2025-12-14 03:12:24,879 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-01-3cf441b9 not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:24,892 - INFO - Task server.tasks.process_document_task[ba1f88eb-6c69-4335-b55a-f81057a04e45] succeeded in 28.37157842994202s: None
+2025-12-14 03:12:26,106 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-01.jpg
+2025-12-14 03:12:26,123 - INFO - Task server.tasks.process_document_task[e4a9fa88-ffb8-444f-9849-300ec4044197] received
+2025-12-14 03:12:26,151 - INFO - Task 1 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:12:26,151 - INFO - Task 1 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:12:26,151 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:12:26,152 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:12:26,153 - INFO - TASK START: Processing north-01.jpg (ID: 1)
+2025-12-14 03:12:26,154 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg --output /app/documents/eluhrs@gmail.com/north-01-33c13afb --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:12:26,163 - INFO - Running from: /app
+2025-12-14 03:12:26,163 - INFO - Using config: /app/config.yml
+2025-12-14 03:12:26,164 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-01-33c13afb
+2025-12-14 03:12:26,164 - INFO - ----------------------------------------
+2025-12-14 03:12:26,165 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:12:26,165 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:12:26,166 - INFO - ============================================================
+2025-12-14 03:12:26,166 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:12:26,166 - INFO - ============================================================
+2025-12-14 03:12:26,166 - INFO - Target Input:       1 files
+2025-12-14 03:12:26,166 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-01-33c13afb
+2025-12-14 03:12:26,167 - INFO - ----------------------------------------
+2025-12-14 03:12:26,167 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:12:26,167 - INFO - ----------------------------------------
+2025-12-14 03:12:26,167 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:12:26,167 - INFO -   Provider:         gemini
+2025-12-14 03:12:26,167 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:12:26,168 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:12:26,168 - INFO -   Temperature:      0.2
+2025-12-14 03:12:26,168 - INFO - ----------------------------------------
+2025-12-14 03:12:26,168 - INFO - Preprocessing Settings:
+2025-12-14 03:12:26,168 - INFO -   debug_image: True
+2025-12-14 03:12:26,169 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-02.jpg
+2025-12-14 03:12:26,169 - INFO -   resize_image: large
+2025-12-14 03:12:26,169 - INFO -   contrast: 1.0
+2025-12-14 03:12:26,169 - INFO -   binarize: False
+2025-12-14 03:12:26,169 - INFO -   invert: False
+2025-12-14 03:12:26,169 - INFO - ============================================================
+2025-12-14 03:12:26,169 - INFO - Processing 1 files...
+2025-12-14 03:12:26,170 - INFO - Processing /app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg...
+2025-12-14 03:12:26,170 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg with Kraken...
+2025-12-14 03:12:26,170 - INFO - Task server.tasks.process_document_task[3895e477-7097-4e17-b306-2f46a54e5a6f] received
+2025-12-14 03:12:26,171 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:12:26,197 - INFO - Task 2 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:12:26,198 - INFO - Task 2 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:12:26,198 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:12:26,198 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:12:26,200 - INFO - TASK START: Processing north-02.jpg (ID: 2)
+2025-12-14 03:12:26,201 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg --output /app/documents/eluhrs@gmail.com/north-02-41e5978a --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:12:26,214 - INFO - Running from: /app
+2025-12-14 03:12:26,215 - INFO - Using config: /app/config.yml
+2025-12-14 03:12:26,215 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-02-41e5978a
+2025-12-14 03:12:26,215 - INFO - ----------------------------------------
+2025-12-14 03:12:26,216 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:12:26,216 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:12:26,217 - INFO - ============================================================
+2025-12-14 03:12:26,217 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:12:26,217 - INFO - ============================================================
+2025-12-14 03:12:26,217 - INFO - Target Input:       1 files
+2025-12-14 03:12:26,217 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-02-41e5978a
+2025-12-14 03:12:26,218 - INFO - ----------------------------------------
+2025-12-14 03:12:26,218 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:12:26,218 - INFO - ----------------------------------------
+2025-12-14 03:12:26,218 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:12:26,218 - INFO -   Provider:         gemini
+2025-12-14 03:12:26,218 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:12:26,219 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:12:26,219 - INFO -   Temperature:      0.2
+2025-12-14 03:12:26,219 - INFO - ----------------------------------------
+2025-12-14 03:12:26,219 - INFO - Preprocessing Settings:
+2025-12-14 03:12:26,219 - INFO -   debug_image: True
+2025-12-14 03:12:26,220 - INFO -   resize_image: large
+2025-12-14 03:12:26,220 - INFO -   contrast: 1.0
+2025-12-14 03:12:26,220 - INFO -   binarize: False
+2025-12-14 03:12:26,220 - INFO -   invert: False
+2025-12-14 03:12:26,220 - INFO - ============================================================
+2025-12-14 03:12:26,221 - INFO - Processing 1 files...
+2025-12-14 03:12:26,221 - INFO - Processing /app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg...
+2025-12-14 03:12:26,221 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg with Kraken...
+2025-12-14 03:12:26,224 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:12:26,265 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded rock01.jpg
+2025-12-14 03:12:26,268 - INFO - Task server.tasks.process_document_task[f17cf0c6-1b0c-42c7-9238-babae1cb3d29] received
+2025-12-14 03:12:26,329 - INFO - Task 3 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:12:26,331 - INFO - Task 3 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:12:26,332 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:12:26,332 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:12:26,339 - INFO - TASK START: Processing rock01.jpg (ID: 3)
+2025-12-14 03:12:26,341 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg --output /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:12:26,370 - INFO - Running from: /app
+2025-12-14 03:12:26,381 - INFO - Using config: /app/config.yml
+2025-12-14 03:12:26,388 - INFO - Output directory: /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c
+2025-12-14 03:12:26,395 - INFO - ----------------------------------------
+2025-12-14 03:12:26,424 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:12:26,427 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:12:26,428 - INFO - ============================================================
+2025-12-14 03:12:26,428 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:12:26,428 - INFO - ============================================================
+2025-12-14 03:12:26,429 - INFO - Target Input:       1 files
+2025-12-14 03:12:26,429 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c
+2025-12-14 03:12:26,429 - INFO - ----------------------------------------
+2025-12-14 03:12:26,429 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:12:26,433 - INFO - ----------------------------------------
+2025-12-14 03:12:26,433 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:12:26,433 - INFO -   Provider:         gemini
+2025-12-14 03:12:26,433 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:12:26,433 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:12:26,434 - INFO -   Temperature:      0.2
+2025-12-14 03:12:26,434 - INFO - ----------------------------------------
+2025-12-14 03:12:26,434 - INFO - Preprocessing Settings:
+2025-12-14 03:12:26,434 - INFO -   debug_image: True
+2025-12-14 03:12:26,434 - INFO -   resize_image: large
+2025-12-14 03:12:26,434 - INFO -   contrast: 1.0
+2025-12-14 03:12:26,434 - INFO -   binarize: False
+2025-12-14 03:12:26,434 - INFO -   invert: False
+2025-12-14 03:12:26,435 - INFO - ============================================================
+2025-12-14 03:12:26,435 - INFO - Processing 1 files...
+2025-12-14 03:12:26,435 - INFO - Processing /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg...
+2025-12-14 03:12:26,435 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg with Kraken...
+2025-12-14 03:12:26,451 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:12:27,679 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg
+2025-12-14 03:12:27,680 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg
+2025-12-14 03:12:27,690 - INFO - Compute reading order on 23 lines in lr direction
+2025-12-14 03:12:27,693 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:27,697 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:27,697 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:27,698 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:12:27,698 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:27,704 - INFO - Found 24 lines.
+2025-12-14 03:12:27,708 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg'
+2025-12-14 03:12:27,711 - INFO - SUBSCRIPT OUTPUT for 3:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-9fb69ba8/rock01.jpg'
+
+2025-12-14 03:12:27,715 - WARNING - Output directory /app/documents/eluhrs@gmail.com/rock01-9fb69ba8 not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:27,730 - INFO - Task server.tasks.process_document_task[6647dec9-53ca-4b9e-a449-ce217e956cb6] succeeded in 31.053729055915028s: None
+2025-12-14 03:12:27,931 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg
+2025-12-14 03:12:42,457 - INFO - Vectorizing regions
+2025-12-14 03:12:42,626 - INFO - Vectorizing regions
+2025-12-14 03:12:42,763 - INFO - Vectorizing regions
+2025-12-14 03:12:42,788 - INFO - Vectorizing baselines
+2025-12-14 03:12:43,371 - INFO - Vectorizing regions
+2025-12-14 03:12:43,553 - INFO - Vectorizing baselines
+2025-12-14 03:12:43,728 - INFO - Vectorizing regions
+2025-12-14 03:12:43,962 - INFO - Vectorizing regions
+2025-12-14 03:12:44,154 - INFO - Vectorizing baselines
+2025-12-14 03:12:51,332 - INFO - Compute reading order on 15 lines in lr direction
+2025-12-14 03:12:51,336 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:51,340 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:51,340 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:51,340 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:12:51,340 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:51,342 - INFO - Found 16 lines.
+2025-12-14 03:12:51,343 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg'
+2025-12-14 03:12:51,345 - INFO - SUBSCRIPT OUTPUT for 2:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-41e5978a/north-02.jpg'
+
+2025-12-14 03:12:51,349 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-02-41e5978a not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:51,363 - INFO - Task server.tasks.process_document_task[3895e477-7097-4e17-b306-2f46a54e5a6f] succeeded in 25.190226927981712s: None
+2025-12-14 03:12:51,880 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-14 03:12:51,881 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:51,882 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:51,882 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:51,885 - INFO - Found 18 lines.
+2025-12-14 03:12:51,885 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg'
+2025-12-14 03:12:51,887 - INFO - SUBSCRIPT OUTPUT for 1:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-33c13afb/north-01.jpg'
+
+2025-12-14 03:12:51,887 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-01-33c13afb not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:51,894 - INFO - Task server.tasks.process_document_task[e4a9fa88-ffb8-444f-9849-300ec4044197] succeeded in 25.768313969951123s: None
+2025-12-14 03:12:54,088 - INFO - Compute reading order on 23 lines in lr direction
+2025-12-14 03:12:54,091 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:54,091 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:12:54,092 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:54,092 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:12:54,092 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:12:54,097 - INFO - Found 24 lines.
+2025-12-14 03:12:54,100 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg'
+2025-12-14 03:12:54,107 - INFO - SUBSCRIPT OUTPUT for 3:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-4d6f5e6c/rock01.jpg'
+
+2025-12-14 03:12:54,121 - WARNING - Output directory /app/documents/eluhrs@gmail.com/rock01-4d6f5e6c not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:12:54,149 - INFO - Task server.tasks.process_document_task[f17cf0c6-1b0c-42c7-9238-babae1cb3d29] succeeded in 27.86406255501788s: None
+2025-12-14 03:15:47,708 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-01.jpg
+2025-12-14 03:15:47,736 - INFO - Task server.tasks.process_document_task[34e3532b-bca5-4a5e-8237-aa29e46c9019] received
+2025-12-14 03:15:47,768 - INFO - Task 1 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:15:47,769 - INFO - Task 1 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:15:47,769 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:15:47,770 - INFO - Task 1 found temp override: 0.2
+2025-12-14 03:15:47,772 - INFO - TASK START: Processing north-01.jpg (ID: 1)
+2025-12-14 03:15:47,772 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg --output /app/documents/eluhrs@gmail.com/north-01-dc7314d0 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:15:47,788 - INFO - Running from: /app
+2025-12-14 03:15:47,788 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded north-02.jpg
+2025-12-14 03:15:47,788 - INFO - Using config: /app/config.yml
+2025-12-14 03:15:47,789 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-01-dc7314d0
+2025-12-14 03:15:47,789 - INFO - ----------------------------------------
+2025-12-14 03:15:47,791 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:15:47,791 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:15:47,791 - INFO - ============================================================
+2025-12-14 03:15:47,792 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:15:47,792 - INFO - Task server.tasks.process_document_task[6353698c-b783-4e76-b81e-02762005e166] received
+2025-12-14 03:15:47,792 - INFO - ============================================================
+2025-12-14 03:15:47,793 - INFO - Target Input:       1 files
+2025-12-14 03:15:47,793 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-01-dc7314d0
+2025-12-14 03:15:47,794 - INFO - ----------------------------------------
+2025-12-14 03:15:47,794 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:15:47,794 - INFO - ----------------------------------------
+2025-12-14 03:15:47,795 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:15:47,795 - INFO -   Provider:         gemini
+2025-12-14 03:15:47,795 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:15:47,798 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:15:47,803 - INFO -   Temperature:      0.2
+2025-12-14 03:15:47,804 - INFO - ----------------------------------------
+2025-12-14 03:15:47,805 - INFO - Preprocessing Settings:
+2025-12-14 03:15:47,805 - INFO -   debug_image: True
+2025-12-14 03:15:47,805 - INFO -   resize_image: large
+2025-12-14 03:15:47,807 - INFO -   contrast: 1.0
+2025-12-14 03:15:47,807 - INFO -   binarize: False
+2025-12-14 03:15:47,808 - INFO -   invert: False
+2025-12-14 03:15:47,808 - INFO - ============================================================
+2025-12-14 03:15:47,808 - INFO - Processing 1 files...
+2025-12-14 03:15:47,809 - INFO - Processing /app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg...
+2025-12-14 03:15:47,809 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg with Kraken...
+2025-12-14 03:15:47,811 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:15:47,823 - INFO - Task 2 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:15:47,825 - INFO - Task 2 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:15:47,826 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:15:47,826 - INFO - Task 2 found temp override: 0.2
+2025-12-14 03:15:47,829 - INFO - TASK START: Processing north-02.jpg (ID: 2)
+2025-12-14 03:15:47,830 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg --output /app/documents/eluhrs@gmail.com/north-02-6336e12f --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:15:47,844 - INFO - Running from: /app
+2025-12-14 03:15:47,844 - INFO - Using config: /app/config.yml
+2025-12-14 03:15:47,845 - INFO - Output directory: /app/documents/eluhrs@gmail.com/north-02-6336e12f
+2025-12-14 03:15:47,845 - INFO - ----------------------------------------
+2025-12-14 03:15:47,846 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:15:47,847 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:15:47,847 - INFO - ============================================================
+2025-12-14 03:15:47,847 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:15:47,848 - INFO - ============================================================
+2025-12-14 03:15:47,848 - INFO - Target Input:       1 files
+2025-12-14 03:15:47,848 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/north-02-6336e12f
+2025-12-14 03:15:47,848 - INFO - ----------------------------------------
+2025-12-14 03:15:47,849 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:15:47,849 - INFO - ----------------------------------------
+2025-12-14 03:15:47,849 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:15:47,849 - INFO -   Provider:         gemini
+2025-12-14 03:15:47,849 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:15:47,850 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:15:47,850 - INFO -   Temperature:      0.2
+2025-12-14 03:15:47,850 - INFO - ----------------------------------------
+2025-12-14 03:15:47,851 - INFO - Preprocessing Settings:
+2025-12-14 03:15:47,851 - INFO -   debug_image: True
+2025-12-14 03:15:47,851 - INFO -   resize_image: large
+2025-12-14 03:15:47,851 - INFO -   contrast: 1.0
+2025-12-14 03:15:47,852 - INFO -   binarize: False
+2025-12-14 03:15:47,852 - INFO -   invert: False
+2025-12-14 03:15:47,852 - INFO - ============================================================
+2025-12-14 03:15:47,852 - INFO - Processing 1 files...
+2025-12-14 03:15:47,853 - INFO - Processing /app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg...
+2025-12-14 03:15:47,853 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg with Kraken...
+2025-12-14 03:15:47,855 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:15:47,897 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded rock01.jpg
+2025-12-14 03:15:47,899 - INFO - Task server.tasks.process_document_task[01205ad6-5f10-49b3-b0fb-8fef9291679b] received
+2025-12-14 03:15:47,929 - INFO - Task 3 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 03:15:47,932 - INFO - Task 3 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 03:15:47,932 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:15:47,933 - INFO - Task 3 found temp override: 0.2
+2025-12-14 03:15:47,936 - INFO - TASK START: Processing rock01.jpg (ID: 3)
+2025-12-14 03:15:47,937 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg --output /app/documents/eluhrs@gmail.com/rock01-fd845fe4 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 03:15:47,951 - INFO - Running from: /app
+2025-12-14 03:15:47,952 - INFO - Using config: /app/config.yml
+2025-12-14 03:15:47,953 - INFO - Output directory: /app/documents/eluhrs@gmail.com/rock01-fd845fe4
+2025-12-14 03:15:47,953 - INFO - ----------------------------------------
+2025-12-14 03:15:47,955 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 03:15:47,956 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 03:15:47,956 - INFO - ============================================================
+2025-12-14 03:15:47,957 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 03:15:47,958 - INFO - ============================================================
+2025-12-14 03:15:47,959 - INFO - Target Input:       1 files
+2025-12-14 03:15:47,960 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/rock01-fd845fe4
+2025-12-14 03:15:47,960 - INFO - ----------------------------------------
+2025-12-14 03:15:47,961 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 03:15:47,961 - INFO - ----------------------------------------
+2025-12-14 03:15:47,962 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 03:15:47,963 - INFO -   Provider:         gemini
+2025-12-14 03:15:47,964 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 03:15:47,964 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 03:15:47,965 - INFO -   Temperature:      0.2
+2025-12-14 03:15:47,965 - INFO - ----------------------------------------
+2025-12-14 03:15:47,966 - INFO - Preprocessing Settings:
+2025-12-14 03:15:47,966 - INFO -   debug_image: True
+2025-12-14 03:15:47,966 - INFO -   resize_image: large
+2025-12-14 03:15:47,967 - INFO -   contrast: 1.0
+2025-12-14 03:15:47,968 - INFO -   binarize: False
+2025-12-14 03:15:47,968 - INFO -   invert: False
+2025-12-14 03:15:47,969 - INFO - ============================================================
+2025-12-14 03:15:47,969 - INFO - Processing 1 files...
+2025-12-14 03:15:47,970 - INFO - Processing /app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg...
+2025-12-14 03:15:47,970 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg with Kraken...
+2025-12-14 03:15:47,974 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 03:15:48,658 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg
+2025-12-14 03:15:48,692 - INFO - Segmenting /app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg
+2025-12-14 03:15:48,765 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg
+2025-12-14 03:16:03,282 - INFO - Vectorizing regions
+2025-12-14 03:16:03,318 - INFO - Vectorizing regions
+2025-12-14 03:16:03,437 - INFO - Vectorizing regions
+2025-12-14 03:16:03,471 - INFO - Vectorizing regions
+2025-12-14 03:16:03,571 - INFO - Vectorizing baselines
+2025-12-14 03:16:03,613 - INFO - Vectorizing regions
+2025-12-14 03:16:03,623 - INFO - Vectorizing baselines
+2025-12-14 03:16:03,819 - INFO - Vectorizing regions
+2025-12-14 03:16:04,016 - INFO - Vectorizing baselines
+2025-12-14 03:16:11,608 - INFO - Compute reading order on 15 lines in lr direction
+2025-12-14 03:16:11,610 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:11,610 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:16:11,611 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:11,611 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:16:11,611 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:11,613 - INFO - Found 16 lines.
+2025-12-14 03:16:11,614 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg'
+2025-12-14 03:16:11,615 - INFO - SUBSCRIPT OUTPUT for 2:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-02-6336e12f/north-02.jpg'
+
+2025-12-14 03:16:11,615 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-02-6336e12f not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:16:11,621 - INFO - Task server.tasks.process_document_task[6353698c-b783-4e76-b81e-02762005e166] succeeded in 23.822568969917484s: None
+2025-12-14 03:16:11,633 - INFO - Compute reading order on 18 lines in lr direction
+2025-12-14 03:16:11,634 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:11,635 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:16:11,635 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:11,639 - INFO - Found 18 lines.
+2025-12-14 03:16:11,639 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg'
+2025-12-14 03:16:11,641 - INFO - SUBSCRIPT OUTPUT for 1:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/north-01-dc7314d0/north-01.jpg'
+
+2025-12-14 03:16:11,641 - WARNING - Output directory /app/documents/eluhrs@gmail.com/north-01-dc7314d0 not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:16:11,646 - INFO - Task server.tasks.process_document_task[34e3532b-bca5-4a5e-8237-aa29e46c9019] succeeded in 23.903146885917522s: None
+2025-12-14 03:16:13,582 - INFO - Compute reading order on 23 lines in lr direction
+2025-12-14 03:16:13,584 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:13,586 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 03:16:13,587 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:13,587 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 03:16:13,588 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 03:16:13,594 - INFO - Found 24 lines.
+2025-12-14 03:16:13,596 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg'
+2025-12-14 03:16:13,598 - INFO - SUBSCRIPT OUTPUT for 3:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 357, in main
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-fd845fe4/rock01.jpg'
+
+2025-12-14 03:16:13,599 - WARNING - Output directory /app/documents/eluhrs@gmail.com/rock01-fd845fe4 not found. Document likely deleted by user. Aborting task completion.
+2025-12-14 03:16:13,606 - INFO - Task server.tasks.process_document_task[01205ad6-5f10-49b3-b0fb-8fef9291679b] succeeded in 25.700944137061015s: None
