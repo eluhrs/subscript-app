@@ -396,14 +396,28 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                 {/* Actions Toolbar */}
                                 <div className="flex items-center bg-[#F7F7F5] rounded-lg p-1 gap-1 flex-shrink-0">
 
-                                    <button onClick={() => handleEdit(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition" title="Edit">
+                                    {/* Edit Button */}
+                                    <button
+                                        onClick={() => handleEdit(doc)}
+                                        disabled={doc.status !== 'completed' && doc.status !== 'error'}
+                                        className={`flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition ${(doc.status !== 'completed' && doc.status !== 'error') ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
+                                        title={(doc.status !== 'completed' && doc.status !== 'error') ? "Available when processing is complete." : "Edit"}
+                                    >
                                         <Pencil size={16} className="mb-0.5" />
                                         <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Edit</span>
                                     </button>
 
                                     <div className="w-px h-6 bg-gray-300"></div>
 
-                                    <button onClick={() => handleShare(doc)} className="flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition" title="Share (Public Link)">
+                                    {/* Share Button */}
+                                    <button
+                                        onClick={() => handleShare(doc)}
+                                        disabled={doc.status !== 'completed' && doc.status !== 'error'}
+                                        className={`flex flex-col items-center justify-center w-10 md:w-12 h-8 md:h-10 hover:bg-[#E0E0DE] rounded text-[#3A5A80] transition ${(doc.status !== 'completed' && doc.status !== 'error') ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
+                                        title={(doc.status !== 'completed' && doc.status !== 'error') ? "Available when processing is complete." : "Share (Public Link)"}
+                                    >
                                         <Share2 size={16} className="mb-0.5" />
                                         <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Share</span>
                                     </button>
@@ -417,7 +431,11 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                                 e.stopPropagation();
                                                 setActiveMenuDocId(activeMenuDocId === doc.id ? null : doc.id);
                                             }}
-                                            className={`flex flex-col items-center justify-center w-12 md:w-14 h-8 md:h-10 rounded transition ${activeMenuDocId === doc.id ? 'bg-[#E0E0DE] text-[#3A5A80]' : 'bg-[#F7F7F5] text-[#3A5A80] hover:bg-[#E0E0DE]'}`}
+                                            disabled={doc.status !== 'completed' && doc.status !== 'error'}
+                                            className={`flex flex-col items-center justify-center w-12 md:w-14 h-8 md:h-10 rounded transition ${activeMenuDocId === doc.id ? 'bg-[#E0E0DE] text-[#3A5A80]' : 'bg-[#F7F7F5] text-[#3A5A80] hover:bg-[#E0E0DE]'
+                                                } ${(doc.status !== 'completed' && doc.status !== 'error') ? 'opacity-50 cursor-not-allowed' : ''
+                                                }`}
+                                            title={(doc.status !== 'completed' && doc.status !== 'error') ? "Available when processing is complete." : ""}
                                         >
                                             <FolderOpen size={16} className="mb-0.5" />
                                             <span className="text-[9px] font-medium scale-90 md:scale-100 origin-center">Files ▼</span>

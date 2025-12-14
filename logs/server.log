@@ -8661,3 +8661,175 @@ Cost:   $0.0062
 2025-12-14 02:06:19,641 - INFO - SYSTEM: Server module initialized at 2025-12-14 02:06:19.641615
 2025-12-14 02:11:47,717 - INFO - SYSTEM: Server module initialized at 2025-12-14 02:11:47.717957
 2025-12-14 02:14:10,411 - INFO - SYSTEM: Server module initialized at 2025-12-14 02:14:10.411032
+2025-12-14 02:52:20,026 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded rock01.jpg
+2025-12-14 02:52:20,184 - INFO - Task server.tasks.process_document_task[80e2316f-0228-4fd1-8d43-0a046a0d0fe8] received
+2025-12-14 02:52:20,214 - INFO - Task 4 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 02:52:20,215 - INFO - Task 4 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 02:52:20,215 - INFO - Task 4 found temp override: 0.2
+2025-12-14 02:52:20,215 - INFO - Task 4 found temp override: 0.2
+2025-12-14 02:52:20,218 - INFO - TASK START: Processing rock01.jpg (ID: 4)
+2025-12-14 02:52:20,218 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg --output /app/documents/eluhrs@gmail.com/rock01-81e85687 --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 02:52:20,232 - INFO - Running from: /app
+2025-12-14 02:52:20,232 - INFO - Using config: /app/config.yml
+2025-12-14 02:52:20,232 - INFO - Output directory: /app/documents/eluhrs@gmail.com/rock01-81e85687
+2025-12-14 02:52:20,233 - INFO - ----------------------------------------
+2025-12-14 02:52:20,236 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 02:52:20,236 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 02:52:20,237 - INFO - ============================================================
+2025-12-14 02:52:20,237 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 02:52:20,237 - INFO - ============================================================
+2025-12-14 02:52:20,238 - INFO - Target Input:       1 files
+2025-12-14 02:52:20,238 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/rock01-81e85687
+2025-12-14 02:52:20,239 - INFO - ----------------------------------------
+2025-12-14 02:52:20,239 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 02:52:20,239 - INFO - ----------------------------------------
+2025-12-14 02:52:20,240 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 02:52:20,240 - INFO -   Provider:         gemini
+2025-12-14 02:52:20,240 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 02:52:20,240 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 02:52:20,240 - INFO -   Temperature:      0.2
+2025-12-14 02:52:20,240 - INFO - ----------------------------------------
+2025-12-14 02:52:20,240 - INFO - Preprocessing Settings:
+2025-12-14 02:52:20,241 - INFO -   debug_image: True
+2025-12-14 02:52:20,241 - INFO -   resize_image: large
+2025-12-14 02:52:20,241 - INFO -   contrast: 1.0
+2025-12-14 02:52:20,241 - INFO -   binarize: False
+2025-12-14 02:52:20,241 - INFO -   invert: False
+2025-12-14 02:52:20,241 - INFO - ============================================================
+2025-12-14 02:52:20,241 - INFO - Processing 1 files...
+2025-12-14 02:52:20,242 - INFO - Processing /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg...
+2025-12-14 02:52:20,242 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg with Kraken...
+2025-12-14 02:52:20,244 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 02:52:20,830 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg
+2025-12-14 02:52:26,090 - INFO - Vectorizing regions
+2025-12-14 02:52:26,678 - INFO - Vectorizing regions
+2025-12-14 02:52:26,924 - INFO - Vectorizing baselines
+2025-12-14 02:52:36,954 - INFO - Compute reading order on 23 lines in lr direction
+2025-12-14 02:52:36,957 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:52:36,959 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 02:52:36,960 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:52:36,960 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 02:52:36,961 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:52:36,964 - INFO - Found 24 lines.
+2025-12-14 02:52:36,965 - INFO - Initializing Gemini model: gemini-3-pro-preview
+2025-12-14 02:52:37,136 - INFO - Resized image to (2289, 3000)
+2025-12-14 02:52:37,145 - INFO - Annotating 24 regions for Visual Tagging...
+2025-12-14 02:52:37,244 - INFO - Saved debug image to /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01-debug.jpg
+2025-12-14 02:52:37,244 - INFO - Sending annotated image to Gemini...
+2025-12-14 02:53:33,075 - INFO - Received JSON response from Gemini.
+2025-12-14 02:53:33,081 - ERROR - Failed to generate PDF: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg'
+2025-12-14 02:53:33,081 - ERROR - Failed to process /app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg'
+2025-12-14 02:53:33,087 - INFO - SUBSCRIPT OUTPUT for 4:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/site-packages/subscript/__main__.py", line 366, in main
+    output_engine.generate(image_path, regions, config.get('output_dir', 'output'), config)
+  File "/usr/local/lib/python3.10/site-packages/subscript/modules/output.py", line 32, in generate
+    self._generate_xml(image_path, regions, xml_path)
+  File "/usr/local/lib/python3.10/site-packages/subscript/modules/output.py", line 52, in _generate_xml
+    with Image.open(image_path) as im:
+  File "/usr/local/lib/python3.10/site-packages/PIL/Image.py", line 3493, in open
+    fp = builtins.open(filename, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: '/app/documents/eluhrs@gmail.com/rock01-81e85687/rock01.jpg'
+
+2025-12-14 02:53:33,090 - WARNING - Document 4 deleted during processing. Suppressing error.
+2025-12-14 02:53:33,093 - INFO - Task server.tasks.process_document_task[80e2316f-0228-4fd1-8d43-0a046a0d0fe8] succeeded in 72.90038444998208s: None
+2025-12-14 02:58:33,730 - INFO - JOB SUBMITTED: User eluhrs@gmail.com uploaded rock01.jpg
+2025-12-14 02:58:33,769 - INFO - Task server.tasks.process_document_task[08e7b6ee-f651-464e-b21e-74bd9388b4e7] received
+2025-12-14 02:58:33,805 - INFO - Task 4 parsed options: {'transcription': {'prompt': 'You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").', 'temperature': 0.2}, 'segmentation_model': 'historical-manuscript', 'preprocessing': {}}
+2025-12-14 02:58:33,807 - INFO - Task 4 found prompt override: You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ").
+2025-12-14 02:58:33,807 - INFO - Task 4 found temp override: 0.2
+2025-12-14 02:58:33,807 - INFO - Task 4 found temp override: 0.2
+2025-12-14 02:58:33,809 - INFO - TASK START: Processing rock01.jpg (ID: 4)
+2025-12-14 02:58:33,809 - INFO - Command: subscript historical-manuscript gemini-pro-3 /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.jpg --output /app/documents/eluhrs@gmail.com/rock01-d235476e --prompt You are a literal transcription engine for 19th-century handwritten manuscripts. Extract text from the supplied image exactly as written. Preserve all original spelling, punctuation, capitalization, and line breaks. Do not modernize, interpret, or expand abbreviations. The only modernization you should perform is to modernize obsolete characters (example, print "s" not "ſ"). --temp 0.2
+2025-12-14 02:58:33,827 - INFO - Running from: /app
+2025-12-14 02:58:33,827 - INFO - Using config: /app/config.yml
+2025-12-14 02:58:33,827 - INFO - Output directory: /app/documents/eluhrs@gmail.com/rock01-d235476e
+2025-12-14 02:58:33,828 - INFO - ----------------------------------------
+2025-12-14 02:58:33,830 - INFO - 
+Subscript.py initialized segmentation provider: historical-manuscript
+2025-12-14 02:58:33,830 - INFO - Subscript.py Initialized transcription provider: gemini-pro-3
+2025-12-14 02:58:33,831 - INFO - ============================================================
+2025-12-14 02:58:33,831 - INFO - SUBSCRIPT CONFIGURATION MANIFEST
+2025-12-14 02:58:33,832 - INFO - ============================================================
+2025-12-14 02:58:33,833 - INFO - Target Input:       1 files
+2025-12-14 02:58:33,833 - INFO - Output Directory:   /app/documents/eluhrs@gmail.com/rock01-d235476e
+2025-12-14 02:58:33,834 - INFO - ----------------------------------------
+2025-12-14 02:58:33,834 - INFO - Segmentation Model: historical-manuscript
+2025-12-14 02:58:33,834 - INFO - ----------------------------------------
+2025-12-14 02:58:33,834 - INFO - Transcription Model: gemini-pro-3
+2025-12-14 02:58:33,835 - INFO -   Provider:         gemini
+2025-12-14 02:58:33,835 - INFO -   Model Name:       gemini-3-pro-preview
+2025-12-14 02:58:33,835 - INFO -   Prompt:           You are a literal transcription engine for 19th-ce...
+2025-12-14 02:58:33,835 - INFO -   Temperature:      0.2
+2025-12-14 02:58:33,836 - INFO - ----------------------------------------
+2025-12-14 02:58:33,836 - INFO - Preprocessing Settings:
+2025-12-14 02:58:33,836 - INFO -   debug_image: True
+2025-12-14 02:58:33,836 - INFO -   resize_image: large
+2025-12-14 02:58:33,837 - INFO -   contrast: 1.0
+2025-12-14 02:58:33,837 - INFO -   binarize: False
+2025-12-14 02:58:33,837 - INFO -   invert: False
+2025-12-14 02:58:33,837 - INFO - ============================================================
+2025-12-14 02:58:33,837 - INFO - Processing 1 files...
+2025-12-14 02:58:33,838 - INFO - Processing /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.jpg...
+2025-12-14 02:58:33,838 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.jpg with Kraken...
+2025-12-14 02:58:33,840 - INFO - Loading segmentation model from /usr/local/lib/python3.10/site-packages/kraken/blla.mlmodel...
+2025-12-14 02:58:34,538 - INFO - Segmenting /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.jpg
+2025-12-14 02:58:42,392 - INFO - Vectorizing regions
+2025-12-14 02:58:42,604 - INFO - Vectorizing regions
+2025-12-14 02:58:42,802 - INFO - Vectorizing baselines
+2025-12-14 02:58:52,856 - INFO - Compute reading order on 23 lines in lr direction
+2025-12-14 02:58:52,863 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:58:52,866 - INFO - Compute reading order on 1 lines in lr direction
+2025-12-14 02:58:52,867 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:58:52,869 - INFO - Compute reading order on 2 lines in lr direction
+2025-12-14 02:58:52,870 - INFO - Perform topological sort on partially ordered lines
+2025-12-14 02:58:52,875 - INFO - Found 24 lines.
+2025-12-14 02:58:52,882 - INFO - Initializing Gemini model: gemini-3-pro-preview
+2025-12-14 02:58:53,082 - INFO - Resized image to (2289, 3000)
+2025-12-14 02:58:53,093 - INFO - Annotating 24 regions for Visual Tagging...
+2025-12-14 02:58:53,198 - INFO - Saved debug image to /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01-debug.jpg
+2025-12-14 02:58:53,199 - INFO - Sending annotated image to Gemini...
+2025-12-14 02:59:29,020 - INFO - Received JSON response from Gemini.
+2025-12-14 02:59:29,476 - INFO - SUBSCRIPT OUTPUT for 4:
+
+------------- gemini-pro-3 output for rock01.jpg -------------
+74
+Panama, Dec. 29. 1874
+My dear Capt. Green,-
+Your favor by Dr. Boyd duly came.
+We observed our latitude stars on Sunday night, and
+of course last night again. The instrument behaves well.
+Yesterday morning (before your letter came) & this morn.
+we observed for azimuth & variation. Though heavily on
+our minds we couldn't accomplish it earlier, while the
+longitude work lasted. On Sat. night we observed 24 stars.
+I will enclose your signals. I think our work is a success.
+To-day Mr. Spencer dismounts the telegraph line. We hope to
+un
+come over on Sat. Morn. - I do not think the pier is steady,
+I think some one hit an arm of the instrument unconsciously
+each time I found it out of meridian.
+The vernier trouble is due to that arm making an angle
+with the vertical. I am convinced that most of the register
+troubles are due to bad quality of the fillet paper. It is un=
+equal thickness at two edges and also varies in thickness
+lengthwise, so as to require frequent readjustment of
+rollers & stylet.
+Very truly Yrs.
+Miles Rock
+----------------------------------------------------------------
+
+Saved PageXML to /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.xml
+Saved TXT to /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.txt
+Saved PDF to /app/documents/eluhrs@gmail.com/rock01-d235476e/rock01.pdf
+
+Time:   00:00:55
+Input:  1280 tokens
+Output: 418 tokens
+Cost:   $0.0076
+
+----------------------------------------------------------------
+
+
+2025-12-14 02:59:29,498 - INFO - Task server.tasks.process_document_task[08e7b6ee-f651-464e-b21e-74bd9388b4e7] succeeded in 55.719996567000635s: None
