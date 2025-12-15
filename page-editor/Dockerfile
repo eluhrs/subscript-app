@@ -42,6 +42,9 @@ RUN sed -i '/custom\.js/d' /var/www/nw-page-editor/web-app/index.php
 # Create CSS/JS directories if they don't exist (safety)
 RUN mkdir -p /var/www/nw-page-editor/css /var/www/nw-page-editor/js
 
+# Fix Permissions: Align www-data with host UID 5000
+RUN usermod -u 5000 www-data && groupmod -g 5000 www-data
+
 # Fix Permissions for Data Directory (Critical for Saving)
 RUN mkdir -p /var/www/nw-page-editor/data && \
     chown -R www-data:www-data /var/www/nw-page-editor/data && \
