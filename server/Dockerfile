@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 
-# Create a non-root user
-RUN useradd -m -u 1000 appuser
+# Create a non-root user (UID 5000)
+RUN useradd -m -u 5000 appuser
 
 # Copy Server Code (Exclude local src/subscript hacks)
 COPY server /app/server
