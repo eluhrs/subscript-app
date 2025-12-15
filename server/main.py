@@ -50,7 +50,9 @@ logger.info(f"SYSTEM: Server module initialized at {datetime.now()}")
 # --- Configuration ---
 USER_DOCS_DIR = "/app/documents"
 DATABASE_URL = "sqlite:////app/server/subscript.db"
-SECRET_KEY = "your-secret-key-change-this-in-production" # TODO: Load from env
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("FATAL: SECRET_KEY environment variable is not set. Please generate a strong key and add it to your .env file.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
