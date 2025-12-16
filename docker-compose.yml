@@ -10,7 +10,7 @@ services:
       dockerfile: server/Dockerfile
     command: celery -A server.celery_app worker --loglevel=info
     volumes:
-      - ./subscript.db:/app/subscript.db
+      - sqlite_data:/app/data
       - ./documents:/app/documents
       - ./logs:/app/logs
       - ./.env:/app/.env
@@ -35,7 +35,7 @@ services:
     ports:
       - "127.0.0.1:8001:8000"
     volumes:
-      - ./subscript.db:/app/subscript.db
+      - sqlite_data:/app/data
       - ./documents:/app/documents
       - ./logs:/app/logs
       - ./.env:/app/.env
@@ -74,3 +74,6 @@ services:
     environment:
       - CSS=css/custom.css
       - JS=js/custom.js
+
+volumes:
+  sqlite_data:

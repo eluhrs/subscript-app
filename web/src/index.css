@@ -1,3 +1,99 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Driver.js Customizations */
+.driver-popover.intro-modal {
+  max-width: 800px;
+  width: 90vw;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* Hide the arrow/caret for the intro modal */
+.driver-popover.intro-modal .driver-popover-arrow {
+  display: none !important;
+}
+
+.driver-popover.intro-modal .driver-popover-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Force intro-modal to be centered even if attached to an element */
+/* Consolidated class for Forced Center Modals (to avoid space-separated class issues) */
+.driver-popover.intro-modal-forced-center {
+  /* Base styles from intro-modal */
+  max-width: 800px;
+  width: 90vw;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: #2d3748;
+
+  /* Forced Centering Overrides */
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  inset: auto !important;
+
+  /* Enforce dimensions */
+  box-sizing: border-box !important;
+  z-index: 100002 !important;
+}
+
+/* Base styles for title/desc inside this new class */
+.driver-popover.intro-modal-forced-center .driver-popover-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Strictly hide arrow for all intro modals (including Step 3) */
+.driver-popover.intro-modal .driver-popover-arrow,
+.driver-popover.intro-modal-forced-center .driver-popover-arrow {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+/* JS-Triggered Override for Center Positioning */
+.driver-popover.driver-centered-override {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  inset: auto !important;
+  z-index: 100002 !important;
+  max-width: 800px !important;
+  width: 90vw !important;
+}
+
+.driver-popover.driver-centered-override .driver-popover-arrow {
+  display: none !important;
+}
+
+/* Manual Highlight Override for Tour Step 3 */
+.tour-force-highlight {
+  z-index: 100002 !important;
+  /* Above driver overlay (100000) */
+  position: relative !important;
+  box-shadow: 0 0 0 4px #ffffff, 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 6px !important;
+  background-color: #D8D8D7 !important;
+  /* Match header background color */
+  pointer-events: none !important;
+  /* Prevent clicking while highlighted */
+}

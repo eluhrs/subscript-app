@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Trash, Check, X, Copy, Link, Edit2, Lock, Unlock } from 'lucide-react';
+import { Save, Trash, Check, X, Copy, Link, Edit2, Lock, Unlock, HelpCircle } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
+import { useAppTour } from '../hooks/useAppTour';
 
 // Helper to format log lines (moved outside to avoid re-creation)
 const formatLogLine = (line) => {
@@ -487,14 +488,23 @@ const ProfileScreen = () => {
         setModalConfig({ isOpen: true, title, message, type, onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false })) });
     };
 
+    const { startTour } = useAppTour();
+
     // --- Render ---
     const containerMaxWidth = activeTab === 'admin' ? 'max-w-4xl' : 'max-w-lg';
 
     return (
         <div className={`p-4 sm:p-6 lg:p-8 ${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
             {/* Header */}
-            <div className="mb-6">
+            <div className="mb-6 flex justify-between items-center">
                 <h2 className="text-3xl font-bold text-[#3A5A80]">My Profile</h2>
+                <button
+                    onClick={startTour}
+                    className="flex items-center space-x-2 text-[#5B84B1] hover:text-[#3A5A80] transition-colors"
+                >
+                    <HelpCircle size={24} />
+                    <span className="font-semibold">Help / Tour</span>
+                </button>
             </div>
 
             <div className="bg-[#EDEDEB] shadow-xl rounded-xl p-8 border border-gray-500 overflow-hidden min-h-[500px]">

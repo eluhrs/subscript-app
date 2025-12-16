@@ -49,7 +49,7 @@ logger.info(f"SYSTEM: Server module initialized at {datetime.now()}")
 
 # --- Configuration ---
 USER_DOCS_DIR = "/app/documents"
-DATABASE_URL = "sqlite:////app/subscript.db"
+DATABASE_URL = "sqlite:////app/data/subscript.db"
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError("FATAL: SECRET_KEY environment variable is not set. Please generate a strong key and add it to your .env file.")

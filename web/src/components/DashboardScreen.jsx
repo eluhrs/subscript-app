@@ -292,7 +292,7 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
             </div>
 
             {/* Table Layout Container */}
-            <div className="bg-[#EDEDEB] rounded-xl shadow-lg border border-gray-400">
+            <div id="dashboard-table" className="bg-[#EDEDEB] rounded-xl shadow-lg border border-gray-400">
                 {/* Header */}
                 <div className="flex items-center px-4 py-3 bg-[#D4D4D2] border-b border-gray-400 text-sm font-bold text-gray-800 rounded-t-xl">
                     <div className="flex-1">Document Information</div>
