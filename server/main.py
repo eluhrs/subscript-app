@@ -16,6 +16,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+import secrets
 
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -77,7 +78,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
     is_locked = Column(Boolean, default=False)
-    documents = relationship("Document", back_populates="owner")
+    documents = relationship("Document", back_populates="owner", cascade="all, delete-orphan")
 
 class Document(Base):
     __tablename__ = "documents"
@@ -122,7 +123,7 @@ class UserPreference(Base):
     __tablename__ = "user_preferences"
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     preferences = Column(JSON, default={})
-    user = relationship("User", backref=backref("preference", uselist=False))
+    user = relationship("User", backref=backref("preference", uselist=False, cascade="all, delete-orphan"))
 
 Base.metadata.create_all(bind=engine)
 
@@ -152,6 +153,71 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# --- Helper: Demo Provisioning ---
+def provision_demo_document(user: User, db: Session):
+    """
+    Copies the demo_template content to the user's directory if it's their first time.
+    Strictly checks for existence of user's root document directory to avoid re-provisioning.
+    """
+    clean_email = sanitize_email(user.email)
+    user_root_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    # Check if user directory already exists (Proxy for "Not New User")
+    if os.path.exists(user_root_dir):
+        # User has logged in before / directory exists. Do nothing.
+        return
+
+    # Source Template
+    template_dir = os.path.join(USER_DOCS_DIR, "demo_template")
+    if not os.path.exists(template_dir):
+        print("WARNING: Demo template directory not found. Skipping provisioning.")
+        return
+
+    # Check for PDF file in template to get name
+    # We assume 'welcome_sample.pdf' or similar. Let's list files.
+    # Actually, simpler to just copy everything to a predictable hash dir.
+    
+    # Destination Setup
+    # Create the user root dir first
+    os.makedirs(user_root_dir, exist_ok=True)
+    
+    # Generate unique directory name for the doc
+    # We'll use a fixed name for the Demo to keep it recognizable, or hashed?
+    # Hashed is safer for the system.
+    # Let's see what's in the template.
+    template_files = os.listdir(template_dir)
+    pdf_files = [f for f in template_files if f.lower().endswith('.pdf')]
+    
+    if not pdf_files:
+        print("WARNING: No PDF found in demo template.")
+        return
+        
+    pdf_filename = pdf_files[0] # Grab first PDF
+    base_name = os.path.splitext(pdf_filename)[0]
+    
+    short_hash = secrets.token_hex(4)
+    target_dir_name = f"{base_name}-{short_hash}"
+    target_dir_full = os.path.join(user_root_dir, target_dir_name)
+    
+    try:
+        # Copy the directory content
+        shutil.copytree(template_dir, target_dir_full)
+        
+        # Create DB Record
+        doc = Document(
+            filename=pdf_filename,
+            status="completed", # Assume demo is ready
+            owner_id=user.id,
+            directory_name=target_dir_name,
+            upload_date=datetime.utcnow()
+        )
+        db.add(doc)
+        db.commit()
+        print(f"INFO: Provisioned demo document for new user {user.email}")
+        
+    except Exception as e:
+        print(f"ERROR: Failed to provision demo document: {e}")
 
 # --- Security ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -248,6 +314,7 @@ class DocumentResponse(BaseModel):
     error_message: Optional[str] = None
     output_txt_path: Optional[str] = None
     output_pdf_path: Optional[str] = None
+    output_xml_path: Optional[str] = None
     has_xml: bool = False
     has_debug: bool = False
     share_token: Optional[str] = None
@@ -371,6 +438,16 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+
+
+    # Attempt to provision demo document (Passive/Async-like check)
+    # We do this AFTER token creation but before return. 
+    # It checks file system so it's fast enough.
+    try:
+        provision_demo_document(user, db)
+    except Exception as e:
+        print(f"ERROR: Provisioning Hook Failed: {e}")
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/api/auth/refresh", response_model=Token)
@@ -420,6 +497,39 @@ def change_password(password_change: PasswordChange, db: Session = Depends(get_d
     return {"message": "Password updated successfully"}
 
 # --- Document Endpoints (Protected) ---
+
+def populate_document_paths(doc: Document, user_email: str):
+    """
+    Dynamically populates absolute paths for document files if they exist on disk,
+    even if the DB columns are empty. This ensures the frontend gets a valid path.
+    """
+    clean_email = sanitize_email(user_email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    # Determine Document Directory
+    if doc.directory_name:
+         doc_dir = os.path.join(user_dir, doc.directory_name)
+    else:
+         doc_dir = user_dir # Legacy flat structure
+         
+    base_name = os.path.splitext(doc.filename)[0]
+    
+    # helper to set if exists
+    def set_if_exists(attr_name, extension):
+        # 1. Check if DB has it (prioritize DB if valid? No, filesystem is truth)
+        # Actually, let's just overwrite with absolute path if found.
+        candidate_path = os.path.join(doc_dir, f"{base_name}{extension}")
+        if os.path.exists(candidate_path):
+            setattr(doc, attr_name, candidate_path)
+    
+    set_if_exists("output_xml_path", ".xml")
+    set_if_exists("output_pdf_path", ".pdf")
+    set_if_exists("output_txt_path", ".txt")
+    
+    # Also ensure we have a fallback for PDF build if missing
+    if not doc.output_pdf_path:
+        # Check source image? No, just ensuring outputs are set if they exist.
+        pass
 
 @app.get("/api/documents", response_model=List[DocumentResponse])
 def list_documents(
@@ -494,6 +604,9 @@ def list_documents(
         elif doc.thumbnail_url is None:
              # Standard self-reference
              doc.thumbnail_url = f"/api/thumbnail/{doc.id}"
+
+        # Dynamic Path Population (Fix for missing DB paths)
+        populate_document_paths(doc, current_user.email)
 
     return docs
 
@@ -692,6 +805,9 @@ def get_document(
     doc = db.query(Document).filter(Document.id == doc_id, Document.owner_id == current_user.id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+        
+    populate_document_paths(doc, current_user.email)
+    
     return doc
 
 @app.post("/api/rebuild-pdf/{doc_id}", response_model=DocumentResponse)
@@ -1158,6 +1274,17 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
+    
+    # Cleanup file system (Recursive delete of user's root document directory)
+    clean_email = sanitize_email(user.email)
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    if os.path.exists(user_dir):
+        try:
+            shutil.rmtree(user_dir)
+            logger.info(f"Deleted user directory: {user_dir}")
+        except Exception as e:
+            logger.error(f"Failed to delete user directory {user_dir}: {e}")
+
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
@@ -1355,7 +1482,9 @@ def get_user_preferences(
     user_overrides = user_pref.preferences if user_pref else {}
 
     # 3. Merge User Overrides
+    print(f"DEBUG: User {current_user.email} - DB Prefs: {user_overrides}")
     merged_prefs = {**default_state, **user_overrides}
+    print(f"DEBUG: User {current_user.email} - Merged Prefs: {merged_prefs}")
     
     # 4. Return EVERYTHING (Metadata + Merged Prefs)
     # We include available_models etc. so frontend doesn't need a 2nd call
@@ -1391,7 +1520,11 @@ def update_user_preferences(
     current_prefs = dict(user_pref.preferences) if user_pref.preferences else {}
     updated_prefs = {**current_prefs, **pref_update.preferences}
     
+    # Force update detection for SQLAlchemy JSON type
     user_pref.preferences = updated_prefs
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(user_pref, "preferences")
+    
     db.commit()
     
     return {"status": "success", "preferences": updated_prefs}

@@ -8,15 +8,12 @@ import ProfileScreen from './components/ProfileScreen';
 import AdvancedUploadScreen from './components/AdvancedUploadScreen';
 import PageEditorScreen from './components/PageEditorScreen';
 import ConfirmationModal from './components/ConfirmationModal';
-import { useAppTour } from './hooks/useAppTour';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'profile', 'new', 'login', 'register', 'page-editor'
   const [editorDocId, setEditorDocId] = useState(null); // ID of document being edited
   const [showSessionWarning, setShowSessionWarning] = useState(false);
-
-  const { startTour, hasSeenTour } = useAppTour();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -35,16 +32,6 @@ function App() {
       }
     }
   }, []);
-
-  // Auto-start Tour for new users (authenticated or not? Usually authenticated makes sense, but the tour explains the tool.
-  // Let's start it ONLY if authenticated OR if we want to show it on login?
-  // Our tour highlights dashboard, so we should wait until authenticated.
-  useEffect(() => {
-    if (isAuthenticated && !hasSeenTour && currentView === 'dashboard') {
-      // Slight delay to ensure DOM is ready
-      setTimeout(() => startTour(), 1000);
-    }
-  }, [isAuthenticated, hasSeenTour, currentView]);
 
   // Session Expiration Check
   useEffect(() => {

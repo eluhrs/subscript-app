@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, Trash, Check, X, Copy, Link, Edit2, Lock, Unlock, HelpCircle } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
-import { useAppTour } from '../hooks/useAppTour';
+import TourModal from './TourModal';
 
 // Helper to format log lines (moved outside to avoid re-creation)
 const formatLogLine = (line) => {
@@ -37,6 +37,7 @@ const ProfileScreen = () => {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'admin'
     const [adminSubTab, setAdminSubTab] = useState('users'); // 'users' | 'health' | 'logs'
+    const [showTour, setShowTour] = useState(false);
 
     // Admin Data
     const [adminUsers, setAdminUsers] = useState([]);
@@ -488,22 +489,20 @@ const ProfileScreen = () => {
         setModalConfig({ isOpen: true, title, message, type, onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false })) });
     };
 
-    const { startTour } = useAppTour();
-
     // --- Render ---
     const containerMaxWidth = activeTab === 'admin' ? 'max-w-4xl' : 'max-w-lg';
 
     return (
-        <div className={`p-4 sm:p-6 lg:p-8 ${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
+        <div className={`p-4 sm:p-6 lg:p-8 ${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out pb-40`}>
             {/* Header */}
             <div className="mb-6 flex justify-between items-center">
                 <h2 className="text-3xl font-bold text-[#3A5A80]">My Profile</h2>
                 <button
-                    onClick={startTour}
+                    onClick={() => setShowTour(true)}
                     className="flex items-center space-x-2 text-[#5B84B1] hover:text-[#3A5A80] transition-colors"
                 >
                     <HelpCircle size={24} />
-                    <span className="font-semibold">Help / Tour</span>
+                    <span className="font-semibold">Help</span>
                 </button>
             </div>
 
@@ -925,6 +924,9 @@ const ProfileScreen = () => {
                 confirmText="Delete"
                 onConfirm={confirmAction.action}
             />
+
+            {/* Tour Modal */}
+            {showTour && <TourModal onComplete={() => setShowTour(false)} />}
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, Trash2, Share2, FolderOpen, FileText, Code, AlignLeft, Map, Eye, Download, Archive, MoreVertical, Settings2 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
+import TourModal from './TourModal';
 
 const DashboardScreen = ({ setView, setEditorDocId }) => {
     const [documents, setDocuments] = useState([]);
@@ -22,6 +23,55 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
     // Share Modal State
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [shareUrl, setShareUrl] = useState('');
+
+    // Tour State (Server-Side)
+    const [tourSeen, setTourSeen] = useState(true); // Default to true to avoid flash
+    const [tourLoaded, setTourLoaded] = useState(false);
+
+    // Fetch User Preferences for Tour
+    useEffect(() => {
+        const fetchPrefs = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                // Add cache buster to prevent stale preferences
+                const res = await fetch(`/api/preferences?v=${new Date().getTime()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Check if tour_seen is explicitly set to true
+                    // Relaxed check to handle boolean, 1, or "true"
+                    const val = data.preferences?.tour_seen;
+                    const hasSeen = !!val && val !== 'false' && val !== 0;
+                    setTourSeen(hasSeen);
+                }
+            } catch (e) {
+                console.error("Failed to fetch preferences", e);
+            } finally {
+                setTourLoaded(true);
+            }
+        };
+        fetchPrefs();
+    }, []);
+
+    const markTourSeen = React.useCallback(async () => {
+        const token = localStorage.getItem('token');
+        setTourSeen(true); // Optimistic update
+        try {
+            await fetch('/api/preferences', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    preferences: { tour_seen: true }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to mark tour seen", e);
+        }
+    }, []);
 
     useEffect(() => {
         fetchDocuments();
@@ -652,6 +702,11 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                 confirmText="OK"
                 type="success"
             />
+
+            {/* Tour Modal */}
+            {tourLoaded && !tourSeen && (
+                <TourModal onComplete={markTourSeen} />
+            )}
         </div>
     );
 };

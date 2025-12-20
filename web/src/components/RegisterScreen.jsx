@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 
+import ConfirmationModal from './ConfirmationModal';
+
 const RegisterScreen = ({ setView }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -9,6 +11,7 @@ const RegisterScreen = ({ setView }) => {
     const [error, setError] = useState('');
     const [token, setToken] = useState('');
     const [registrationMode, setRegistrationMode] = useState('open');
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -44,8 +47,7 @@ const RegisterScreen = ({ setView }) => {
             });
 
             if (response.ok) {
-                alert('Registration successful! Please log in.');
-                setView('login');
+                setShowSuccessModal(true);
             } else {
                 const errData = await response.json();
                 setError(errData.detail || 'Registration failed');
@@ -147,6 +149,23 @@ const RegisterScreen = ({ setView }) => {
                     </button>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={showSuccessModal}
+                title="Registration Successful"
+                message="Your account has been created. Please log in to continue."
+                onConfirm={() => {
+                    setShowSuccessModal(false);
+                    setView('login');
+                }}
+                onClose={() => {
+                    setShowSuccessModal(false);
+                    setView('login');
+                }}
+                confirmText="Go to Login"
+                type="success"
+                singleButton={true}
+            />
         </div>
     );
 };
