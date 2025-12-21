@@ -5,11 +5,11 @@ const STEPS = [
     {
         title: 'What is Subscript?',
         content: (
-            <div className="flex flex-col md:flex-row gap-6 items-center">
-                <div className="w-full md:w-1/2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
+                <div className="flex justify-center items-center order-1 md:order-1">
                     <img src="/assets/img/tour-slide-1.png" alt="Intro" className="w-full h-auto max-h-[280px] object-contain" />
                 </div>
-                <div className="w-full md:w-1/2 text-left">
+                <div className="text-left order-2 md:order-2">
                     <p className="text-lg leading-relaxed text-gray-700">
                         The Subscript historical transcription tool uses <strong>AI to extract editable text from historical documents</strong>. The application provides an <strong>interface for correcting</strong> extracted text, then <strong>generates searchable PDFs</strong>, and <strong>creates PageXML files essential for text mining and machine learning projects</strong>. All of this is achieved using a deceptively simple interface that hides a high level of underlying complexity.
                     </p>
@@ -20,11 +20,11 @@ const STEPS = [
     {
         title: 'Document Dashboard',
         content: (
-            <div className="flex flex-col md:flex-row gap-6 items-center">
-                <div className="w-full md:w-1/2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
+                <div className="flex justify-center items-center order-1 md:order-1">
                     <img src="/assets/img/tour-slide-2.png" alt="Dashboard" className="w-full h-auto max-h-[280px] object-contain" />
                 </div>
-                <div className="w-full md:w-1/2 text-left">
+                <div className="text-left order-2 md:order-2">
                     <p className="text-lg leading-relaxed text-gray-700">
                         <strong>Left-hand document details</strong> include thumbnail, filename, and last update time. The <strong>middle status indicator</strong> shows "Done", "Transcribing", or "Error" states. <strong>Right-hand buttons</strong> allow editing, sharing, viewing, or deleting documents. The files button expands to view/download specific outputs (Segmentation Map, TXT, XML, PDF, or ZIP archive). The <strong>Bulk Actions button</strong> allows deletion of selected rows or downloading all files of specific types for chosen documents.
                     </p>
@@ -35,11 +35,11 @@ const STEPS = [
     {
         title: 'Uploading Images to Process',
         content: (
-            <div className="flex flex-col md:flex-row gap-6 items-center">
-                <div className="w-full md:w-1/2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
+                <div className="flex justify-center items-center order-1 md:order-1">
                     <img src="/assets/img/tour-slide-3.png" alt="Upload" className="w-full h-auto max-h-[280px] object-contain" />
                 </div>
-                <div className="w-full md:w-1/2 text-left">
+                <div className="text-left order-2 md:order-2">
                     <p className="text-lg leading-relaxed text-gray-700">
                         <strong>Drag and drop or browse for images</strong> to process, either <strong>individually or in batches</strong>.  By default, processing <strong>multiple images creates individual transcription</strong>.  Optionally, you may <strong>combine all images into a single multi-page transcription</strong>. The latter enables multi-page TXT transcripts, PDFs, and editor functions.  Access advanced settings via the <strong>Options button</strong>, with each setting documented within the app.
                     </p>
@@ -50,11 +50,11 @@ const STEPS = [
     {
         title: 'Profile Page',
         content: (
-            <div className="flex flex-col md:flex-row gap-6 items-center px-4 md:px-8">
-                <div className="w-full md:w-1/2">
-                    <img src="/assets/img/tour-slide-4.png" alt="Profile" className="w-full h-auto max-h-[280px] object-contain" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
+                <div className="flex justify-center items-center order-1 md:order-1">
+                    <img src="/assets/img/tour-slide-4.png" alt="Profile" className="w-1/2 h-auto max-h-[280px] object-contain" />
                 </div>
-                <div className="w-full md:w-1/2 text-left pl-0 md:pl-8">
+                <div className="text-left order-2 md:order-2">
                     <p className="text-lg leading-relaxed text-gray-700">
                         The profile page includes a secure <strong>password change tool</strong> for guest accounts, but not for institutional accounts which are managed centrally.  The profile tool also includes a link to <strong>view this tour again</strong>.  A <strong>sample document</strong> for you to explore has been placed on your dashboard.
                     </p>
@@ -65,11 +65,11 @@ const STEPS = [
     {
         title: 'Subscript is a Work in Progress',
         content: (
-            <div className="flex flex-col md:flex-row gap-6 items-center px-4 md:px-8">
-                <div className="flex-shrink-0 w-24 flex items-center justify-center">
-                    <div className="text-[80px] leading-none">⚠️</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center h-full">
+                <div className="flex justify-center items-center order-1 md:order-1">
+                    <div className="text-[120px] leading-none">⚠️</div>
                 </div>
-                <div className="w-full text-left pl-0 md:pl-4">
+                <div className="text-left order-2 md:order-2">
                     <p className="text-lg leading-relaxed text-gray-700">
                         Please note that Subscript is an <strong>experimental application under active development</strong>. While an effort will be made to preserve user content, it is entirely possible that uploaded images and processed <strong>documents may be deleted without notice</strong>. Therefore it is imperative that you <strong>download all files you wish to retain permanently</strong>.
                     </p>
