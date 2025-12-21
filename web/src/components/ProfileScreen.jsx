@@ -410,6 +410,15 @@ const ProfileScreen = () => {
                 setLoading(false);
                 return;
             }
+
+            // Strong Password Validation
+            const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+            if (!strongPasswordRegex.test(passwords.new)) {
+                showModal("Weak Password", "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.", "warning");
+                setLoading(false);
+                return;
+            }
+
             try {
                 const passRes = await fetch('/api/auth/password', {
                     method: 'PUT',

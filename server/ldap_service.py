@@ -5,14 +5,19 @@ from ldap3.core.exceptions import LDAPException
 
 logger = logging.getLogger(__name__)
 
+from server.utils import sanitize_filename, sanitize_email, create_thumbnail, sanitize_ldap_username
+
 class LDAPService:
     def __init__(self):
         self.enabled = os.getenv("LDAP_ENABLED", "false").lower() == "true"
         self.server_url = os.getenv("LDAP_SERVER_URL")
         # Template: e.g. "uid={username},ou=people,dc=example,dc=com"
         self.dn_template = os.getenv("LDAP_USER_DN_TEMPLATE")
-        # Optional: Search Base if we were searching (not used in simple bind-to-login)
-        # self.search_base = os.getenv("LDAP_SEARCH_BASE")
+        
+        if self.enabled and self.server_url and self.server_url.startswith("ldap://"):
+             logger.warning("SECURITY WARNING: LDAP configured with 'ldap://' (Plaintext). "
+                            "Passwords are being transmitted unencrypted. "
+                            "Please use 'ldaps://' (Port 636) and StartTLS if possible.")
 
     def authenticate(self, username, password):
         """
@@ -28,14 +33,23 @@ class LDAPService:
             logger.warning("LDAP authentication attempted but not configured.")
             return None
 
+        # 0. Sanitize Input (Anti-Injection)
+        # We strip illegal chars before injecting into the DN template
+        safe_username = sanitize_ldap_username(username)
+        if safe_username != username:
+            logger.warning(f"LDAP: Username '{username}' contained illegal characters. Sanitized to '{safe_username}'.")
+            
+        if not safe_username:
+             return None
+
         # 1. Construct User DN
         try:
-            user_dn = self.dn_template.format(username=username)
+            user_dn = self.dn_template.format(username=safe_username)
         except KeyError:
             logger.error("LDAP_USER_DN_TEMPLATE must contain {username} placeholder.")
             return None
 
-        logger.info(f"LDAP: Attempting bind for {user_dn}")
+        logger.info(f"LDAP: Attempting bind for {safe_username} (DN: ...)")
 
         try:
             # 2. Connect and Bind

@@ -58,3 +58,33 @@ def create_thumbnail(image_path: str, thumb_path: str, size: tuple = (300, 300))
         return False
 
 
+def sanitize_ldap_username(username: str) -> str:
+    """
+    Sanitize a username to prevent LDAP Injection in DN construction.
+    Allows alphanumeric, dot, dash, underscore, and @.
+    """
+    if not username:
+        return ""
+    # Whitelist approach: only allow safe chars
+    return re.sub(r'[^a-zA-Z0-9._@-]', '', username)
+
+def validate_strong_password(password: str) -> bool:
+    """
+    Validates a password for strong requirements:
+    - Minimum 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character
+    """
+    if len(password) < 8:
+        return False
+    if not re.search(r'[A-Z]', password):
+        return False
+    if not re.search(r'[a-z]', password):
+        return False
+    if not re.search(r'\d', password):
+        return False
+    if not re.search(r'[\W_]', password):
+        return False
+    return True

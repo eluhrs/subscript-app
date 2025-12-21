@@ -37,6 +37,14 @@ const RegisterScreen = ({ setView }) => {
         setError('');
 
         try {
+            // Strong Password Validation
+            const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+            if (!strongPasswordRegex.test(password)) {
+                setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
+                setLoading(false);
+                return;
+            }
+
             const url = token ? `/api/auth/register?token=${token}` : '/api/auth/register';
             const response = await fetch(url, {
                 method: 'POST',

@@ -27,8 +27,9 @@ from jose import JWTError, jwt
 
 
 
-from server.utils import sanitize_filename, sanitize_email, create_thumbnail
+from server.utils import sanitize_filename, sanitize_email, create_thumbnail, validate_strong_password
 from server.ldap_service import LDAPService
+from server.security import check_rate_limit
 
 # Access Environment
 LDAP_ENABLED = os.getenv("LDAP_ENABLED", "false").lower() == "true"
@@ -393,7 +394,11 @@ app.add_middleware(
 # --- Auth Endpoints ---
 
 @app.post("/api/auth/register", response_model=UserResponse)
-def register(user: UserCreate, token: Optional[str] = None, db: Session = Depends(get_db)):
+def register(request: Request, user: UserCreate, token: Optional[str] = None, db: Session = Depends(get_db)):
+    # Rate Limit
+    client_host = request.client.host if request.client else "unknown"
+    check_rate_limit(f"register:{client_host}", 5, 60) # 5 per minute
+    
     # Check registration mode
     mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
     mode = mode_setting.value if mode_setting else "open"
@@ -409,6 +414,10 @@ def register(user: UserCreate, token: Optional[str] = None, db: Session = Depend
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+        
+    if not validate_strong_password(user.password):
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters and include uppercase, lowercase, number, and special character.")
+        
     hashed_password = get_password_hash(user.password)
     
     # First user is admin
@@ -432,7 +441,11 @@ def register(user: UserCreate, token: Optional[str] = None, db: Session = Depend
     return db_user
 
 @app.post("/api/auth/token", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Rate Limit
+    client_host = request.client.host if request.client else "unknown"
+    check_rate_limit(f"login:{client_host}", 10, 60) # 10 per minute
+
     # 1. Try to find user directly (assuming username input is email)
     user = db.query(User).filter(User.email == form_data.username).first()
     
@@ -579,6 +592,9 @@ def update_user_me(user_update: UserUpdate, db: Session = Depends(get_db), curre
 def change_password(password_change: PasswordChange, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not verify_password(password_change.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect old password")
+        
+    if not validate_strong_password(password_change.new_password):
+        raise HTTPException(status_code=400, detail="New password is too weak. Requires 8+ chars, upper, lower, number, special.")
     
     current_user.hashed_password = get_password_hash(password_change.new_password)
     db.commit()
@@ -1332,6 +1348,8 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         user.email = user_update.email
     
     if user_update.password:
+        if not validate_strong_password(user_update.password):
+             raise HTTPException(status_code=400, detail="Password is too weak.")
         user.hashed_password = get_password_hash(user_update.password)
         
     if user_update.is_locked is not None:
