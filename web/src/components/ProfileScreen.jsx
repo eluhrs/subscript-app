@@ -557,14 +557,28 @@ const ProfileScreen = () => {
     const handleAddUser = async (email, authSource) => {
         if (!email) return;
         setLoading(true);
+        const token = localStorage.getItem('token');
         try {
-            await axios.post('/api/users', { email, auth_source: authSource });
-            showModal("Success", `User ${email} added successfully. They can now log in.`, "success");
-            setNewInviteEmail("");
-            fetchUsersLogic(); // Refresh users list
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ email, auth_source: authSource })
+            });
+
+            if (response.ok) {
+                showModal("Success", `User ${email} added successfully. They can now log in.`, "success");
+                setNewInviteEmail("");
+                fetchUsersList(); // Refresh users list
+            } else {
+                const data = await response.json();
+                throw new Error(data.detail || "Failed to add user. They may already exist.");
+            }
         } catch (err) {
             console.error(err);
-            showModal("Error", "Failed to add user. They may already exist.", "error");
+            showModal("Error", err.message, "error");
         } finally {
             setLoading(false);
         }
