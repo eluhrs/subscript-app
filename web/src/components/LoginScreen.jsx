@@ -231,13 +231,21 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
 
                         {/* Footer */}
                         <div className="flex-1 flex items-center justify-center pt-[2px]">
-                            {activeTab === 'guest' && (
-                                isSystemOpen ? (
-                                    <div className="text-center">
+                            <div className="text-center">
+                                {/* Tab: LEHIGH */}
+                                {activeTab === 'lehigh' && (
+                                    <p className="text-sm text-gray-600">
+                                        {isSystemOpen
+                                            ? "Sign in with your UserID."
+                                            : <span className="italic text-gray-500">Accounts are by invitation only.</span>
+                                        }
+                                    </p>
+                                )}
+
+                                {/* Tab: GUEST */}
+                                {activeTab === 'guest' && (
+                                    isSystemOpen ? (
                                         <p className="text-sm text-gray-600">
-                                            Don't have an account?{' '}
-                                            {/* Simulate Link with anchor since no router */}
-                                            {/* Simulate Link with button */}
                                             <button
                                                 type="button"
                                                 onClick={() => setView('register')}
@@ -246,16 +254,15 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
                                             >
                                                 Sign up
                                             </button>
+                                            {' '}to create an account.
                                         </p>
-                                    </div>
-                                ) : (
-                                    <div className="text-center">
+                                    ) : (
                                         <p className="text-sm text-gray-500 italic">
                                             Accounts are by invitation only.
                                         </p>
-                                    </div>
-                                )
-                            )}
+                                    )
+                                )}
+                            </div>
                         </div>
                     </form>
                 </div>

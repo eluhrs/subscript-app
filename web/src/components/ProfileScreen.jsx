@@ -28,6 +28,62 @@ const formatLogLine = (line) => {
     return line;
 };
 
+const InvitesTab = ({ newInviteEmail, setNewInviteEmail, handleCreateInvite, handleAddUser }) => {
+    const [inviteType, setInviteType] = useState('guest'); // 'guest' | 'ldap'
+
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-md font-medium text-gray-900 mb-4">
+                Invite Users
+            </h3>
+
+            {/* Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-lg mb-4 w-fit">
+                <button
+                    onClick={() => setInviteType('guest')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${inviteType === 'guest' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Guest User
+                </button>
+                <button
+                    onClick={() => setInviteType('ldap')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${inviteType === 'ldap' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    LDAP User
+                </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-2">
+                {inviteType === 'guest'
+                    ? "Generate a token link for a guest to create their own password."
+                    : "Pre-authorize a Lehigh user to log in immediately without an invite link."}
+            </p>
+
+            <div className="flex gap-4">
+                <input
+                    type="email"
+                    placeholder="User Email Address"
+                    value={newInviteEmail}
+                    onChange={(e) => setNewInviteEmail(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                    onClick={() => {
+                        if (inviteType === 'guest') {
+                            handleCreateInvite();
+                        } else {
+                            handleAddUser(newInviteEmail, 'ldap');
+                        }
+                    }}
+                    className="px-6 py-2 bg-[#3A5A80] text-white rounded-lg hover:bg-[#2A4A70] font-medium"
+                >
+                    {inviteType === 'guest' ? "Generate Link" : "Add User"}
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const ProfileScreen = () => {
     // User Data & Auth State
     const [user, setUser] = useState({ full_name: '', email: '', is_admin: false });
@@ -498,6 +554,22 @@ const ProfileScreen = () => {
     const showModal = (title, message, type = 'info') => {
         setModalConfig({ isOpen: true, title, message, type, onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false })) });
     };
+    const handleAddUser = async (email, authSource) => {
+        if (!email) return;
+        setLoading(true);
+        try {
+            await axios.post('/api/users', { email, auth_source: authSource });
+            showModal("Success", `User ${email} added successfully. They can now log in.`, "success");
+            setNewInviteEmail("");
+            fetchUsersLogic(); // Refresh users list
+        } catch (err) {
+            console.error(err);
+            showModal("Error", "Failed to add user. They may already exist.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     // --- Render ---
     const containerMaxWidth = activeTab === 'admin' ? 'max-w-4xl' : 'max-w-lg';
@@ -698,26 +770,14 @@ const ProfileScreen = () => {
                                     </div>
                                 </div>
 
-                                {/* Create Invite */}
+                                {/* Create Invite / Add User */}
                                 {registrationMode === 'invite' && (
-                                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                                        <h3 className="text-md font-medium text-gray-900 mb-4">Generate Invitation</h3>
-                                        <div className="flex gap-4">
-                                            <input
-                                                type="email"
-                                                placeholder="Recipient Email (Optional, for tracking)"
-                                                value={newInviteEmail}
-                                                onChange={(e) => setNewInviteEmail(e.target.value)}
-                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                            <button
-                                                onClick={handleCreateInvite}
-                                                className="px-6 py-2 bg-[#3A5A80] text-white rounded-lg hover:bg-[#2A4A70] font-medium"
-                                            >
-                                                Generate Link
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <InvitesTab
+                                        newInviteEmail={newInviteEmail}
+                                        setNewInviteEmail={setNewInviteEmail}
+                                        handleCreateInvite={handleCreateInvite}
+                                        handleAddUser={handleAddUser}
+                                    />
                                 )}
 
                                 {/* Invites List - ONLY IN INVITE MODE */}
