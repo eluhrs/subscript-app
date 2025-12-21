@@ -103,7 +103,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
 
                         {/* Tabs Block - Only show if LDAP enabled */}
                         {isLdapEnabled && (
-                            <div className="flex border-b border-gray-200 mb-10 shrink-0 h-[50px]">
+                            <div className="flex flex-row border-b border-gray-200 mb-10 shrink-0 h-[50px]">
                                 <div
                                     className={`flex-1 py-3 px-4 text-center font-bold border-b-2 cursor-pointer tab-btn transition-colors ${activeTab === 'lehigh' ? 'text-lehigh border-lehigh' : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
                                     onClick={() => { setActiveTab('lehigh'); setError(''); }}

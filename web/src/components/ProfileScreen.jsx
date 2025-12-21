@@ -29,7 +29,7 @@ const formatLogLine = (line) => {
 };
 
 const InvitesTab = ({ newInviteEmail, setNewInviteEmail, handleCreateInvite, handleAddUser }) => {
-    const [inviteType, setInviteType] = useState('guest'); // 'guest' | 'ldap'
+    const [inviteType, setInviteType] = useState('ldap'); // 'guest' | 'ldap'
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -40,16 +40,16 @@ const InvitesTab = ({ newInviteEmail, setNewInviteEmail, handleCreateInvite, han
             {/* Toggle */}
             <div className="flex bg-gray-100 p-1 rounded-lg mb-4 w-fit">
                 <button
-                    onClick={() => setInviteType('guest')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${inviteType === 'guest' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Guest User
-                </button>
-                <button
                     onClick={() => setInviteType('ldap')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${inviteType === 'ldap' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     LDAP User
+                </button>
+                <button
+                    onClick={() => setInviteType('guest')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${inviteType === 'guest' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Guest User
                 </button>
             </div>
 
@@ -61,8 +61,8 @@ const InvitesTab = ({ newInviteEmail, setNewInviteEmail, handleCreateInvite, han
 
             <div className="flex gap-4">
                 <input
-                    type="email"
-                    placeholder="User Email Address"
+                    type="text"
+                    placeholder={inviteType === 'guest' ? "User Email Address" : "Lehigh UserID or Email"}
                     value={newInviteEmail}
                     onChange={(e) => setNewInviteEmail(e.target.value)}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

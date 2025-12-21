@@ -353,7 +353,7 @@ class SystemConfigResponse(BaseModel):
     preprocessing: Optional[Dict[str, Any]] = {}
 
 class UserCreateAdmin(BaseModel):
-    email: EmailStr
+    email: str
     auth_source: str # 'local' or 'ldap'
     full_name: Optional[str] = None
 
