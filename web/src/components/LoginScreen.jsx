@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCcw, User, Lock, Mail, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCcw, User, Lock, Mail } from 'lucide-react';
 
 const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => {
     const [username, setUsername] = useState('');
@@ -7,17 +7,17 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState(initialTab); // Use initialTab prop
-    const usernameInputRef = React.useRef(null);
+    const usernameInputRef = useRef(null);
 
     // Auto-focus when switching tabs
-    React.useEffect(() => {
+    useEffect(() => {
         if (usernameInputRef.current) {
             usernameInputRef.current.focus();
         }
     }, [activeTab]);
 
     // Sync state with prop if it changes (e.g. navigation)
-    React.useEffect(() => {
+    useEffect(() => {
         setActiveTab(initialTab);
     }, [initialTab]);
 
@@ -48,22 +48,6 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
         }
     }, [isLdapEnabled]);
 
-    // Colors
-    const COLORS = {
-        lehigh: {
-            // Desaturated Brown matching provided image
-            primary: '#6F5F58',
-            hover: '#5A4D47',
-            ring: '#6F5F58'
-        },
-        guest: {
-            // Existing Brand Blue
-            primary: '#5B84B1',
-            hover: '#4A6D94',
-            ring: '#5B84B1'
-        }
-    };
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
@@ -84,7 +68,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
 
             if (!response.ok) {
                 const data = await response.json();
-                throw new Error(data.detail || 'Failed to sign in');
+                throw new Error(data.detail || 'Invalid credentials provided. Please try again.');
             }
 
             const data = await response.json();
@@ -92,7 +76,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
             setIsAuthenticated(true);
             setView('dashboard'); // Explicitly switch to dashboard view to prevent empty render
         } catch (err) {
-            setError(err.message || 'Failed to sign in');
+            setError(err.message || 'Invalid credentials provided. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -107,160 +91,106 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
             ></div>
             <div className="absolute inset-0 z-0 bg-black/80"></div>
 
-            {/* Login Card - Fixed Height h-[540px] */}
-            <div className="bg-[#EDEDEB] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 h-[540px] flex flex-col relative z-10">
-                <div className="p-8 flex-1 flex flex-col h-full">
-
-                    {/* Header */}
-                    <div className="text-center mb-2">
-                        <h1 className="text-3xl font-extrabold text-[#3A5A80]">Subscript</h1>
-                        <p className="text-gray-500 text-sm mt-2 mb-6">Document Transcription Platform</p>
-                    </div>
-
-                    {/* Tabs - Only show if LDAP is enabled */}
-                    {isLdapEnabled && (
-                        <div className="flex border-b border-gray-200 mb-6 shrink-0">
-                            <button
-                                onClick={() => { setActiveTab('lehigh'); setError(''); }}
-                                className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
-                                    ${activeTab === 'lehigh'
-                                        ? `text-[${COLORS.lehigh.primary}] border-[${COLORS.lehigh.primary}]`
-                                        : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
-                                style={activeTab === 'lehigh' ? { color: COLORS.lehigh.primary, borderColor: COLORS.lehigh.primary } : {}}
-                            >
-                                Lehigh Login
-                            </button>
-                            <button
-                                onClick={() => { setActiveTab('guest'); setError(''); }}
-                                className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
-                                    ${activeTab === 'guest'
-                                        ? `text-[${COLORS.guest.primary}] border-[${COLORS.guest.primary}]`
-                                        : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
-                                style={activeTab === 'guest' ? { color: COLORS.guest.primary, borderColor: COLORS.guest.primary } : {}}
-                            >
-                                Guest Access
-                            </button>
+            {/* Login Card */}
+            <div className="bg-[#EDEDEB] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 flex flex-col relative z-10">
+                <div className="pt-8 px-8 pb-6 flex-1 flex flex-col">
+                    <form className="view-login flex flex-col" onSubmit={handleLogin}>
+                        <div className="text-center mb-0">
+                            <h1 className="text-3xl font-extrabold text-[#3A5A80]">Subscript</h1>
+                            {/* Fixed Height Subtitle */}
+                            <p className="text-gray-500 text-sm mt-2 mb-6 h-5 flex items-center justify-center">Historical Document Transcription Platform</p>
                         </div>
-                    )}
 
-                    {error && (
-                        <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded shrink-0">
-                            <div className="flex items-center">
-                                <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-                                <p className="text-sm text-red-700">{error}</p>
+                        {/* Tabs Block - Only show if LDAP enabled */}
+                        {isLdapEnabled && (
+                            <div className="flex border-b border-gray-200 mb-10 shrink-0 h-[50px]">
+                                <div
+                                    className={`flex-1 py-3 px-4 text-center font-bold border-b-2 cursor-pointer tab-btn transition-colors ${activeTab === 'lehigh' ? 'text-lehigh border-lehigh' : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
+                                    onClick={() => { setActiveTab('lehigh'); setError(''); }}
+                                >
+                                    Lehigh Login
+                                </div>
+                                <div
+                                    className={`flex-1 py-3 px-4 text-center font-bold border-b-2 cursor-pointer tab-btn transition-colors ${activeTab === 'guest' ? 'text-brand-blue border-brand-blue' : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
+                                    onClick={() => { setActiveTab('guest'); setError(''); }}
+                                >
+                                    Guest Access
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Form */}
-                    <form onSubmit={handleLogin} className="flex flex-col h-full block">
                         <div className="space-y-4 shrink-0">
-
-                            {/* Username / Email Field */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1 label-user">
                                     {activeTab === 'lehigh' ? 'Username' : 'Email Address'}
                                 </label>
                                 <div className="relative">
-                                    <input
-                                        type={activeTab === 'lehigh' ? "text" : "email"}
-                                        ref={usernameInputRef}
-                                        autoFocus
-                                        required
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        placeholder={activeTab === 'lehigh' ? "Lehigh UserID" : "name@example.com"}
-                                        className="block w-full pl-10 pr-3 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition shadow-sm"
-                                        style={{
-                                            '--tw-ring-color': activeTab === 'lehigh' ? COLORS.lehigh.ring : COLORS.guest.ring,
-                                            borderColor: '#9ca3af'
-                                        }}
-                                        onFocus={(e) => e.target.style.borderColor = activeTab === 'lehigh' ? COLORS.lehigh.ring : COLORS.guest.ring}
-                                        onBlur={(e) => e.target.style.borderColor = '#9ca3af'}
-                                    />
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         {activeTab === 'lehigh'
-                                            ? <User className="text-gray-400 w-5 h-5" />
-                                            : <Mail className="text-gray-400 w-5 h-5" />
+                                            ? <User className="h-5 w-5 text-gray-400" />
+                                            : <Mail className="h-5 w-5 text-gray-400" />
                                         }
                                     </div>
+                                    <input
+                                        type={activeTab === 'lehigh' ? "text" : "email"}
+                                        placeholder={activeTab === 'lehigh' ? "Lehigh UserID" : "name@example.com"}
+                                        ref={usernameInputRef}
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className={`block w-full py-3 pl-10 pr-3 transition-colors duration-200 border border-gray-300 rounded-lg input-user outline-none focus:ring-2 focus:ring-offset-0 ${activeTab === 'lehigh' ? 'focus:ring-lehigh/50 !focus:border-lehigh' : 'focus:ring-brand-blue/50 !focus:border-brand-blue'}`}
+                                        required
+                                    />
                                 </div>
                             </div>
-
-                            {/* Password Field */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
                                 <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400" />
+                                    </div>
                                     <input
                                         type="password"
-                                        required
+                                        placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="block w-full pl-10 pr-3 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition shadow-sm"
-                                        style={{ borderColor: '#9ca3af' }}
-                                        onFocus={(e) => e.target.style.borderColor = activeTab === 'lehigh' ? COLORS.lehigh.ring : COLORS.guest.ring}
-                                        onBlur={(e) => e.target.style.borderColor = '#9ca3af'}
+                                        className={`block w-full py-3 pl-10 pr-3 transition-colors duration-200 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-offset-0 ${activeTab === 'lehigh' ? 'focus:ring-lehigh/50 !focus:border-lehigh' : 'focus:ring-brand-blue/50 !focus:border-brand-blue'}`}
+                                        required
                                     />
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="text-gray-400 w-5 h-5" />
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Submit Button */}
-                        <div className="mt-4 mb-[11px] shrink-0">
+                        <div className="mt-8 mb-4 shrink-0">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-transform transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                style={{
-                                    backgroundColor: activeTab === 'lehigh' ? COLORS.lehigh.primary : COLORS.guest.primary,
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = activeTab === 'lehigh' ? COLORS.lehigh.hover : COLORS.guest.hover}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = activeTab === 'lehigh' ? COLORS.lehigh.primary : COLORS.guest.primary}
+                                className={`w-full py-3 px-4 rounded-lg font-semibold text-white btn-submit transition-transform active:scale-[0.98] flex justify-center items-center ${activeTab === 'lehigh' ? 'bg-lehigh' : 'bg-brand-blue'} ${loading ? 'opacity-80' : ''}`}
                             >
-                                {loading ? (
-                                    <RefreshCcw className="animate-spin" size={24} />
-                                ) : (
-                                    activeTab === 'lehigh' ? 'Sign in with Lehigh UserID' : (isLdapEnabled ? 'Sign In as Guest' : 'Sign In')
-                                )}
+                                {loading ? <RefreshCcw className="animate-spin h-5 w-5" /> : 'Sign In'}
                             </button>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex-1 flex items-center justify-center pt-[2px]">
-                            <div className="text-center">
-                                {/* Tab: LEHIGH */}
-                                {activeTab === 'lehigh' && (
-                                    <p className="text-sm text-gray-600">
-                                        {isSystemOpen
-                                            ? "Sign in with your UserID."
-                                            : <span className="italic text-gray-500">Accounts are by invitation only.</span>
-                                        }
-                                    </p>
-                                )}
-
-                                {/* Tab: GUEST */}
-                                {activeTab === 'guest' && (
-                                    isSystemOpen ? (
-                                        <p className="text-sm text-gray-600">
-                                            <button
-                                                type="button"
-                                                onClick={() => setView('register')}
-                                                className="font-medium cursor-pointer hover:underline bg-transparent border-none p-0 inline"
-                                                style={{ color: COLORS.guest.primary }}
-                                            >
-                                                Sign up
-                                            </button>
-                                            {' '}to create an account.
-                                        </p>
-                                    ) : (
-                                        <p className="text-sm text-gray-500 italic">
-                                            Accounts are by invitation only.
-                                        </p>
-                                    )
+                        <div className="flex justify-center border-t border-gray-200 mt-2">
+                            <div className="text-center w-full min-h-[72px] flex flex-col justify-center items-center relative">
+                                {error ? (
+                                    /* Error State */
+                                    <div className="w-full bg-red-100 border border-red-400 text-red-700 p-2 rounded text-sm shadow-sm leading-tight h-[60px] flex items-center justify-center">
+                                        <span>{error}</span>
+                                    </div>
+                                ) : (
+                                    /* Normal State Container */
+                                    <div className="normal-state w-full h-full flex flex-col justify-center items-center">
+                                        {isSystemOpen ? (
+                                            <p className="text-sm text-gray-600 system-open-msg">
+                                                Don't have an account? <span onClick={() => setView('register')} className="text-brand-blue font-bold hover:underline cursor-pointer">Sign up</span>
+                                            </p>
+                                        ) : (
+                                            <p className="text-sm text-gray-500 italic system-closed-msg">
+                                                Accounts are by invitation only.
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>
