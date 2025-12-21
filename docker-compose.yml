@@ -23,6 +23,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
+    env_file:
+      - .env
     depends_on:
       - redis
       - backend
@@ -48,6 +50,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
+    env_file:
+      - .env
     depends_on:
       - redis
 

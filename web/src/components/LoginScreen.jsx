@@ -81,11 +81,11 @@ const LoginScreen = ({ setIsAuthenticated, setView }) => {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                        <label className="block text-sm font-medium text-gray-700">Email or Username</label>
                         <input
                             id="login-email"
                             name="username"
-                            type="email"
+                            type="text"
                             ref={emailInputRef}
                             value={email}
                             autoFocus

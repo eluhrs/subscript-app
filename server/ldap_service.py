@@ -21,13 +21,14 @@ class LDAPService:
             dict: User attributes (email, full_name) if successful.
             None: If authentication fails.
         """
-        if not self.enabled or not self.server_url or not self.dn_template:
+        if not self.enabled:
+            return None
+            
+        if not self.server_url or not self.dn_template:
             logger.warning("LDAP authentication attempted but not configured.")
             return None
 
         # 1. Construct User DN
-        # Safety: Basic injection prevention could be added here if needed, 
-        # but DN components are usually flexible.
         try:
             user_dn = self.dn_template.format(username=username)
         except KeyError:
@@ -61,7 +62,7 @@ class LDAPService:
                 # Filter: (objectClass=*)
                 conn.search(search_base=user_dn, 
                             search_filter='(objectClass=*)', 
-                            attributes=['cn', 'displayName', 'mail', 'uid', 'sAMAccountName'])
+                            attributes=['cn', 'displayName', 'mail', 'uid'])
                 
                 if conn.entries:
                     entry = conn.entries[0]
