@@ -5,7 +5,8 @@ output/
 __pycache__/
 *.pyc
 .DS_Store
-documents/
+documents/*
+!documents/demo_template/
 subscript.db
 install.txt
 DEPLOY_LEHIGH.md
