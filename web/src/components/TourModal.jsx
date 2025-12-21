@@ -26,7 +26,7 @@ const STEPS = [
                 </div>
                 <div className="w-full md:w-1/2 text-left">
                     <p className="text-lg leading-relaxed text-gray-700">
-                        <strong>Left-hand document details</strong> include thumbnail, filename, and update time. The <strong>middle status indicator</strong> shows "Done", "Transcribing", or "Error". <strong>Right-side action buttons</strong> allow editing, sharing, viewing, or deleting. The <strong>files button expands</strong> to view/download specific outputs (Segmentation Map, TXT, XML, PDF, or ZIP). The <strong>Bulk Actions button</strong> allows deletion of selected rows or downloading all files of specific types for chosen documents.
+                        <strong>Left-hand document details</strong> include thumbnail, filename, and last update time. The <strong>middle status indicator</strong> shows "Done", "Transcribing", or "Error" states. <strong>Right-hand buttons</strong> allow editing, sharing, viewing, or deleting documents. The files button expands to view/download specific outputs (Segmentation Map, TXT, XML, PDF, or ZIP archive). The <strong>Bulk Actions button</strong> allows deletion of selected rows or downloading all files of specific types for chosen documents.
                     </p>
                 </div>
             </div>
@@ -41,7 +41,7 @@ const STEPS = [
                 </div>
                 <div className="w-full md:w-1/2 text-left">
                     <p className="text-lg leading-relaxed text-gray-700">
-                        <strong>Drag and drop or browse for images</strong> to process, either <strong>individually or in batches</strong>. By default, <strong>multiple images create individual dashboard documents</strong>. Optionally, you may <strong>combine all images into a single multi-page dashboard document</strong>. The latter enables multi-page TXT transcripts, PDFs, and editor functions. Access advanced settings via the <strong>Options button</strong>, with each setting documented within the app.
+                        <strong>Drag and drop or browse for images</strong> to process, either <strong>individually or in batches</strong>.  By default, processing <strong>multiple images creates individual transcription</strong>.  Optionally, you may <strong>combine all images into a single multi-page transcription</strong>. The latter enables multi-page TXT transcripts, PDFs, and editor functions.  Access advanced settings via the <strong>Options button</strong>, with each setting documented within the app.
                     </p>
                 </div>
             </div>
@@ -56,7 +56,7 @@ const STEPS = [
                 </div>
                 <div className="w-full md:w-1/2 text-left pl-0 md:pl-8">
                     <p className="text-lg leading-relaxed text-gray-700">
-                        The profile page includes a secure <strong>password change tool</strong> and includes a link to <strong>watch this tour again</strong>. For testing, a <strong>welcome_sample document</strong> has been placed on your dashboard.
+                        The profile page includes a secure <strong>password change tool</strong> for guest accounts, but not for institutional accounts which are managed centrally.  The profile tool also includes a link to <strong>view this tour again</strong>.  A <strong>sample document</strong> for you to explore has been placed on your dashboard.
                     </p>
                 </div>
             </div>
