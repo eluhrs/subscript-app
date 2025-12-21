@@ -15,3 +15,4 @@ git+https://github.com/eluhrs/subscript.git@v1.2
 pdf2image
 Pillow
 PyYAML
+ldap3

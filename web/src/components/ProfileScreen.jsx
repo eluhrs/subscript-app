@@ -546,12 +546,31 @@ const ProfileScreen = () => {
                             <input type="email" value={user.email} readOnly className="mt-1 block w-full px-4 py-2 border border-gray-400 bg-gray-200 rounded-lg text-gray-600 cursor-not-allowed" />
                         </div>
 
-                        <h3 className="text-xl font-semibold text-gray-700 border-b pb-2 pt-4">Change Password</h3>
-                        <div className="space-y-4">
-                            <input type="password" placeholder="Current Password" value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
-                            <input type="password" placeholder="New Password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
-                            <input type="password" placeholder="Confirm Password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
-                        </div>
+                        {/* LDAP Badge / Auth Source Indicator */}
+                        {user.auth_source === 'ldap' && (
+                            <div className="flex items-center p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                <div className="p-2 bg-indigo-100 rounded-full mr-3 text-indigo-600">
+                                    <Lock size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-indigo-900">LDAP Managed Account</h4>
+                                    <p className="text-xs text-indigo-700 mt-1">
+                                        Your account details and password are managed by your organization's directory service.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {user.auth_source !== 'ldap' && (
+                            <>
+                                <h3 className="text-xl font-semibold text-gray-700 border-b pb-2 pt-4">Change Password</h3>
+                                <div className="space-y-4">
+                                    <input type="password" placeholder="Current Password" value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
+                                    <input type="password" placeholder="New Password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
+                                    <input type="password" placeholder="Confirm Password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="block w-full px-4 py-2 border border-gray-400 rounded-lg" />
+                                </div>
+                            </>
+                        )}
 
                         <button type="submit" disabled={loading} className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-gray-600 rounded-lg shadow-lg text-lg font-semibold text-white bg-[#5B84B1] hover:bg-[#4A6D94] disabled:opacity-50">
                             {loading ? "Saving..." : <><Save size={20} /><span>Save All Changes</span></>}
@@ -587,6 +606,7 @@ const ProfileScreen = () => {
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                                             </tr>
@@ -596,6 +616,14 @@ const ProfileScreen = () => {
                                                 <tr key={u.id}>
                                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{u.full_name}</td>
                                                     <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
+                                                    <td className="px-6 py-4 text-sm">
+                                                        <span className={`px-2 py-0.5 inline-flex text-xs font-medium border rounded ${u.auth_source === 'ldap'
+                                                                ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                                : 'bg-gray-50 text-gray-500 border-gray-200'
+                                                            }`}>
+                                                            {u.auth_source === 'ldap' ? 'LDAP' : 'Local'}
+                                                        </span>
+                                                    </td>
                                                     <td className="px-6 py-4 text-sm">
                                                         <button onClick={() => u.id !== user.id && handleRoleUpdate(u, !u.is_admin)} disabled={u.id === user.id} className={`flex items-center space-x-1 px-2 py-1 rounded border ${u.is_admin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                                                             {u.is_admin ? <Check size={14} /> : <X size={14} />} <span>{u.is_admin ? 'Yes' : 'No'}</span>

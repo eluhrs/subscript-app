@@ -28,6 +28,7 @@ from jose import JWTError, jwt
 
 
 from server.utils import sanitize_filename, sanitize_email, create_thumbnail
+from server.ldap_service import LDAPService
 
 # Configure Logging (Shared Volume, Rotation)
 LOG_DIR = "/app/logs"
@@ -78,6 +79,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
     is_locked = Column(Boolean, default=False)
+    auth_source = Column(String, default="local") # 'local' or 'ldap'
     documents = relationship("Document", back_populates="owner", cascade="all, delete-orphan")
 
 class Document(Base):
@@ -135,6 +137,13 @@ with engine.connect() as conn:
     except Exception:
         print("Migrating DB: Adding is_admin column to users table")
         conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+
+    # Phase 35: Ensure auth_source column exists
+    try:
+        conn.execute(text("SELECT auth_source FROM users LIMIT 1"))
+    except Exception:
+        print("Migrating DB: Adding auth_source column to users table")
+        conn.execute(text("ALTER TABLE users ADD COLUMN auth_source VARCHAR DEFAULT 'local'"))
 
     # Phase 29: Ensure user_preferences table exists
     try:
@@ -294,6 +303,7 @@ class UserResponse(BaseModel):
     full_name: Optional[str] = None
     is_admin: bool = False
     is_locked: bool = False
+    auth_source: str = "local"
     class Config:
         orm_mode = True
 
@@ -420,14 +430,84 @@ def register(user: UserCreate, token: Optional[str] = None, db: Session = Depend
 
 @app.post("/api/auth/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # 1. Try to find user directly (assuming username input is email)
     user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    
+    authenticated_user = None
+    
+    # 2. Local Authentication
+    if user and user.auth_source == 'local':
+        if verify_password(form_data.password, user.hashed_password):
+            authenticated_user = user
+    
+    # 3. LDAP Authentication (If local failed or user not found or user is ldap)
+    if not authenticated_user:
+        # Only try LDAP if user is missing OR user exists and is ldap
+        # (Don't let local users bypass password by hacking LDAP?? No, LDAP bind is strict)
+        should_try_ldap = False
+        if not user:
+            should_try_ldap = True
+        elif user.auth_source == 'ldap':
+            should_try_ldap = True
+            
+        if should_try_ldap:
+            ldap_service = LDAPService()
+            ldap_info = ldap_service.authenticate(form_data.username, form_data.password)
+            
+            if ldap_info:
+                # LDAP Success!
+                # Check mapping via Email (in case they logged in with username 'jdoe' but DB has 'jdoe@univ.edu')
+                email_from_ldap = ldap_info.get('email')
+                if not email_from_ldap:
+                     # Fallback to username if it looks like email, or error?
+                     # We need an email for Subscript.
+                     if '@' in form_data.username:
+                         email_from_ldap = form_data.username
+                     else:
+                         print("ERROR: LDAP authenticated but no email found. Cannot provision.")
+                         # If user matches existing DB user by some other means? Hard. fail for now.
+                
+                if email_from_ldap:
+                    # Look up user again by the canonical LDAP email
+                    existing_user = db.query(User).filter(User.email == email_from_ldap).first()
+                    
+                    if existing_user:
+                        # User exists (mapped by email)
+                        authenticated_user = existing_user
+                        # Update metadata
+                        if ldap_info.get('full_name') and ldap_info['full_name'] != existing_user.full_name:
+                             existing_user.full_name = ldap_info['full_name']
+                             db.commit()
+                        if existing_user.auth_source != 'ldap':
+                             # Migration? Or collision?
+                             # Let's assume we update source if they successfully authed via LDAP?
+                             # No, unsafe. Keep as is.
+                             pass
+                    else:
+                        # JIT Provisioning
+                        # Check if first user
+                        is_admin = db.query(User).count() == 0
+                        new_user = User(
+                            email=email_from_ldap,
+                            full_name=ldap_info.get('full_name'),
+                            auth_source='ldap',
+                            is_admin=is_admin,
+                            hashed_password="" # Not used
+                        )
+                        db.add(new_user)
+                        db.commit()
+                        db.refresh(new_user)
+                        authenticated_user = new_user
+
+    if not authenticated_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    user = authenticated_user
+
     if user.is_locked:
          raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -438,7 +518,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-
 
     # Attempt to provision demo document (Passive/Async-like check)
     # We do this AFTER token creation but before return. 
