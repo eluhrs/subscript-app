@@ -137,7 +137,12 @@ function App() {
     if (currentView === 'register') {
       return <RegisterScreen setView={setCurrentView} />;
     }
-    return <LoginScreen setIsAuthenticated={setIsAuthenticated} setView={setCurrentView} />;
+    // Handle 'login' and 'login-guest'
+    return <LoginScreen
+      setIsAuthenticated={setIsAuthenticated}
+      setView={setCurrentView}
+      initialTab={currentView === 'login-guest' ? 'guest' : 'lehigh'}
+    />;
   }
 
   // If authenticated, show the main layout

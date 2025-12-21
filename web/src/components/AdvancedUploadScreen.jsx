@@ -100,8 +100,6 @@ const AdvancedUploadScreen = ({ setView }) => {
                     subscript_temp: temperature !== null ? parseFloat(temperature) : 0.0,
                     subscript_prompt: systemPrompt,
                     subscript_seg: segmentationModel,
-                    subscript_prompt: systemPrompt,
-                    subscript_seg: segmentationModel,
                     subscript_preproc: preprocessing,
                     model_overrides: modelOverrides
                 }

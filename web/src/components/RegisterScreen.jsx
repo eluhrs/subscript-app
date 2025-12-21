@@ -64,7 +64,7 @@ const RegisterScreen = ({ setView }) => {
         <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
             {/* Layer 1: Background Image */}
             <div
-                className="absolute inset-0 z-0 bg-cover bg-no-repeat"
+                className="absolute inset-0 z-0 bg-cover bg-no-repeat blur-sm scale-105"
                 style={{
                     backgroundImage: "url('/background.jpg')",
                     backgroundPosition: "center 25%"
@@ -76,77 +76,100 @@ const RegisterScreen = ({ setView }) => {
 
             {/* Layer 3: Register Card */}
             <div
-                className="relative z-10 w-full max-w-md bg-[#EDEDEB] shadow-2xl rounded-xl p-6 space-y-4 border border-gray-300"
+                className="relative z-10 w-full max-w-md bg-[#EDEDEB] shadow-2xl rounded-xl overflow-hidden border border-gray-200 h-[540px] flex flex-col"
                 style={{ transform: 'translateY(2px)' }}
             >
-                <h1 className="text-4xl font-extrabold text-center text-[#3A5A80]">Create Account</h1>
+                <div className="p-8 flex-1 flex flex-col h-full">
+                    <h1 className="text-4xl font-extrabold text-center text-[#3A5A80] mb-[54px]">Create Account</h1>
 
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <span className="block sm:inline">{error}</span>
-                    </div>
-                )}
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span className="block sm:inline">{error}</span>
+                        </div>
+                    )}
 
-                {isInviteOnly && !token && (
-                    <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded relative text-center">
-                        <p className="font-bold">Invitation Required</p>
-                        <p className="text-sm">Registration is currently limited to invited users only.</p>
-                    </div>
-                )}
+                    {isInviteOnly && !token && (
+                        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded relative text-center mb-4">
+                            <p className="font-bold">Invitation Required</p>
+                            <p className="text-sm">Registration is currently limited to invited users only.</p>
+                        </div>
+                    )}
 
-                {token && (
-                    <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-2 rounded text-center text-sm mb-4">
-                        Invitation Code Applied
-                    </div>
-                )}
+                    {token && (
+                        <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-2 rounded text-center text-sm mb-4">
+                            Invitation Code Applied
+                        </div>
+                    )}
 
-                <form onSubmit={handleRegister} className="space-y-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="mt-1 block w-full px-4 py-2 border border-gray-400 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="mt-1 block w-full px-4 py-2 border border-gray-400 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className="mt-1 block w-full px-4 py-2 border border-gray-400 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={loading || !canRegister}
-                        className="w-full flex justify-center py-2 px-4 border border-gray-600 rounded-lg shadow-sm text-lg font-semibold text-white bg-[#5B84B1] hover:bg-[#4A6D94] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out disabled:opacity-50"
-                    >
-                        {loading ? (
-                            <UserPlus className="animate-spin mr-2" size={20} />
-                        ) : (
-                            'Sign Up'
-                        )}
-                    </button>
-                </form>
+                    <form onSubmit={handleRegister} className="flex flex-col h-full block">
+                        <div className="space-y-4 shrink-0">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    className="block w-full px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition shadow-sm"
+                                    style={{ borderColor: '#9ca3af', '--tw-ring-color': '#5B84B1' }}
+                                    onFocus={(e) => e.target.style.borderColor = '#5B84B1'}
+                                    onBlur={(e) => e.target.style.borderColor = '#9ca3af'}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    className="block w-full px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition shadow-sm"
+                                    style={{ borderColor: '#9ca3af', '--tw-ring-color': '#5B84B1' }}
+                                    onFocus={(e) => e.target.style.borderColor = '#5B84B1'}
+                                    onBlur={(e) => e.target.style.borderColor = '#9ca3af'}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="block w-full px-4 py-3 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition shadow-sm"
+                                    style={{ borderColor: '#9ca3af', '--tw-ring-color': '#5B84B1' }}
+                                    onFocus={(e) => e.target.style.borderColor = '#5B84B1'}
+                                    onBlur={(e) => e.target.style.borderColor = '#9ca3af'}
+                                />
+                            </div>
+                        </div>
 
-                <div className="text-center mt-1">
-                    <button onClick={() => setView('login')} className="flex items-center justify-center w-full text-sm text-gray-500 hover:text-gray-700 transition">
-                        <ArrowLeft size={16} className="mr-1" /> Back to Login
-                    </button>
+                        <div className="mt-4 mb-[11px] shrink-0">
+                            <button
+                                type="submit"
+                                disabled={loading || !canRegister}
+                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-transform transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: '#5B84B1' }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4A6D94'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#5B84B1'}
+                            >
+                                {loading ? (
+                                    <UserPlus className="animate-spin mr-2" size={24} />
+                                ) : (
+                                    'Sign Up'
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex items-center justify-center pt-[2px]">
+                            <button
+                                type="button"
+                                onClick={() => setView('login-guest')}
+                                className="flex items-center justify-center w-full text-base font-medium text-[#5B84B1] hover:underline transition bg-transparent border-none cursor-pointer"
+                            >
+                                <ArrowLeft size={18} className="mr-1" /> Back to Guest Login
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -156,11 +179,11 @@ const RegisterScreen = ({ setView }) => {
                 message="Your account has been created. Please log in to continue."
                 onConfirm={() => {
                     setShowSuccessModal(false);
-                    setView('login');
+                    setView('login-guest');
                 }}
                 onClose={() => {
                     setShowSuccessModal(false);
-                    setView('login');
+                    setView('login-guest');
                 }}
                 confirmText="Go to Login"
                 type="success"

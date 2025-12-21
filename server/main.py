@@ -1630,6 +1630,14 @@ def reset_user_preferences(
     
     return {"status": "reset_complete"}
 
+@app.get("/api/system/status")
+def get_system_status(db: Session = Depends(get_db)):
+    mode_setting = db.query(SystemSettings).filter(SystemSettings.key == "registration_mode").first()
+    mode = "open"
+    if mode_setting:
+        mode = mode_setting.value
+    return {"registration_mode": mode}
+
 @app.put("/api/admin/settings", response_model=SystemConfigResponse)
 def update_admin_settings(settings: SettingsUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user.is_admin:

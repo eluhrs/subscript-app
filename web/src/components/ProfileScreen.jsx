@@ -125,7 +125,8 @@ const ProfileScreen = () => {
                     id: data.id,
                     full_name: data.full_name || '',
                     email: data.email || '',
-                    is_admin: data.is_admin || false
+                    is_admin: data.is_admin || false,
+                    auth_source: data.auth_source || 'local'
                 });
             } else if (response.status === 401) {
                 window.dispatchEvent(new Event('auth:unauthorized'));
@@ -401,7 +402,7 @@ const ProfileScreen = () => {
                 errorOccurred = true;
                 successMessage.push("Failed to update profile.");
             }
-        } catch (e) { loading = false; }
+        } catch (e) { setLoading(false); }
 
         if (passwords.current) {
             if (passwords.new !== passwords.confirm) {
@@ -537,8 +538,8 @@ const ProfileScreen = () => {
                             <input
                                 type="text"
                                 value={user.full_name}
-                                onChange={(e) => setUser({ ...user, full_name: e.target.value })}
-                                className="mt-1 block w-full px-4 py-2 border border-gray-400 rounded-lg"
+                                readOnly
+                                className="mt-1 block w-full px-4 py-2 border border-gray-400 bg-gray-200 rounded-lg text-gray-600 cursor-not-allowed"
                             />
                         </div>
                         <div>
@@ -546,22 +547,20 @@ const ProfileScreen = () => {
                             <input type="email" value={user.email} readOnly className="mt-1 block w-full px-4 py-2 border border-gray-400 bg-gray-200 rounded-lg text-gray-600 cursor-not-allowed" />
                         </div>
 
-                        {/* LDAP Badge / Auth Source Indicator */}
-                        {user.auth_source === 'ldap' && (
-                            <div className="flex items-center p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                                <div className="p-2 bg-indigo-100 rounded-full mr-3 text-indigo-600">
+                        {user.auth_source !== 'local' && (
+                            <div className="flex items-center p-4 bg-gray-200 border border-gray-400 rounded-lg">
+                                <div className="p-2 bg-gray-300 rounded-full mr-3 text-gray-600">
                                     <Lock size={20} />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-indigo-900">LDAP Managed Account</h4>
-                                    <p className="text-xs text-indigo-700 mt-1">
-                                        Your account details and password are managed by your organization's directory service.
-                                    </p>
+                                    <span className="text-sm font-medium text-gray-700">
+                                        Your profile cannot be edited because it is managed by your organization.
+                                    </span>
                                 </div>
                             </div>
                         )}
 
-                        {user.auth_source !== 'ldap' && (
+                        {user.auth_source === 'local' && (
                             <>
                                 <h3 className="text-xl font-semibold text-gray-700 border-b pb-2 pt-4">Change Password</h3>
                                 <div className="space-y-4">
@@ -618,8 +617,8 @@ const ProfileScreen = () => {
                                                     <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
                                                     <td className="px-6 py-4 text-sm">
                                                         <span className={`px-2 py-0.5 inline-flex text-xs font-medium border rounded ${u.auth_source === 'ldap'
-                                                                ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
-                                                                : 'bg-gray-50 text-gray-500 border-gray-200'
+                                                            ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                            : 'bg-gray-50 text-gray-500 border-gray-200'
                                                             }`}>
                                                             {u.auth_source === 'ldap' ? 'LDAP' : 'Local'}
                                                         </span>
