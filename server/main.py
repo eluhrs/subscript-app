@@ -498,11 +498,16 @@ def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestFor
                     # Look up user again by the canonical LDAP email
                     existing_user = db.query(User).filter(User.email == email_from_ldap).first()
                     
-                    # Fallback: If not found by email, but we initially found a user by the input username, match them.
+                    # Fallback 1: If not found by email, but we initially found a user by the input username, match them.
                     # This implies Admin added "eluhrs", LDAP returns "eluhrs@lehigh.edu". We trust the link.
                     if not existing_user and user and user.auth_source == 'ldap':
                         existing_user = user
-                        # We could update email here, but for now let's preserve what Admin entered.
+                    
+                    # Fallback 2: If finding by email failed, AND initial username lookup failed (because input was email but DB is username)
+                    # Try looking up by the STRIPPED username that we successfully authenticated with.
+                    if not existing_user and ldap_check_username:
+                         # e.g. User typed "eluhrs@lehigh.edu". ldap_check_username="eluhrs". DB has "eluhrs".
+                         existing_user = db.query(User).filter(User.email == ldap_check_username).first()
                     
                     if existing_user:
                         # User exists (mapped by email)
