@@ -4,148 +4,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LDAP UI Mocks</title>
+    <title>Lehigh Login Mockup</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Extract from index.css logic */
-        .badge-ldap {
-            background-color: #E0E7FF;
-            color: #4F46E5;
-            border: 1px solid #C7D2FE;
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lehigh: {
+                            DEFAULT: '#6F5F58', // Desaturated Brown
+                            dark: '#5A4D47',
+                        },
+                        brand: {
+                            blue: '#5B84B1',
+                            dark: '#4A6D94',
+                        }
+                    }
+                }
+            }
         }
-
-        .badge-local {
-            background-color: #F3F4F6;
-            color: #6B7280;
-            border: 1px solid #E5E7EB;
-        }
-    </style>
+    </script>
 </head>
 
-<body class="bg-gray-100 p-10 font-sans">
-    <div class="max-w-4xl mx-auto space-y-12">
-        <div class="flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-[#3A5A80]">LDAP Integration Mocks</h1>
-            <a href="index.html" class="text-blue-500 hover:underline">Back to Index</a>
-        </div>
+<body class="bg-gray-100 p-10 font-sans flex flex-col items-center justify-center min-h-screen">
 
-        <!-- Mock 1: Profile Header with Badge -->
-        <section>
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 block border-b pb-2">1. Profile Header (LDAP User)</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md max-w-lg">
-                <div class="mb-6 flex justify-between items-center">
-                    <h2 class="text-3xl font-bold text-[#3A5A80]">My Profile</h2>
-                    <span
-                        class="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
-                        LDAP Account
-                    </span>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" value="John Doe (Managed)" disabled
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed">
-                        <p class="text-xs text-gray-400 mt-1">Provide by LDAP server.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mock 2: Hidden Password Section -->
-        <section>
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 block border-b pb-2">2. Security Section (LDAP User)
-            </h2>
-            <div class="bg-white p-6 rounded-lg shadow-md max-w-lg border-2 border-dashed border-gray-200">
-                <div class="flex items-center justify-center p-8 flex-col text-center space-y-3 opacity-75">
-                    <div class="p-3 bg-gray-100 rounded-full">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                            </path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900">Password Managed Externally</h3>
-                    <p class="text-sm text-gray-500 max-w-xs">
-                        Your account is managed by your organization's LDAP directory. Please contact your IT
-                        administrator to change your password.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mock 3: Admin User List -->
-        <section>
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 block border-b pb-2">3. Admin User List</h2>
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                User</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Role</th>
-                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Source</th>
-                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <!-- Local User -->
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div
-                                        class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
-                                        EL</div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">Eric Luhrs</div>
-                                        <div class="text-sm text-gray-500">eric@example.com</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Admin</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span
-                                    class="px-2 py-0.5 inline-flex text-xs font-medium border rounded bg-gray-50 text-gray-500 border-gray-200">Local</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-blue-600">Edit
-                            </td>
-                        </tr>
-                        <!-- LDAP User -->
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div
-                                        class="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 font-bold">
-                                        JD</div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">John Doe</div>
-                                        <div class="text-sm text-gray-500">jdoe@univ.edu</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">User</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span
-                                    class="px-2 py-0.5 inline-flex text-xs font-medium border rounded bg-indigo-50 text-indigo-600 border-indigo-200">LDAP</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-blue-600">Edit
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
+    <!-- Controls to simulate state -->
+    <div class="mb-8 p-4 bg-white rounded-lg shadow-sm flex items-center gap-4">
+        <span class="text-sm font-bold text-gray-500 uppercase tracking-wide">Simulation:</span>
+        <button onclick="toggleSystemMode()" id="mode-toggle"
+            class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full border border-green-200 hover:bg-green-200 transition">
+            System: Open
+        </button>
     </div>
+
+    <!-- Login Card -->
+    <!-- Height h-[475px] -->
+    <div
+        class="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 h-[475px] flex flex-col">
+        <div class="p-8 flex-1 flex flex-col h-full">
+            <h2 class="text-3xl font-extrabold text-center text-[#3A5A80] mb-2">Subscript</h2>
+            <p class="text-gray-500 text-center text-sm mb-6">Document Transcription Platform</p>
+
+            <!-- Login Tabs -->
+            <div class="flex border-b border-gray-200 mb-6 shrink-0">
+                <button onclick="switchTab('lehigh')" id="tab-lehigh"
+                    class="flex-1 py-3 px-4 text-center text-lehigh font-bold border-b-2 border-lehigh focus:outline-none transition-colors">
+                    Lehigh Login
+                </button>
+                <button onclick="switchTab('guest')" id="tab-guest"
+                    class="flex-1 py-3 px-4 text-center text-gray-500 font-medium hover:text-gray-700 focus:outline-none transition-colors">
+                    Guest Access
+                </button>
+            </div>
+
+            <!-- Lehigh Login Form -->
+            <form id="form-lehigh" class="flex flex-col h-full block">
+                <div class="space-y-4 shrink-0">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+                        <div class="relative">
+                            <input type="text" placeholder="Lehigh UserID"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-lehigh focus:border-lehigh transition shadow-sm" />
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="user" class="text-gray-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" placeholder="••••••••"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-lehigh focus:border-lehigh transition shadow-sm" />
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="lock" class="text-gray-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decreased margin to pull text up (~14px) -->
+                <div class="mt-4 mb-[14px] shrink-0">
+                    <button type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-semibold text-white bg-lehigh hover:bg-lehigh-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lehigh transition-transform transform active:scale-95">
+                        Sign in with Lehigh UserID
+                    </button>
+                </div>
+
+                <div class="flex-1"></div>
+            </form>
+
+            <!-- Guest Login Form -->
+            <form id="form-guest" class="flex flex-col h-full hidden">
+                <div class="space-y-4 shrink-0">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                        <div class="relative">
+                            <input type="email" placeholder="name@example.com"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue transition shadow-sm" />
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="mail" class="text-gray-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" placeholder="••••••••"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue transition shadow-sm" />
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="lock" class="text-gray-400 w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decreased margin here too for consistency -->
+                <div class="mt-4 mb-[14px] shrink-0">
+                    <button type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-semibold text-white bg-brand-blue hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition-transform transform active:scale-95">
+                        Sign In as Guest
+                    </button>
+                </div>
+
+                <!-- Footer Area -->
+                <div class="flex-1 flex items-center justify-center">
+
+                    <!-- Open State -->
+                    <div id="guest-footer-open" class="text-center">
+                        <p class="text-sm text-gray-600">
+                            Don't have an account?
+                            <a href="#"
+                                class="font-medium text-brand-blue hover:text-brand-dark transition duration-150">Sign
+                                up</a>
+                        </p>
+                    </div>
+
+                    <!-- Closed State -->
+                    <div id="guest-footer-closed" class="text-center hidden">
+                        <p class="text-sm text-gray-500 italic">
+                            Accounts are by invitation only.
+                        </p>
+                    </div>
+
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const COLORS = {
+            lehigh: 'text-lehigh border-lehigh',
+            guest: 'text-brand-blue border-brand-blue',
+            inactive: 'text-gray-500 border-transparent'
+        };
+
+        let systemOpen = true;
+
+        function toggleSystemMode() {
+            systemOpen = !systemOpen;
+            const btn = document.getElementById('mode-toggle');
+            const footerOpen = document.getElementById('guest-footer-open');
+            const footerClosed = document.getElementById('guest-footer-closed');
+
+            if (systemOpen) {
+                btn.textContent = "System: Open";
+                btn.className = "px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full border border-green-200 hover:bg-green-200 transition";
+                footerOpen.classList.remove('hidden');
+                footerClosed.classList.add('hidden');
+            } else {
+                btn.textContent = "System: Closed";
+                btn.className = "px-3 py-1 text-sm bg-red-100 text-red-700 rounded-full border border-red-200 hover:bg-red-200 transition";
+                footerOpen.classList.add('hidden');
+                footerClosed.classList.remove('hidden');
+            }
+        }
+
+        function switchTab(tab) {
+            const formLehigh = document.getElementById('form-lehigh');
+            const formGuest = document.getElementById('form-guest');
+            const tabLehigh = document.getElementById('tab-lehigh');
+            const tabGuest = document.getElementById('tab-guest');
+
+            if (tab === 'lehigh') {
+                formLehigh.classList.remove('hidden');
+                formGuest.classList.add('hidden');
+
+                tabLehigh.className = "flex-1 py-3 px-4 text-center font-bold border-b-2 focus:outline-none transition-colors " + COLORS.lehigh;
+                tabGuest.className = "flex-1 py-3 px-4 text-center font-medium hover:text-gray-700 focus:outline-none transition-colors " + COLORS.inactive;
+
+            } else {
+                formLehigh.classList.add('hidden');
+                formGuest.classList.remove('hidden');
+
+                tabLehigh.className = "flex-1 py-3 px-4 text-center font-medium hover:text-gray-700 focus:outline-none transition-colors " + COLORS.inactive;
+                tabGuest.className = "flex-1 py-3 px-4 text-center font-bold border-b-2 focus:outline-none transition-colors " + COLORS.guest;
+            }
+        }
+    </script>
 </body>
 
 </html>
