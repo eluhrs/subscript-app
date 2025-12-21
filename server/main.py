@@ -30,6 +30,9 @@ from jose import JWTError, jwt
 from server.utils import sanitize_filename, sanitize_email, create_thumbnail
 from server.ldap_service import LDAPService
 
+# Access Environment
+LDAP_ENABLED = os.getenv("LDAP_ENABLED", "false").lower() == "true"
+
 # Configure Logging (Shared Volume, Rotation)
 LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -1636,7 +1639,10 @@ def get_system_status(db: Session = Depends(get_db)):
     mode = "open"
     if mode_setting:
         mode = mode_setting.value
-    return {"registration_mode": mode}
+    return {
+        "registration_mode": mode,
+        "ldap_enabled": LDAP_ENABLED
+    }
 
 @app.put("/api/admin/settings", response_model=SystemConfigResponse)
 def update_admin_settings(settings: SettingsUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

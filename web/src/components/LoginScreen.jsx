@@ -23,6 +23,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
 
     // System Status
     const [isSystemOpen, setIsSystemOpen] = useState(false); // Default to closed for safety until fetched
+    const [isLdapEnabled, setIsLdapEnabled] = useState(true); // Default to true so tabs exist initially
 
     useEffect(() => {
         const fetchSystemStatus = async () => {
@@ -31,6 +32,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
                 if (response.ok) {
                     const data = await response.json();
                     setIsSystemOpen(data.registration_mode === 'open');
+                    setIsLdapEnabled(data.ldap_enabled !== false); // Default true if missing
                 }
             } catch (error) {
                 console.error("Failed to fetch system status", error);
@@ -38,6 +40,13 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
         };
         fetchSystemStatus();
     }, []);
+
+    // Force 'guest' tab if LDAP is disabled
+    useEffect(() => {
+        if (!isLdapEnabled) {
+            setActiveTab('guest');
+        }
+    }, [isLdapEnabled]);
 
     // Colors
     const COLORS = {
@@ -108,29 +117,31 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
                         <p className="text-gray-500 text-sm mt-2 mb-6">Document Transcription Platform</p>
                     </div>
 
-                    {/* Tabs */}
-                    <div className="flex border-b border-gray-200 mb-6 shrink-0">
-                        <button
-                            onClick={() => { setActiveTab('lehigh'); setError(''); }}
-                            className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
-                                ${activeTab === 'lehigh'
-                                    ? `text-[${COLORS.lehigh.primary}] border-[${COLORS.lehigh.primary}]`
-                                    : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
-                            style={activeTab === 'lehigh' ? { color: COLORS.lehigh.primary, borderColor: COLORS.lehigh.primary } : {}}
-                        >
-                            Lehigh Login
-                        </button>
-                        <button
-                            onClick={() => { setActiveTab('guest'); setError(''); }}
-                            className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
-                                ${activeTab === 'guest'
-                                    ? `text-[${COLORS.guest.primary}] border-[${COLORS.guest.primary}]`
-                                    : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
-                            style={activeTab === 'guest' ? { color: COLORS.guest.primary, borderColor: COLORS.guest.primary } : {}}
-                        >
-                            Guest Access
-                        </button>
-                    </div>
+                    {/* Tabs - Only show if LDAP is enabled */}
+                    {isLdapEnabled && (
+                        <div className="flex border-b border-gray-200 mb-6 shrink-0">
+                            <button
+                                onClick={() => { setActiveTab('lehigh'); setError(''); }}
+                                className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
+                                    ${activeTab === 'lehigh'
+                                        ? `text-[${COLORS.lehigh.primary}] border-[${COLORS.lehigh.primary}]`
+                                        : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
+                                style={activeTab === 'lehigh' ? { color: COLORS.lehigh.primary, borderColor: COLORS.lehigh.primary } : {}}
+                            >
+                                Lehigh Login
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('guest'); setError(''); }}
+                                className={`flex-1 py-3 px-4 text-center font-bold focus:outline-none transition-colors border-b-2 
+                                    ${activeTab === 'guest'
+                                        ? `text-[${COLORS.guest.primary}] border-[${COLORS.guest.primary}]`
+                                        : 'text-gray-500 border-transparent font-medium hover:text-gray-700'}`}
+                                style={activeTab === 'guest' ? { color: COLORS.guest.primary, borderColor: COLORS.guest.primary } : {}}
+                            >
+                                Guest Access
+                            </button>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded shrink-0">
@@ -213,7 +224,7 @@ const LoginScreen = ({ setIsAuthenticated, setView, initialTab = 'lehigh' }) => 
                                 {loading ? (
                                     <RefreshCcw className="animate-spin" size={24} />
                                 ) : (
-                                    activeTab === 'lehigh' ? 'Sign in with Lehigh UserID' : 'Sign In as Guest'
+                                    activeTab === 'lehigh' ? 'Sign in with Lehigh UserID' : (isLdapEnabled ? 'Sign In as Guest' : 'Sign In')
                                 )}
                             </button>
                         </div>
