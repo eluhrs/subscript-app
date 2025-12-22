@@ -510,8 +510,45 @@ def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestFor
                          existing_user = db.query(User).filter(User.email == ldap_check_username).first()
                     
                     if existing_user:
-                        # User exists (mapped by email)
+                        # User exists (mapped by email or fallback username)
                         authenticated_user = existing_user
+                        
+                        # Data Consistency: If DB has 'eluhrs' but LDAP says 'eluhrs@lehigh.edu', migrate!
+                        if email_from_ldap and existing_user.email != email_from_ldap:
+                            print(f"MIGRATION: Updating user {existing_user.email} -> {email_from_ldap}")
+                            old_dir = os.path.join(USER_DOCS_DIR, sanitize_email(existing_user.email))
+                            new_dir = os.path.join(USER_DOCS_DIR, sanitize_email(email_from_ldap))
+                            
+                            # 1. Update DB
+                            existing_user.email = email_from_ldap
+                            db.commit()
+                            
+                            # 2. Update Filesystem
+                            if os.path.exists(old_dir):
+                                if os.path.exists(new_dir):
+                                    # Target exists (split brain). Merge old into new.
+                                    print(f"MIGRATION: Merging {old_dir} into existing {new_dir}")
+                                    try:
+                                        for item in os.listdir(old_dir):
+                                            s = os.path.join(old_dir, item)
+                                            d = os.path.join(new_dir, item)
+                                            if os.path.isdir(s):
+                                                shutil.copytree(s, d, dirs_exist_ok=True)
+                                            else:
+                                                if not os.path.exists(d): # Don't overwrite existing
+                                                    shutil.copy2(s, d)
+                                        # Archive old dir? Or Delete? Safe to delete if merged.
+                                        shutil.rmtree(old_dir)
+                                    except Exception as e:
+                                        print(f"MIGRATION ERROR: Failed to merge directories: {e}")
+                                else:
+                                    # Simple Move
+                                    print(f"MIGRATION: Renaming {old_dir} -> {new_dir}")
+                                    try:
+                                        os.rename(old_dir, new_dir)
+                                    except Exception as e:
+                                        print(f"MIGRATION ERROR: Failed to rename directory: {e}")
+
                         # Update metadata
                         if ldap_info.get('full_name') and ldap_info['full_name'] != existing_user.full_name:
                              existing_user.full_name = ldap_info['full_name']

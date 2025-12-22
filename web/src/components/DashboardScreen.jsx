@@ -485,10 +485,10 @@ const DashboardScreen = ({ setView, setEditorDocId }) => {
                                             <span>{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleDateString()} <span className="text-[10px] md:text-xs ml-0.5">{new Date((doc.last_modified || doc.upload_date) + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
                                             <span className="hidden md:block w-1 h-1 rounded-full bg-gray-400"></span>
                                             {doc.status === 'completed' && <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[9px] md:text-[10px] font-medium border border-green-200">Done</span>}
-                                            {doc.status === 'processing' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Transcribing</span>}
+                                            {(doc.status === 'processing' || doc.status === 'queued' || doc.status === 'uploaded') && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Transcribing</span>}
                                             {doc.status === 'merging' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Merging</span>}
                                             {doc.status === 'updating_pdf' && <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[9px] md:text-[10px] font-medium border border-yellow-200">Updating</span>}
-                                            {(doc.status === 'error' || doc.status === 'queued') && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[9px] md:text-[10px] font-medium border border-red-200">Error</span>}
+                                            {doc.status === 'error' && <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[9px] md:text-[10px] font-medium border border-red-200">Error</span>}
                                         </div>
                                     </div>
                                 </div>
