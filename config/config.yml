@@ -16,7 +16,7 @@ segmentation:
 
 # --- Transcription ---
 transcription:
-  default_model: "gemini-pro-3"
+  default_model: "gemini-flash-3"
   
   # Image Preprocessing Settings
   preprocessing:
@@ -68,7 +68,9 @@ transcription:
 
     gemini-pro-2.5:
       provider: "gemini"
-      model: "gemini-2.5-pro"
+      # Transport can be "grpc" (default, faster) or "rest" (http/1.1, more stable in some firewalls/docker)
+      transport: "rest"
+      model: "gemini-1.5-pro"
       prompt: |
         You are a literal transcription engine for 19th-century handwritten 
         manuscripts. Extract text from the supplied image exactly as written. 
