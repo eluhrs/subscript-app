@@ -1575,7 +1575,7 @@ def load_system_config_logic(db: Session) -> Dict[str, Any]:
     default_temperature = 0.0
     models_list = [] 
 
-    config_path = "/app/config.yml"
+    config_path = "/app/config/config.yml"
     models_config = {} # Define early scope
     transcription = {}
     preprocessing = {}

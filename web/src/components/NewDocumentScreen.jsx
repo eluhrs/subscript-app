@@ -12,19 +12,44 @@ const CircleHelp = ({ className }) => (
 );
 
 const NewDocumentScreen = ({ setView }) => {
-    const [selectedModel, setSelectedModel] = useState('gemini-pro-3');
+    const [selectedModel, setSelectedModel] = useState('');
+    const [availableModels, setAvailableModels] = useState([]);
     const [files, setFiles] = useState([]); // Array of { file: File, preview: string, id: string }
     const [pdfFilename, setPdfFilename] = useState('');
     const [uploading, setUploading] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+
+    // Fetch Preferences (Models)
+    React.useEffect(() => {
+        const fetchPreferences = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/preferences', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setAvailableModels(data.available_models || []);
+                    // Set default from preference/config
+                    if (data.subscript_model) {
+                        setSelectedModel(data.subscript_model);
+                    } else if (data.available_models && data.available_models.length > 0) {
+                        setSelectedModel(data.available_models[0].id);
+                    }
+                    if (data.subscript_prompt) setSystemPrompt(data.subscript_prompt);
+                }
+            } catch (error) {
+                console.error("Failed to load preferences:", error);
+            }
+        };
+        fetchPreferences();
+    }, []);
 
     // Options State
     const [showOptions, setShowOptions] = useState(false);
     const [systemPrompt, setSystemPrompt] = useState('');
     const [activeHelpSection, setActiveHelpSection] = useState(null);
 
-    // Modal State
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         title: '',
@@ -32,6 +57,32 @@ const NewDocumentScreen = ({ setView }) => {
         type: 'info',
         onClose: () => { }
     });
+
+    // Fetch Preferences (Models)
+    React.useEffect(() => {
+        const fetchPreferences = async () => {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/preferences', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setAvailableModels(data.available_models || []);
+                    // Set default from preference/config
+                    if (data.subscript_model) {
+                        setSelectedModel(data.subscript_model);
+                    } else if (data.available_models && data.available_models.length > 0) {
+                        setSelectedModel(data.available_models[0].id);
+                    }
+                    if (data.subscript_prompt) setSystemPrompt(data.subscript_prompt);
+                }
+            } catch (error) {
+                console.error("Failed to load preferences:", error);
+            }
+        };
+        fetchPreferences();
+    }, []);
 
     // Cleanup previews on unmount
     React.useEffect(() => {
@@ -313,12 +364,11 @@ const NewDocumentScreen = ({ setView }) => {
                                 onChange={(e) => setSelectedModel(e.target.value)}
                                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border"
                             >
-                                <option value="gemini-pro-3">Gemini 3.0 Pro</option>
-                                <option value="gemini-pro-2.5">Gemini 2.5 Pro</option>
-                                <option value="gemini-flash-2.5">Gemini 2.5 Flash</option>
-                                <option value="gemini-flash-lite-2.5">Gemini 2.5 Flash Lite</option>
-                                <option value="openai-gpt-4o">OpenAI GPT-4o</option>
-                                <option value="claude-sonnet-4.5">Claude 3.5 Sonnet</option>
+                                {availableModels.map(model => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>

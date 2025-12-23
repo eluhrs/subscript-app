@@ -24,7 +24,7 @@ RUN useradd -m -u 5000 appuser
 
 # Copy Server Code (Exclude local src/subscript hacks)
 COPY server /app/server
-COPY config.yml /app/config.yml
+COPY config /app/config
 
 # Ensure appuser owns the application directory
 RUN chown -R appuser:appuser /app
