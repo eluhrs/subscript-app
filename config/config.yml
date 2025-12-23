@@ -16,7 +16,7 @@ segmentation:
 
 # --- Transcription ---
 transcription:
-  default_model: "gemini-flash-3"
+  default_model: "gemini-pro-3"
   
   # Image Preprocessing Settings
   preprocessing:

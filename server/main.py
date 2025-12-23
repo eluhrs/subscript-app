@@ -1827,7 +1827,7 @@ def get_config_yml(current_user: User = Depends(get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    config_path = "/app/config.yml"
+    config_path = "/app/config/config.yml"
     try:
         with open(config_path, "r") as f:
             content = f.read()
@@ -1842,7 +1842,7 @@ def update_config_yml(config: ConfigUpdate, current_user: User = Depends(get_cur
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    config_path = "/app/config.yml"
+    config_path = "/app/config/config.yml"
     
     # Validate YAML
     try:
