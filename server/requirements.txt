@@ -10,7 +10,7 @@ email-validator
 celery
 redis
 
-git+https://github.com/eluhrs/subscript.git@v1.2
+git+https://github.com/eluhrs/subscript.git@main
 
 pdf2image
 Pillow
