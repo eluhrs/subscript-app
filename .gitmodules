@@ -1,0 +1,3 @@
+[submodule "subscript"]
+	path = subscript
+	url = https://github.com/eluhrs/subscript.git
