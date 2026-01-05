@@ -488,13 +488,46 @@ def rebuild_pdf_task(self, doc_id: int, file_path: str):
         original_argv = sys.argv
         output_dir = os.path.dirname(file_path)
             
-        sys.argv = [
-            "subscript",
-            file_path,
+        sys.argv = ["subscript"]
+        
+        if doc.is_container and doc.children:
+            # Handle Container: Process all children + Combine
+            child_paths = []
+            user_dir = os.path.dirname(os.path.dirname(file_path)) # Parent dir of the doc dir? 
+            # Wait, file_path construction in main.py:
+            # user_dir = .../email
+            # doc_dir = user_dir/dir_name
+            # file_path = doc_dir/filename
+            # So output_dir is doc_dir.
+            
+            # Subscript CLI expects input paths.
+            # We need to reconstruct paths for children.
+            # Children are usually in the same directory (merged folder).
+            dir_path = os.path.dirname(file_path)
+            
+            # Sort children by page_order
+            sorted_children = sorted(doc.children, key=lambda c: c.page_order)
+            
+            for child in sorted_children:
+                # Assume child is in same directory as parent?
+                # Currently: upload_document creates a dir for the doc.
+                # If merged, they share the dir?
+                # Let's assume standard structure: /app/documents/email/doc_hash/filename
+                child_p = os.path.join(dir_path, child.filename)
+                child_paths.append(child_p)
+                
+            sys.argv.extend(child_paths)
+            sys.argv.extend(["--combine", doc.filename])
+            
+        else:
+            # Single Document
+            sys.argv.append(file_path)
+
+        sys.argv.extend([
             "--onlypdf",
             "--output", output_dir,
             "--config", "/app/config/config.yml"
-        ]
+        ])
         
         try:
             run_subscript_pipeline()
