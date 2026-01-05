@@ -492,7 +492,8 @@ def rebuild_pdf_task(self, doc_id: int, file_path: str):
             "subscript",
             file_path,
             "--onlypdf",
-            "--output", output_dir
+            "--output", output_dir,
+            "--config", "/app/config/config.yml"
         ]
         
         try:

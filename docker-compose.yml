@@ -16,7 +16,9 @@ services:
       - ./.env:/app/.env
       - ./server:/app/server
       - ./config:/app/config
+      - ./subscript/src:/app/libs
     environment:
+      - PYTHONPATH=/app/libs
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
