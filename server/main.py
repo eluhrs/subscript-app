@@ -830,6 +830,43 @@ def upload_document(
     
     return doc
 
+@app.post("/api/documents/create-container", response_model=DocumentResponse)
+def create_container(
+    filename: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    import secrets
+    clean_email = sanitize_email(current_user.email)
+    clean_filename = sanitize_filename(filename)
+    
+    if not clean_filename.lower().endswith(".pdf"):
+        clean_filename += ".pdf"
+        
+    group_base = os.path.splitext(clean_filename)[0]
+    short_hash = secrets.token_hex(4)
+    group_dir_name = f"{group_base}-{short_hash}"
+    
+    # Create Directory
+    upload_dir = os.path.join(USER_DOCS_DIR, clean_email, group_dir_name)
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Parent Record
+    parent_doc = Document(
+        filename=clean_filename,
+        status="processing", 
+        owner_id=current_user.id,
+        is_container=True,
+        output_pdf_path=None, # Will be generated later
+        directory_name=group_dir_name
+    )
+    db.add(parent_doc)
+    db.commit()
+    db.refresh(parent_doc)
+    
+    return parent_doc
+
+
 @app.post("/api/upload-batch", response_model=DocumentResponse)
 def upload_batch(
     files: List[UploadFile] = File(...),
