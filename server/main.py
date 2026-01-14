@@ -783,6 +783,8 @@ def upload_document(
     file: UploadFile = File(...),
     model: str = Form("gemini-pro-3"), # Default to valid model key
     options: Optional[str] = Form(None),
+    parent_id: Optional[int] = Form(None),
+    page_order: int = Form(0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -790,14 +792,30 @@ def upload_document(
     clean_email = sanitize_email(current_user.email)
     clean_filename = sanitize_filename(file.filename)
     
-    # Generate unique directory name: filename-hash
-    # We use base filename for the prefix
-    base_name = os.path.splitext(clean_filename)[0]
-    short_hash = secrets.token_hex(4) # 8 characters
-    dir_name = f"{base_name}-{short_hash}"
+    # Check Parent
+    parent_doc = None
+    if parent_id:
+        parent_doc = db.query(Document).filter(Document.id == parent_id, Document.owner_id == current_user.id).first()
+        if not parent_doc:
+             raise HTTPException(status_code=404, detail="Parent document not found")
+        if not parent_doc.is_container:
+             raise HTTPException(status_code=400, detail="Parent document is not a container")
+
+    # Determine Storage Directory
+    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
+    
+    if parent_doc and parent_doc.directory_name:
+        # Save into Parent's Directory
+        dir_name = parent_doc.directory_name
+    else:
+        # Standard: New unique directory
+        # Generate unique directory name: filename-hash
+        # We use base filename for the prefix
+        base_name = os.path.splitext(clean_filename)[0]
+        short_hash = secrets.token_hex(4) # 8 characters
+        dir_name = f"{base_name}-{short_hash}"
     
     # Path: /app/documents/email/dir_name/
-    user_dir = os.path.join(USER_DOCS_DIR, clean_email)
     storage_dir = os.path.join(user_dir, dir_name)
     os.makedirs(storage_dir, exist_ok=True)
     
@@ -807,6 +825,7 @@ def upload_document(
         shutil.copyfileobj(file.file, buffer)
         
     # Synchronous Thumbnail Generation
+    base_name = os.path.splitext(clean_filename)[0]
     thumb_path = os.path.join(storage_dir, f"{base_name}-thumb.jpg")
     create_thumbnail(file_path, thumb_path)
         
@@ -814,13 +833,15 @@ def upload_document(
         filename=clean_filename, 
         status="queued", 
         owner_id=current_user.id,
-        directory_name=dir_name
+        directory_name=dir_name,
+        parent_id=parent_doc.id if parent_doc else None,
+        page_order=page_order
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
     
-    logger.info(f"JOB SUBMITTED: User {current_user.email} uploaded {clean_filename}")
+    logger.info(f"JOB SUBMITTED: User {current_user.email} uploaded {clean_filename} (Parent: {parent_id})")
     
     # Trigger Celery Task
     from server.tasks import process_document_task

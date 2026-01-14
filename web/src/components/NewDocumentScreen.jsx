@@ -160,32 +160,87 @@ const NewDocumentScreen = ({ setView }) => {
         // Phase 2: Batch Upload (if filename provided)
         if (pdfFilename && pdfFilename.trim() !== '') {
             try {
-                const formData = new FormData();
-                files.forEach(item => formData.append('files', item.file));
-                formData.append('model', selectedModel);
-                formData.append('group_filename', pdfFilename);
+                // Step 1: Create Container
+                const containerFormData = new FormData();
+                containerFormData.append('filename', pdfFilename);
 
-                const response = await fetch('/api/upload-batch', {
+                const containerResponse = await fetch('/api/documents/create-container', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData,
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: containerFormData
                 });
 
-                if (response.ok) {
+                if (!containerResponse.ok) {
+                    const err = await containerResponse.json();
+                    throw new Error(err.detail || "Failed to create document container");
+                }
+
+                const container = await containerResponse.json();
+                const parentId = container.id;
+
+                // Step 2: Upload Files Individually
+                let successCount = 0;
+                let failCount = 0;
+                let errors = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const item = files[i];
+                    setUploadProgress({ current: i + 1, total: files.length });
+
+                    const formData = new FormData();
+                    formData.append('file', item.file);
+                    formData.append('model', selectedModel);
+                    formData.append('parent_id', parentId);
+                    formData.append('page_order', i);
+
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: formData,
+                        });
+
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            const errData = await response.json();
+                            failCount++;
+                            errors.push(`${item.file.name}: ${errData.detail || response.statusText}`);
+                        }
+                    } catch (error) {
+                        console.error("Upload error", error);
+                        failCount++;
+                        errors.push(`${item.file.name}: ${error.message}`);
+                    }
+                }
+
+                // Step 3: Trigger PDF Rebuild (Merge) immediately? 
+                // Currently backend process_document_task runs per page.
+                // The parent doc status stays 'processing' until we manually trigger rebuild? 
+                // Or user clicks "Update PDF" later. 
+                // Since this is "New Document", getting the pages in is the priority.
+                // User can verify pages then click "Update PDF" or we can trigger it.
+                // Triggering it now might be premature if pages are still processing (transcription).
+                // Best to let user see "Processing" status on parent.
+
+                if (failCount === 0) {
                     showModal(
                         "Batch Upload Successful",
-                        `Successfully uploaded ${files.length} pages as "${pdfFilename}".\n\nThey have been added to the queue.`,
+                        `Successfully uploaded ${files.length} pages into "${pdfFilename}".\n\nThey have been added to the queue for processing.`,
                         "success",
                         () => setView('dashboard')
                     );
                 } else {
-                    const errData = await response.json();
-                    showModal("Upload Failed", errData.detail || response.statusText, "danger");
+                    showModal(
+                        "Upload Completed with Errors",
+                        `Success: ${successCount}\nFailed: ${failCount}\n\nErrors:\n${errors.join('\n')}`,
+                        "warning",
+                        () => { if (successCount > 0) setView('dashboard'); }
+                    );
                 }
+
             } catch (error) {
-                console.error("Batch upload error", error);
+                console.error("Batch upload init error", error);
                 showModal("Upload Error", error.message, "danger");
             } finally {
                 setUploading(false);
