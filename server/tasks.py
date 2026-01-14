@@ -434,6 +434,7 @@ def merge_document_task(self, parent_id: int):
         # subscript --combine output.pdf input1 input2 ...
         sys.argv = [
             "subscript",
+            "--config", "/app/config/config.yml",
             "--combine",
             output_pdf_path,
         ] + child_paths
