@@ -372,7 +372,6 @@ def merge_document_task(self, parent_id: int):
         return
 
     try:
-        original_argv = sys.argv
         logging.info(f"Starting merge for parent {parent.id}: {parent.filename}")
         parent.status = "merging"
         db.commit()
@@ -385,90 +384,76 @@ def merge_document_task(self, parent_id: int):
         if not children:
             raise Exception("No children found to merge")
 
-        # Construct file paths
-        # They should be in the same directory as parent context?
-        # User dir:
+        # Determine paths
         clean_email = sanitize_email(parent.owner.email)
-        # Parent filename: "MyBook.pdf". Group dir: "MyBook"
-        # The children are in `documents/email/MyBook/page1.jpg`
-        # We need the absolute paths to the child IMAGES (User inputs).
-        # `subscript --combine output.pdf input1.jpg input2.jpg ...`
-        
-        # Determine paths
-        # Parent output path: documents/email/MyBook.pdf (or inside the folder?)
-        # User said "MyBook.pdf" row -> clickable.
-        # Let's put the output PDF in the `documents/email/` root (same as MyBook.lst)
-        # So it matches the "ghost" entry.
-        
-        # Determine paths
         user_dir = os.path.join(USER_DOCS_DIR, clean_email)
         
         # Parent Output Path
-        # Should go into the parent's specific directory.
         if parent.directory_name:
              parent_dir = os.path.join(user_dir, parent.directory_name)
         else:
-             parent_dir = user_dir # fallback
+             parent_dir = user_dir 
              
         output_pdf_path = os.path.join(parent_dir, parent.filename)
+        output_txt_path = os.path.splitext(output_pdf_path)[0] + ".txt"
         
-        # Child paths
-        child_paths = []
+        # Collect PDF and TXT paths from children
+        pdf_paths = []
+        txt_contents = [] # ordered list of strings (or paths)
+
         for child in children:
-            # Each child might be in its own directory (if flat upload) or same group dir
             if child.directory_name:
                  child_dir = os.path.join(user_dir, child.directory_name)
             else:
-                 # If no directory name, assume legacy or same as parent group?
-                 # If we created correctly, ALL children have directory_name matching the group (if grouped)
-                 # or their own (if flat).
-                 child_dir = user_dir 
-                 
-            child_full_path = os.path.join(child_dir, child.filename)
-            child_paths.append(child_full_path)
-
-        # Import subscript
-        from subscript.__main__ import main as run_subscript_pipeline
-
-        # Mock sys.argv
-        # subscript --combine output.pdf input1 input2 ...
-        sys.argv = [
-            "subscript",
-            "--config", "/app/config/config.yml",
-            "--combine",
-            output_pdf_path,
-        ] + child_paths
-        
-        logging.info(f"Running subscript command: {sys.argv}")
-        
-        try:
-            run_subscript_pipeline()
-            parent.status = "completed"
-            parent.output_pdf_path = output_pdf_path
-            # Also set TXT path: subscript creates "filename.txt" along with PDF?
-            parent.output_txt_path = os.path.splitext(output_pdf_path)[0] + ".txt"
-            parent.last_modified = datetime.utcnow()
+                 child_dir = user_dir
             
+            # Verify PDF exists
+            child_pdf = os.path.join(child_dir, f"{os.path.splitext(child.filename)[0]}.pdf")
+            if os.path.exists(child_pdf):
+                pdf_paths.append(child_pdf)
+            else:
+                logging.warning(f"Child PDF missing for {child.filename}, skipping in merge.")
 
-                    
+            # Load TXT content
+            child_txt = os.path.join(child_dir, f"{os.path.splitext(child.filename)[0]}.txt")
+            if os.path.exists(child_txt):
+                with open(child_txt, 'r', encoding='utf-8') as f:
+                    txt_contents.append((child.filename, f.read()))
+            else:
+                 logging.warning(f"Child TXT missing for {child.filename}, skipping text merge.")
 
+        if not pdf_paths:
+            raise Exception("No child PDFs found to merge")
 
-        except SystemExit as e:
-            if e.code != 0:
-                raise Exception(f"Subscript merge exited with code {e.code}")
-            parent.status = "completed"
-            parent.output_pdf_path = output_pdf_path
-            parent.output_txt_path = os.path.splitext(output_pdf_path)[0] + ".txt"
-            parent.last_modified = datetime.utcnow()
-            
+        # 1. Merge PDFs using pypdf
+        from pypdf import PdfWriter
+        merger = PdfWriter()
+        for pdf in pdf_paths:
+            merger.append(pdf)
+        
+        merger.write(output_pdf_path)
+        merger.close()
+        logging.info(f"Successfully created merged PDF: {output_pdf_path}")
 
+        # 2. Merge TXTs
+        with open(output_txt_path, "w", encoding="utf-8") as f:
+            for fname, content in txt_contents:
+                f.write(f"\n---------- transcript of {fname} follows  ----------\n\n")
+                f.write(content)
+                if not content.endswith('\n'):
+                    f.write('\n')
+        logging.info(f"Successfully created merged TXT: {output_txt_path}")
+
+        parent.status = "completed"
+        parent.output_pdf_path = output_pdf_path
+        parent.output_txt_path = output_txt_path
+        parent.last_modified = datetime.utcnow()
 
     except Exception as e:
         logging.error(f"Merge failed: {e}")
         parent.status = "error"
         parent.error_message = str(e)
     finally:
-        sys.argv = original_argv
         db.commit()
         db.close()
 
